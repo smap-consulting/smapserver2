@@ -104,6 +104,8 @@ import org.smap.sdal.mcp.tools.TaskCreateTool;
 import org.smap.sdal.mcp.tools.TaskGroupCreateTool;
 import org.smap.sdal.mcp.tools.TaskGroupListTool;
 import org.smap.sdal.mcp.tools.TaskListTool;
+import org.smap.sdal.mcp.tools.TokenListTool;
+import org.smap.sdal.mcp.tools.TokenRevokeTool;
 import org.smap.sdal.mcp.tools.TopicListTool;
 import org.smap.sdal.mcp.tools.WhoAmITool;
 import org.smap.sdal.model.MCPError;
@@ -147,6 +149,8 @@ public class MCP extends Application {
 		registry.register(new UserListTool());
 		registry.register(new UserUpdateTool());
 		registry.register(new GroupListTool());
+		registry.register(new TokenListTool());
+		registry.register(new TokenRevokeTool());
 		registry.register(new SurveyListTool());
 		registry.register(new SurveySubmissionCountTool());
 		registry.register(new SurveyEffectsTool());

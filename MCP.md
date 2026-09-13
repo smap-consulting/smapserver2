@@ -74,6 +74,8 @@ may do.
 | `user_list` | admin | admin, owner | done |
 | `user_update` | admin | admin, owner | done |
 | `group_list` | admin | admin, owner | done |
+| `token_list` | admin | admin, security, owner | done |
+| `token_revoke` | admin | admin, security, owner | done |
 | `survey_list` | read | analyst, admin, view data, manage | done |
 | `survey_submission_counts` | read | analyst, admin, view data | done |
 | `data_query` | read | analyst, admin, view data | done |
@@ -166,7 +168,7 @@ not done.
 | Cases and workflow | `case_settings`, `case_settings_set`, `case_assign`, `workflow_list` | read and write |
 | Notifications and messaging | `notification_list`, `notification_create`, `notification_enable`, `notification_delete`, `mailout_list` | read and write, but nothing sends |
 | Reporting and monitoring | `event_list`, `ops_status`, `usage_report` | read only |
-| Users, roles and access | `user_list`, `user_update`, `group_list` | details only; granting access is not offered |
+| Users, roles and access | `user_list`, `user_update`, `group_list`, `token_list`, `token_revoke` | details and AI access; granting security groups is not offered |
 | Server administration | — | not started |
 
 ## Deliberately not exposed
@@ -409,6 +411,30 @@ by a person.
 That is separate from `agent`, and both are wanted. `source` says what kind of thing made the change;
 `agent` says which application, by name. A change with `source` mcp and no `agent` would be a
 console-minted token acting with no registered client.
+
+## Seeing and withdrawing AI access
+
+`token_list` reports the applications that can currently act as somebody here, grouped by application
+and person rather than token by token - a client holding four refreshed tokens is not four grants, it
+is one application somebody allowed once. Self-registered clients are flagged, because anybody can
+register one and the name beside it was chosen by whoever did.
+
+Who a caller sees follows the console's own rule: a security manager, organisation administrator or
+server owner sees the whole organisation, anyone else sees themselves. That is decided in the tool,
+where the caller is known, and passed into the query - so there is no way to ask organisation-wide
+from something that has not checked.
+
+`token_revoke` stops every live token and forgets the remembered consent. Both halves are needed: the
+tokens alone would leave a remembered permission free to hand out a new one without anybody being
+asked. It takes effect at once, because a token is checked on every request - an application loses
+access mid-conversation rather than at the end of one, which is the point of having it.
+
+**It can be used on the connection making the call**, and the answer says so plainly when it happens.
+Forbidding that would be worse: the application somebody most urgently needs to stop is the one
+currently doing something they did not intend.
+
+The grant listing was lifted out of the AI access page into `OAuthTokenManager`, so the page and these
+tools answer the same question the same way.
 
 ## Making a project, and not filling it
 

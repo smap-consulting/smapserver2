@@ -75,33 +75,23 @@ public class McpAccessService extends Application {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 			int uId = GeneralUtilityMethods.getUserId(sd, user);
 
-			String sql = "select t.client_id, c.client_name, c.source, u.ident, "
-					+ "min(t.issued) as first_issued, max(t.last_used) as last_used, "
-					+ "string_agg(distinct t.scope, ' ') as scopes, count(*) as tokens "
-					+ "from oauth_token t "
-					+ "inner join users u on u.id = t.u_id "
-					+ "left outer join oauth_client c on c.client_id = t.client_id "
-					+ "where t.revoked is null and t.client_id is not null "
-					+ (orgWide ? "and t.o_id = ? " : "and t.u_id = ? ")
-					+ "group by t.client_id, c.client_name, c.source, u.ident "
-					+ "order by max(t.last_used) desc nulls last";
-
+			/*
+			 * The listing itself belongs to OAuthTokenManager, so this page and the MCP tools
+			 * answer it the same way.  Whether this caller may see other people's grants is
+			 * decided here, where the caller is known, and passed in.
+			 */
 			ArrayList<Map<String, Object>> out = new ArrayList<>();
-			try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
-				pstmt.setInt(1, orgWide ? oId : uId);
-				ResultSet rs = pstmt.executeQuery();
-				while(rs.next()) {
-					Map<String, Object> row = new HashMap<>();
-					row.put("client_id", rs.getString("client_id"));
-					row.put("client_name", rs.getString("client_name"));
-					row.put("self_registered", !"preregistered".equals(rs.getString("source")));
-					row.put("user", rs.getString("ident"));
-					row.put("first_issued", rs.getString("first_issued"));
-					row.put("last_used", rs.getString("last_used"));
-					row.put("scopes", rs.getString("scopes"));
-					row.put("tokens", rs.getInt("tokens"));
-					out.add(row);
-				}
+			for(OAuthTokenManager.Grant g : new OAuthTokenManager().getGrants(sd, oId, uId, orgWide)) {
+				Map<String, Object> row = new HashMap<>();
+				row.put("client_id", g.clientId);
+				row.put("client_name", g.clientName);
+				row.put("self_registered", g.selfRegistered);
+				row.put("user", g.user);
+				row.put("first_issued", g.firstIssued);
+				row.put("last_used", g.lastUsed);
+				row.put("scopes", g.scopes);
+				row.put("tokens", g.tokens);
+				out.add(row);
 			}
 			return Response.ok(gson.toJson(out)).build();
 

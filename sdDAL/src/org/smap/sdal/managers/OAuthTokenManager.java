@@ -21,6 +21,7 @@ package org.smap.sdal.managers;
 
 import java.security.SecureRandom;
 import java.sql.Connection;
+import java.util.ArrayList;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -270,6 +271,67 @@ public class OAuthTokenManager {
 	 * Revoke one token by value, whatever its type.  RFC 7009 wants this to look the same whether
 	 * or not the value was real, so nothing is reported back.
 	 */
+	/*
+	 * One application's live access for one person: what it is, when it was first allowed, when it
+	 * was last used, and how much it can do.
+	 *
+	 * Grouped by client and person rather than listed token by token, because a client holding four
+	 * refreshed tokens is not four grants - it is one application somebody allowed once, and the
+	 * question being asked is always about the application.
+	 */
+	public static class Grant {
+		public String clientId;
+		public String clientName;
+		public boolean selfRegistered;
+		public String user;
+		public String firstIssued;
+		public String lastUsed;
+		public String scopes;
+		public int tokens;
+	}
+
+	/*
+	 * The live grants, either for one person or across an organisation.
+	 *
+	 * Extracted from the AI access page so that page and MCP answer this the same way.  Whether a
+	 * caller may see other people's grants is the caller's question, not this one's: it is decided
+	 * where the caller is known and passed in, so there is no way for this to be asked org wide by
+	 * something that has not checked.
+	 */
+	public ArrayList<Grant> getGrants(Connection sd, int oId, int uId, boolean orgWide)
+			throws SQLException {
+
+		String sql = "select t.client_id, c.client_name, c.source, u.ident, "
+				+ "min(t.issued) as first_issued, max(t.last_used) as last_used, "
+				+ "string_agg(distinct t.scope, ' ') as scopes, count(*) as tokens "
+				+ "from oauth_token t "
+				+ "inner join users u on u.id = t.u_id "
+				+ "left outer join oauth_client c on c.client_id = t.client_id "
+				+ "where t.revoked is null and t.client_id is not null "
+				+ (orgWide ? "and t.o_id = ? " : "and t.u_id = ? ")
+				+ "group by t.client_id, c.client_name, c.source, u.ident "
+				+ "order by max(t.last_used) desc nulls last";
+
+		ArrayList<Grant> grants = new ArrayList<>();
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setInt(1, orgWide ? oId : uId);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				Grant g = new Grant();
+				g.clientId = rs.getString("client_id");
+				g.clientName = rs.getString("client_name");
+				g.selfRegistered = !"preregistered".equals(rs.getString("source"));
+				g.user = rs.getString("ident");
+				g.firstIssued = rs.getString("first_issued");
+				g.lastUsed = rs.getString("last_used");
+				g.scopes = rs.getString("scopes");
+				g.tokens = rs.getInt("tokens");
+				grants.add(g);
+			}
+		}
+		return grants;
+	}
+
 	public void revokeByValue(Connection sd, String value, String revokedBy) {
 
 		String sql = "update oauth_token set revoked = now(), revoked_by = ? "
