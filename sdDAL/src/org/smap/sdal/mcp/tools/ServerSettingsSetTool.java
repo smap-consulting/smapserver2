@@ -50,8 +50,8 @@ public class ServerSettingsSetTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Changes the server's operational limits: API rate, API records per request, password "
-				+ "strength and how long erased data is kept. These apply to everybody on the "
+		return "Changes the server's operational limits: API rate, API records per request, minimum "
+				+ "password entropy and how long erased data is kept. These apply to everybody on the "
 				+ "server. Keys, passwords, the custom stylesheet and the MCP settings cannot be "
 				+ "changed here - those are console only. Returns the previous values.";
 	}
@@ -84,7 +84,9 @@ public class ServerSettingsSetTool extends AbstractMcpTool {
 				"api_max_records", property("integer",
 						"Optional. Most records one API request returns. 0 means no limit."),
 				"password_strength", property("number",
-						"Optional. Required password strength, 0 to 4."),
+						"Optional. Minimum password entropy in bits - not a score out of five. "
+								+ "Around 15 is weak, 40 is reasonable, 60 is strong. 0 switches "
+								+ "the check off entirely."),
 				"keep_erased_days", property("integer",
 						"Optional. Days erased data is kept before it goes for good."));
 	}
@@ -119,8 +121,21 @@ public class ServerSettingsSetTool extends AbstractMcpTool {
 		if(rate < 0 || maxRecords < 0 || keepDays < 0) {
 			return new MCPToolResult("These cannot be negative. Use 0 for no limit.", true);
 		}
-		if(strength < 0 || strength > 4) {
-			return new MCPToolResult("Password strength runs from 0 to 4.", true);
+		/*
+		 * Entropy in bits, passed to nbvcxz as a minimum - not a score out of five, which is what it
+		 * was first built as and would have refused this server's own setting of 15.  The upper bound
+		 * is a sanity check rather than a rule: nothing below it is wrong, but a number above it
+		 * would refuse every password anybody could type.
+		 */
+		if(strength < 0 || strength > 200) {
+			return new MCPToolResult("Minimum password entropy is measured in bits. Around 15 is "
+					+ "weak, 40 reasonable, 60 strong; above 200 nobody could type a password that "
+					+ "passes.", true);
+		}
+		if(strength == 0 && s.password_strength != 0) {
+			return new MCPToolResult("Setting the minimum entropy to 0 switches password strength "
+					+ "checking off completely, for everybody. If that is meant, set it in the "
+					+ "console where it is presented as the choice it is.", true);
 		}
 		/*
 		 * Refused rather than accepted quietly.  Nothing stops the number being zero, but erased data
@@ -164,9 +179,9 @@ public class ServerSettingsSetTool extends AbstractMcpTool {
 					.append(" to ").append(describeLimit(maxRecords, "records"));
 		}
 		if(strength != s.password_strength) {
-			text.append("\n- password strength: ").append(s.password_strength).append(" to ")
-					.append(strength)
-					.append(" - existing passwords are not affected, only ones set from now on");
+			text.append("\n- minimum password entropy: ").append(s.password_strength)
+					.append(" to ").append(strength)
+					.append(" bits - existing passwords are not affected, only ones set from now on");
 		}
 		if(keepDays != s.keep_erased_days) {
 			text.append("\n- erased data kept: ").append(s.keep_erased_days).append(" to ")

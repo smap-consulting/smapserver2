@@ -38,7 +38,8 @@ public class ServerSettingsGetTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "The server's operational settings: rate and record limits, password strength, how "
+		return "The server's operational settings: rate and record limits, the minimum password "
+				+ "entropy, how "
 				+ "long erased data is kept, and the MCP settings. Reports whether mail, SMS, maps "
 				+ "and SharePoint are configured, but never the keys or passwords themselves.";
 	}
@@ -66,7 +67,7 @@ public class ServerSettingsGetTool extends AbstractMcpTool {
 		Map<String, Object> limits = new LinkedHashMap<>();
 		limits.put("apiRatePerMinute", s.ratelimit);
 		limits.put("apiMaxRecords", s.getMaxRecords());
-		limits.put("passwordStrength", s.password_strength);
+		limits.put("passwordEntropyBits", s.password_strength);
 		limits.put("keepErasedDays", s.keep_erased_days);
 
 		Map<String, Object> mcp = new LinkedHashMap<>();
@@ -81,7 +82,13 @@ public class ServerSettingsGetTool extends AbstractMcpTool {
 		 * asked, without answering "what is the password", which does not.
 		 */
 		Map<String, Object> configured = new LinkedHashMap<>();
-		configured.put("email", set(s.smtp_host) || "aws".equalsIgnoreCase(s.email_type));
+		/*
+		 * "awssdk" is the value, not "aws".  Getting that wrong reported email as unconfigured on a
+		 * server sending through SES, which is exactly the wrong answer for the question this is here
+		 * to answer.
+		 */
+		configured.put("email", "awssdk".equalsIgnoreCase(s.email_type)
+				|| (set(s.smtp_host) && set(s.email_domain)));
 		configured.put("emailType", s.email_type == null ? "" : s.email_type);
 		configured.put("sms", set(s.sms_url) || set(s.vonage_application_id));
 		configured.put("maps", set(s.mapbox_default) || set(s.google_key) || set(s.maptiler_key));
@@ -102,7 +109,8 @@ public class ServerSettingsGetTool extends AbstractMcpTool {
 				: s.ratelimit + " per minute");
 		text.append("\n- API records per request: ").append(s.getMaxRecords() == 0
 				? "no limit" : String.valueOf(s.getMaxRecords()));
-		text.append("\n- password strength: ").append(s.password_strength);
+		text.append("\n- minimum password entropy: ").append(s.password_strength)
+				.append(s.password_strength == 0 ? " - no strength check at all" : " bits");
 		text.append("\n- erased data kept for: ").append(s.keep_erased_days).append(" day(s)");
 
 		text.append("\n\nMCP");
