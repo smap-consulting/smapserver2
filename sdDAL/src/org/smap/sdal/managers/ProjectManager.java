@@ -233,6 +233,19 @@ public class ProjectManager {
 	/*
 	 * Delete projects
 	 */
+	/*
+	 * Delete projects.
+	 *
+	 * This owns its transaction.  It has always ended with a commit, but left opening the
+	 * transaction to whoever called it, and a caller that did not open one was not simply refused:
+	 * with autoCommit on, every statement here commits as it runs, so the deletes were applied
+	 * permanently and then the commit threw.  The work was done and the caller was told it had
+	 * failed - and a rollback in that state does nothing, there being no transaction to undo.
+	 *
+	 * A caller that has already opened one keeps it, and gets to decide when to commit; only the
+	 * connection this opened is restored, so nothing here hands a connection back to the pool in a
+	 * state its next borrower did not ask for.
+	 */
 	public void deleteProjects(Connection sd, Connection cResults,
 			Authorise a, 
 			ArrayList<Project> pArray, 
@@ -240,8 +253,13 @@ public class ProjectManager {
 			String basePath) throws Exception {
 
 		PreparedStatement pstmt = null;
+		boolean autoCommitSetFalse = false;
 		
 		try {	
+			if(sd.getAutoCommit()) {
+				sd.setAutoCommit(false);
+				autoCommitSetFalse = true;
+			}
 			String sql = null;
 			ResultSet resultSet = null;
 			
@@ -341,8 +359,18 @@ public class ProjectManager {
 			
 			sd.commit();
 					
+		} catch (Exception e) {
+			/*
+			 * Rolled back here rather than left to the caller, because the caller cannot know how
+			 * far through this got.
+			 */
+			try {sd.rollback();} catch (Exception ignored) {}
+			throw e;
 		} finally {	
 			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
+			if(autoCommitSetFalse) {
+				try {sd.setAutoCommit(true);} catch (Exception ignored) {}
+			}
 		}
 		
 	}
