@@ -295,6 +295,16 @@ public class McpDispatcher {
 		 * will give an enumerator an administrator's rights - so the tool is reported unknown,
 		 * which is consistent with it never having appeared in tools/list.
 		 */
+		/*
+		 * A scope this server will not issue is not something the client can step up to, so
+		 * challenging for it would send it to a metadata document that does not name it.  Reported
+		 * unknown, which is what it is here - and is consistent with it never having been listed.
+		 */
+		if(!registry.isGrantable(ctx, tool)) {
+			log.info("MCP tool " + name + " refused for " + ctx.user
+					+ ", " + tool.getRequiredScope() + " is not granted on this server");
+			return error(request.getId(), McpProtocol.INVALID_PARAMS, "Unknown tool: " + name);
+		}
 		if(!ctx.hasScope(tool.getRequiredScope())) {
 			throw new ScopeRequired(tool.getRequiredScope());
 		}
@@ -316,6 +326,26 @@ public class McpDispatcher {
 		 * unexpired, same tool, same arguments - so a confirmation shown for one thing cannot be
 		 * redeemed against another.
 		 */
+		/*
+		 * The self modification invariant.  A tool that changes somebody's access names the argument
+		 * carrying whose, and the call is refused when that is the caller.
+		 *
+		 * Checked here so no tool can omit it, and checked against the token's own ident rather than
+		 * anything in the arguments - the caller is who the token was issued to, which is not
+		 * something the call can restate.
+		 */
+		String selfArg = tool.getSelfProtectedArgument();
+		if(selfArg != null) {
+			Object subject = arguments.get(selfArg);
+			if(subject != null && ctx.user.equalsIgnoreCase(subject.toString().trim())) {
+				log.warning("MCP tool " + name + " refused: " + ctx.user + " acting on themselves");
+				return ok(request.getId(), toolResult(new MCPToolResult(
+						"This cannot change your own access. A session is not allowed to alter the "
+						+ "permissions it is running with, whatever those permissions are - ask "
+						+ "another administrator, or do it in the console.", true), tool));
+			}
+		}
+
 		ctx.clientCapabilities = request.getClientCapabilities();
 		ctx.inputResponses = params.get("inputResponses") instanceof Map
 				? (Map<String, Object>) params.get("inputResponses")

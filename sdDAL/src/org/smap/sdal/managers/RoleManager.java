@@ -233,6 +233,43 @@ public class RoleManager {
 	}
 	
 	/*
+	 * Change a role's name or description, and nothing else.
+	 *
+	 * updateRole finishes by calling setUsersForRole, which deletes every holder of the role before
+	 * looking at the list it was given - and does that even when the list is null.  So renaming a role
+	 * through the ordinary update strips it from everybody who had it.
+	 *
+	 * That failure is invisible.  A role decides which records its holders may see, so the symptom is
+	 * not an error: it is people quietly seeing fewer records, or none, with nothing to connect it to
+	 * the rename.  The console gets away with it because its screen submits the holders back every
+	 * time; a caller that only wanted to fix a spelling does not.
+	 */
+	public void updateRoleDetails(Connection sd, int rId, int oId, String name, String description,
+			String ident) throws Exception {
+
+		String sql = "update role set name = ?, "
+				+ "description = ?, "
+				+ "changed_by = ?, "
+				+ "changed_ts = now() "
+				+ "where o_id = ? "
+				+ "and id = ?";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, HtmlSanitise.checkCleanName(name, localisation));
+			pstmt.setString(2, HtmlSanitise.checkCleanName(description, localisation));
+			pstmt.setString(3, ident);
+			pstmt.setInt(4, oId);
+			pstmt.setInt(5, rId);
+			log.fine("Update role details: " + pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+	}
+
+	/*
 	 * delete roles
 	 */
 	public void deleteRoles(Connection sd, 

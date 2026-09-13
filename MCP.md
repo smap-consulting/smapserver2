@@ -76,6 +76,9 @@ may do.
 | `group_list` | admin | admin, owner | done |
 | `token_list` | admin | admin, security, owner | done |
 | `token_revoke` | admin | admin, security, owner | done |
+| `two_factor_reset` | admin | admin, org admin, owner | done |
+| `organisation_get` | admin | admin, org admin, owner | done |
+| `organisation_update` | admin | admin, org admin, owner | done |
 | `survey_list` | read | analyst, admin, view data, manage | done |
 | `survey_submission_counts` | read | analyst, admin, view data | done |
 | `data_query` | read | analyst, admin, view data | done |
@@ -168,7 +171,8 @@ not done.
 | Cases and workflow | `case_settings`, `case_settings_set`, `case_assign`, `workflow_list` | read and write |
 | Notifications and messaging | `notification_list`, `notification_create`, `notification_enable`, `notification_delete`, `mailout_list` | read and write, but nothing sends |
 | Reporting and monitoring | `event_list`, `ops_status`, `usage_report` | read only |
-| Users, roles and access | `user_list`, `user_update`, `group_list`, `token_list`, `token_revoke` | details and AI access; granting security groups is not offered |
+| Users, roles and access | `user_list`, `user_update`, `group_list`, `token_list`, `token_revoke`, `two_factor_reset` | details and AI access; granting security groups is not offered |
+| The organisation itself | `organisation_get`, `organisation_update` | contact details, locale and time zone; what it is allowed to do is read only |
 | Server administration | — | not started |
 
 ## Deliberately not exposed
@@ -497,6 +501,254 @@ how a boundary stops being one.
 **`smap:admin` is now advertised**, because these are the first tools to need it. Leaving it out
 would have made every one of them unreachable - the same fault the advertised list was widened to fix
 in the first place.
+
+## The switch under smap:access
+
+The plan had `smap:access` **never advertised** in `scopes_supported`, reachable only by a client
+stepping up when a tool challenged it. That cannot work. A scope the metadata does not list is a
+scope a client cannot ask for: the challenge names it, the client reads the document, finds it
+absent, re-authorises for what it already held, and is refused again. It is the same fault that left
+every write tool unreachable until `ADVERTISED` was widened - discovered once already, and the plan
+still carried the shape that caused it.
+
+What "never advertised" was actually for was that granting it should be a deliberate act rather than
+something a client can wander into. That survives as a switch: **`mcp_allow_access`, off on every
+server, new and existing**, beside the other MCP settings. With it off there is no way to ask; with
+it on the scope is advertised like any other and the ordinary protections apply.
+
+Off is enforced in three places, not one, because metadata is a statement to well behaved clients and
+nothing more:
+
+| Where | What happens |
+| --- | --- |
+| Both metadata documents | `smap:access` is not listed |
+| The consent form | stripped from the request, so nobody is shown a checkbox for a permission that would be taken away after they ticked it |
+| The form coming back | stripped again - the scope and the checkboxes are both posted fields, so a form that was not the one we rendered can name anything |
+| A console minted token | stripped at minting |
+
+A request naming it anyway is not refused, it is granted without it. The client gets what it may
+legitimately have and finds out what it cannot do when it tries, which is how every other unknown or
+unavailable scope is already handled.
+
+The authorization server metadata was advertising `MCPScope.all()` while the protected resource
+metadata advertised the narrower list - it told a client it could ask for permissions no tool used.
+Both now give the same answer.
+
+## The organisation, and the phone somebody lost
+
+`organisation_get` reports the organisation's details and, more usefully, **what it is currently
+allowed to do**. Submitting, the API, notifications and SMS can each be switched off at the
+organisation level, and when one of them has been, every explanation further down is wrong: the
+survey is fine, the user is fine, the device is fine, and nothing is arriving. The tool says so in
+words rather than leaving it to be read off a list of flags, because whoever is asking is usually
+half way through chasing the wrong thing.
+
+The mail relay settings are not reported. They hold the password the server sends mail with, and an
+administrator asking an open question about "the settings" should not get it back in a chat
+transcript. Same stance as `server_info`.
+
+`organisation_update` changes the name, contact details, locale and time zone. Nothing else, and the
+omissions are the design:
+
+- **What the organisation may do is not changeable from here.** Switching submitting off stops every
+  device in the organisation at once, and it also sends the administrator an email saying so. That is
+  a decision for a screen that tells somebody what they are doing, not a side effect of a sentence
+  about a postal address.
+- **Mail settings and limits are out of reach**, being a credential and the thing being paid for.
+
+The console's own save writes thirty seven columns out of one object, so a part filled object does
+not leave the rest alone - it writes what the object happens to hold, and for a boolean nobody set
+that is `false`. Correcting an address through it would have switched off submissions, the API, SMS
+and notifications, blanked the mail relay password, set the limits to nothing, and reported success.
+So this goes through a narrow manager method that writes only the columns named, which is now the
+third instance of the same shape after `project_update` and `user_update`.
+
+It takes no organisation id and acts on the caller's own, so there is no reading of an argument under
+which it could reach another one. The rule about who may change it is the console's - an organisation
+administrator, or the plain administrator recorded as the organisation's owner - applied here rather
+than borrowed, because `canUserUpdateOrganisation` closes the connection it was handed before it
+throws, which would take this request's connection with it and turn a refusal into a failure several
+tools later.
+
+The time zone gets a warning of its own in the answer, because changing it changes how **every
+existing submission time reads**, not just future ones. Nothing stored moves; how it is shown does.
+
+`two_factor_reset` is the lost phone tool. Without it a user whose authenticator is gone has no way
+back in, which is why the console has it. Two things are narrower here.
+
+**It will not reset the caller's own.** In the console that is harmless, because reaching the console
+already meant passing the second factor. Here it would not be: a token is a bearer credential, and a
+client that can clear the second factor on the account it is acting as has removed the protection
+that the token being stolen was supposed to run into. Somebody who has genuinely lost their own phone
+is reset by another administrator, or in the console.
+
+**And it asks first.** Everything else that stops to ask here is about data; this is about
+authentication, where the person who should be agreeing is a person and not a client holding a token.
+The reset itself is the console's own manager method, which logs it against both people.
+
+That confirmation nearly cost the tool. Elicitation is declared by the client, and the client this
+was first tested from does not declare it - `whoami` reports `can_ask_for_approval` false - so `ask()`
+did not ask, it refused, and the tool was unreachable from the one client anybody was using. Built
+deliberately, then walled off by its own safeguard.
+
+So where a client cannot put the question to anybody, the caller names the person back instead:
+`acknowledge: {"user": "<username>"}`, the same shape `data_bulk_update` already uses. **It is a
+weaker thing and the answer says so** - evidence that the call was meant, not evidence that somebody
+agreed. What actually stands behind the tool is not the acknowledgement: it cannot touch the caller's
+own account, cannot reach outside their organisation, and is written to the log against both people
+whatever happens.
+
+## Changing who can reach what
+
+`smap:access`, and every tool here needs the `mcp_allow_access` switch on.
+
+**The invariant lives in the dispatcher.** A tool that changes somebody's access names the argument
+carrying whose - `getSelfProtectedArgument()` - and the dispatcher refuses the call when that names
+the caller. It is checked against the ident the token was issued to, which is not something the call
+can restate. It is there rather than in each tool because the one place it must not be is optional: a
+tool that forgot the check would be the whole of the hole.
+
+`role_list` answers a question neither `user_list` nor `group_list` can. A group says what kind of
+thing somebody may do; a **role** says which records they see once they are allowed to see any. The
+filters are reported rather than counted, because "three surveys" says nothing and `q1 = 'rabbit'`
+says exactly who can see what - and a wrong filter is invisible from every other angle, since nobody
+is refused anything, they simply never see records that were there all along. A role attached to no
+survey is called out as filtering nothing, which is either unfinished setup or a leftover.
+
+**It requires `smap:admin`, not `smap:access`, which is a deliberate departure from the plan.** It is
+read only and it is what you reach for when somebody can see only half their data; making it need the
+access switch would mean turning on permission changes in order to diagnose. `group_list` is already
+admin and read only for the same reason. The writes below are all `smap:access`.
+
+### Replacing a list is not adding to one
+
+`user_set_projects` and `user_set_groups` **replace**. That is Smap's shape, not a choice made here,
+and the failure is silent: sending the one project somebody should join removes every other one, and
+nothing about the answer would look wrong. So the description shouts it, the current list is read
+first, the answer names what was added and what was removed, and `previous` comes back for putting
+straight.
+
+Project membership is the one that decides whether a survey is reachable at all - not a group, not a
+role - so a removal is reported as its consequence: they can no longer reach the surveys in it.
+
+`user_set_groups` refuses rather than tries. `insertUserGroupsProjects` **silently skips** a group the
+caller may not grant, so passing a list straight through would report success on a change that was
+half applied - somebody believing a permission was given when it was not. Every group being added is
+checked first and one failure refuses the whole call. Keeping a group the user already has is not an
+addition, so it is allowed even where granting it would not be.
+
+The removal side is a different question from the granting side, and both now live in `UserManager`
+beside the code that enforces them so the two cannot drift:
+
+| | `canGrantGroup` | `canRemoveGroup` |
+| --- | --- | --- |
+| server owner | nobody | nobody |
+| mcp access | server owner, MCP on | server owner, MCP on |
+| enterprise admin | server owner or enterprise manager | same |
+| organisation admin | not a security manager, not a plain admin | same |
+| security, DPO | not a plain admin | same |
+
+Because the delete excludes what the caller cannot remove, a group beyond their reach **survives a
+list that did not mention it**. The answer says so up front, otherwise it looks like the tool ignored
+part of the request. And the result is read back from the database rather than restated from the
+request, so what is reported is what is true.
+
+The three narrow setters - `setUserGroups`, `setUserProjects`, `setUserRoles` - all go through
+`insertUserGroupsProjects`, which already leaves a null list alone and replaces a non null one. That
+behaviour was there for the console and is exactly what granular callers need, so there is no second
+implementation of the grant rules to drift from the first.
+
+### Roles, and the update that empties them
+
+`setUsersForRole` deletes every holder of a role **before** it looks at the list it was given, and
+does that even when the list is null. So `updateRole` - the ordinary way to rename a role - takes the
+role away from everybody who held it.
+
+That failure is invisible in the way that matters most. A role decides which records its holders see,
+so nobody is refused anything: they quietly see fewer records, or none, with nothing connecting it to
+a rename days earlier. The console survives it because its screen submits the holders back every
+time. A caller fixing a spelling does not. `role_update` therefore uses a new narrow
+`updateRoleDetails`, which is **the fourth manager in this stage** written for the same reason, after
+projects, users and organisations.
+
+`role_create` reports the truth about what it made: a role nobody holds, attached to no survey,
+filtering nothing. It also turns `createRole`'s silence on a duplicate name - it does nothing and
+returns zero - into the refusal it actually is.
+
+`role_delete` asks first and says **how many people hold it**, because that number is the size of the
+change and somebody tidying up an unused role does not expect it to be nine. It also refuses to
+predict the direction: deleting a role removes a row filter, which widens what its holders see, but
+on a survey where a role is what grants access at all it takes their access away entirely. Which one
+happens depends on the survey, so the answer names the surveys rather than guessing.
+
+`user_set_roles` refuses for anybody who is not an organisation administrator or a security manager.
+`insertUserGroupsProjects` ignores the role list for everybody else, so the call would otherwise
+report a change it had not made.
+
+It also reads the current roles **straight from `user_role`** rather than from the `User` object.
+`getUserList` builds an empty roles list and fills it only when it was told the caller is an
+organisation administrator or a security manager; asked any other way, every user comes back holding
+no roles - not null, empty, which reads as an answer rather than as a question never asked.
+
+Taking that at face value cost a real role in testing. `previous` came back `[]`, `removed` came back
+`[]`, and the role the tool exists to report the loss of was removed without the answer mentioning it.
+A tool whose whole purpose is to make a list replacement visible has to compare against the real
+list. This is the same defect as the null fields Gson drops, arriving from the opposite direction: an
+empty collection that means "not loaded".
+
+### What the switch hides
+
+`tools/list` filters by group and deliberately not by scope, so a client can discover a tool, be
+refused, and step up. That holds for scopes a client can actually ask for - and with
+`mcp_allow_access` off, `smap:access` is not one. A tool needing it was still listed, so calling it
+returned a challenge naming a scope the metadata does not offer.
+
+Observed rather than reasoned about: the client did not report "ask for smap:access", it reported
+**"requires re-authorization (token expired)"** and dropped the connection. Re-authorising could not
+help, because the scope is not there to ask for.
+
+So a tool whose scope this server will never issue is now hidden and reported unknown if called, on
+the registry's own stated grounds for groups: a tool that can never be run is better never seen. It
+also makes the switch mean what its label says - off previously still advertised the tools and
+invited a call that broke the session.
+
+### Adding somebody, and not removing them
+
+`user_create` **sends no email**. Everything else here follows that rule, and a welcome message to the
+wrong address is exactly what cannot be recalled. The answer says how the person actually gets in -
+the forgotten password page if they have an email, an administrator in the console if they do not -
+because an account nobody can sign into is not obviously different from one that works.
+
+Groups and projects are accepted at creation. Onboarding in three calls invites the second and third
+to be forgotten, leaving an account that can sign in and do nothing. The group rules are the same ones
+`user_set_groups` applies, checked the same way and **before the user exists**, so a group this
+administrator cannot grant refuses the whole call rather than creating somebody with a permission
+silently missing.
+
+`user_delete` is mostly the business of refusing to pretend it is reversible.
+
+The plan said soft delete. The code says otherwise: Smap only softens it for somebody who belongs to
+several organisations, and then just takes them out of this one. For anybody in a single organisation
+- nearly everybody - it is `delete from users where id = ? and o_id = ?` followed by deleting their
+media directory off disk. Which of the two happens is decided inside `deleteUser` by counting
+organisations, so the tool counts them first and **says which delete is about to happen**: "removed
+from this organisation" and "erased" are too different to find out about afterwards.
+
+It also reports what goes with them - assigned tasks and cases, and the projects they were in - and
+offers the reversible alternative in the same breath, because "this person has left" usually means
+*they must not be able to do anything*, and `user_set_groups` with an empty list does that and can be
+put straight back.
+
+`deleteAll` is always false. The flag reaches into every organisation the person belongs to, including
+ones the caller does not administer. A server owner is refused outright: nothing grants that group
+through user administration either, so deleting the account would be a way around a rule the rest of
+the system takes care to enforce.
+
+**A fix went with it.** `deleteUser` had a missing `else` - `if(size <= 1) { hardDelete } if(deleteAll
+&& ...) {} else { softDelete }` - so a single-organisation delete ran the hard delete and then fell
+through and wrote the **soft delete log entry as well**. The audit trail recorded the permanent
+version as the reversible one, which is the worst direction for that error, and this tool would have
+inherited it.
 
 ## What happened, and how things stand
 

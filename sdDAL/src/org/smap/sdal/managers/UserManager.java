@@ -755,6 +755,133 @@ public class UserManager {
 		}
 	}
 
+
+
+	/*
+	 * Whether an administrator with these rights may put somebody in this group.
+	 *
+	 * The same hierarchy insertUserGroupsProjects applies when it decides which of the submitted
+	 * groups to insert - lifted out so a caller can ask beforehand instead of discovering it
+	 * afterwards.  That matters more than it sounds: the insert silently skips a group the
+	 * administrator may not grant, so a caller who did not check would be told the change succeeded
+	 * while part of it had been dropped on the floor.
+	 *
+	 * Kept next to the code that enforces it rather than in the tool layer, so the two cannot drift.
+	 */
+	public static boolean canGrantGroup(int gId,
+			boolean isOrgUser, boolean isSecurityManager, boolean isEnterpriseManager,
+			boolean isServerOwner, boolean mcpEnabled) {
+
+		if(gId == Authorise.OWNER_ID) {
+			return false;			// Never granted through user administration, by anybody
+		}
+		if(gId == 12 || gId == 13) {
+			return false;			// Groups that no longer exist
+		}
+		if(gId == Authorise.MCP_ACCESS_ID) {
+			return isServerOwner && mcpEnabled;
+		}
+		return isServerOwner
+				|| (isEnterpriseManager)
+				|| (isOrgUser && gId != Authorise.ENTERPRISE_ID)
+				|| (isSecurityManager && gId != Authorise.ORG_ID && gId != Authorise.ENTERPRISE_ID)
+				|| (gId != Authorise.SECURITY_ID && gId != Authorise.ORG_ID
+						&& gId != Authorise.DPO_ID && gId != Authorise.ENTERPRISE_ID);
+	}
+
+	/*
+	 * Whether an administrator with these rights may take somebody OUT of this group.
+	 *
+	 * Not the same question as granting it, and the difference is the point: the delete that precedes
+	 * the insert excludes the groups this administrator has no business removing, so a group they
+	 * cannot see survives a save that did not mention it.  A caller replacing somebody's groups needs
+	 * to know which ones will stay whatever list it sends.
+	 */
+	public static boolean canRemoveGroup(int gId,
+			boolean isOrgUser, boolean isSecurityManager, boolean isEnterpriseManager,
+			boolean isServerOwner, boolean mcpEnabled) {
+
+		if(gId == Authorise.OWNER_ID) {
+			return false;
+		}
+		if(gId == Authorise.MCP_ACCESS_ID && !(isServerOwner && mcpEnabled)) {
+			return false;
+		}
+		if(isServerOwner || isEnterpriseManager) {
+			return true;
+		}
+		if(isOrgUser) {
+			return gId != Authorise.ENTERPRISE_ID;
+		}
+		if(isSecurityManager) {
+			return gId != Authorise.ORG_ID && gId != Authorise.ENTERPRISE_ID;
+		}
+		return gId != Authorise.ORG_ID && gId != Authorise.SECURITY_ID
+				&& gId != Authorise.DPO_ID && gId != Authorise.ENTERPRISE_ID;
+	}
+
+	/*
+	 * Replace one of a user's three lists - groups, projects or roles - and leave the other two alone.
+	 *
+	 * These exist because the console's own save cannot do it.  updateUser rewrites the users row and
+	 * then hands the whole object to insertUserGroupsProjects, so adding somebody to a project means
+	 * sending back their groups, their roles and their name and email as well; get any of it wrong,
+	 * or simply not know it, and the save is a deletion that reports success.
+	 *
+	 * The underlying function is still insertUserGroupsProjects, and deliberately so - the rules about
+	 * which groups a given administrator may grant are enforced in one place and there is no second
+	 * implementation to drift from it.  It already treats each list independently: a null list is left
+	 * untouched, a non null one is replaced entirely.  That behaviour was there for the console's
+	 * benefit and is exactly what granular callers need, so these three methods set one list and pass
+	 * null for the rest.
+	 *
+	 * The caller's own rights are passed through rather than assumed.  What an administrator may grant
+	 * depends on what they are, and that hierarchy is not this method's to decide.
+	 */
+	public void setUserGroups(Connection sd, int uId, ArrayList<UserGroup> groups,
+			boolean isOrgUser, boolean isSecurityManager, boolean isEnterpriseManager,
+			boolean isServerOwner) throws SQLException, Exception {
+
+		User u = new User();
+		u.id = uId;
+		u.groups = groups;			// Replaced
+		u.projects = null;			// Left alone
+		u.roles = null;				// Left alone
+		insertUserGroupsProjects(sd, u, uId, isOrgUser, isSecurityManager, isEnterpriseManager,
+				isServerOwner, false);
+	}
+
+	public void setUserProjects(Connection sd, int uId, ArrayList<Project> projects,
+			boolean isOrgUser, boolean isSecurityManager, boolean isEnterpriseManager,
+			boolean isServerOwner) throws SQLException, Exception {
+
+		User u = new User();
+		u.id = uId;
+		u.groups = null;			// Left alone
+		u.projects = projects;		// Replaced
+		u.roles = null;				// Left alone
+		insertUserGroupsProjects(sd, u, uId, isOrgUser, isSecurityManager, isEnterpriseManager,
+				isServerOwner, false);
+	}
+
+	/*
+	 * Roles are only written for an organisation administrator or a security manager - that condition
+	 * is inside insertUserGroupsProjects, so a caller who is neither changes nothing here and is told
+	 * so by the tool rather than discovering it from an answer that claimed to have worked.
+	 */
+	public void setUserRoles(Connection sd, int uId, ArrayList<Role> roles,
+			boolean isOrgUser, boolean isSecurityManager, boolean isEnterpriseManager,
+			boolean isServerOwner) throws SQLException, Exception {
+
+		User u = new User();
+		u.id = uId;
+		u.groups = null;			// Left alone
+		u.projects = null;			// Left alone
+		u.roles = roles;			// Replaced
+		insertUserGroupsProjects(sd, u, uId, isOrgUser, isSecurityManager, isEnterpriseManager,
+				isServerOwner, false);
+	}
+
 	public void updateUser(Connection sd, 
 			User u, 						// New details for user being updated
 			int adminUserOrgId, 			// Organisation Id of administrator updating the user
@@ -2022,6 +2149,11 @@ public class UserManager {
 			}
 			
 			/*
+			 * The branches are exclusive, and the else on the second one matters.  Without it a user
+			 * belonging to one organisation was hard deleted and then fell through to the soft delete
+			 * branch, which wrote the soft delete log entry as well - so the permanent version of this
+			 * was recorded in the audit trail as the reversible one.
+			 *
 			 * Do a hard delete if 
 			 *    1) the user is a member of only one organisation
 			 *    2) All has been specified and he requesting user is an org admin
@@ -2038,7 +2170,7 @@ public class UserManager {
 						false,
 						null,
 						requestingUser);
-			} if(deleteAll && GeneralUtilityMethods.hasSecurityGroup(sd, requestingUser, Authorise.ORG_ID)) {
+			} else if(deleteAll && GeneralUtilityMethods.hasSecurityGroup(sd, requestingUser, Authorise.ORG_ID)) {
 				// Multiple organisations but delete all has been requested
 				hardDelete(sd, 
 						pstmtHardDeleteAll, 

@@ -63,6 +63,20 @@ public interface McpTool {
 	}
 
 	/*
+	 * The argument naming whose access this tool changes, for a tool that changes access.
+	 *
+	 * When it is set, the dispatcher refuses the call if that argument names the caller.  This is
+	 * the self modification invariant: a session may administer other people's permissions but never
+	 * its own, so a grant that was given to do one job cannot be used to widen itself into another.
+	 *
+	 * It lives in the dispatcher rather than in each tool because the one place it must not be is
+	 * optional.  A tool that forgot the check would be the whole of the hole.
+	 */
+	default String getSelfProtectedArgument() {
+		return null;
+	}
+
+	/*
 	 * How the change this tool makes is undone.  Required of every mutating tool; null is only
 	 * valid for a read only one.
 	 */

@@ -56,11 +56,22 @@ import org.smap.sdal.mcp.tools.NotificationDeleteTool;
 import org.smap.sdal.mcp.tools.NotificationEnableTool;
 import org.smap.sdal.mcp.tools.NotificationListTool;
 import org.smap.sdal.mcp.tools.ProjectCreateTool;
+import org.smap.sdal.mcp.tools.RoleCreateTool;
+import org.smap.sdal.mcp.tools.RoleDeleteTool;
+import org.smap.sdal.mcp.tools.RoleListTool;
+import org.smap.sdal.mcp.tools.RoleUpdateTool;
 import org.smap.sdal.mcp.tools.ProjectDeleteTool;
 import org.smap.sdal.mcp.tools.ProjectListTool;
 import org.smap.sdal.mcp.tools.ProjectUpdateTool;
 import org.smap.sdal.mcp.tools.GroupListTool;
+import org.smap.sdal.mcp.tools.OrganisationGetTool;
+import org.smap.sdal.mcp.tools.OrganisationUpdateTool;
+import org.smap.sdal.mcp.tools.UserCreateTool;
+import org.smap.sdal.mcp.tools.UserDeleteTool;
 import org.smap.sdal.mcp.tools.UserListTool;
+import org.smap.sdal.mcp.tools.UserSetGroupsTool;
+import org.smap.sdal.mcp.tools.UserSetProjectsTool;
+import org.smap.sdal.mcp.tools.UserSetRolesTool;
 import org.smap.sdal.mcp.tools.UserUpdateTool;
 import org.smap.sdal.mcp.tools.ReferenceFilterListTool;
 import org.smap.sdal.mcp.tools.ReferenceFilterSetTool;
@@ -105,6 +116,7 @@ import org.smap.sdal.mcp.tools.TaskGroupCreateTool;
 import org.smap.sdal.mcp.tools.TaskGroupListTool;
 import org.smap.sdal.mcp.tools.TaskListTool;
 import org.smap.sdal.mcp.tools.TokenListTool;
+import org.smap.sdal.mcp.tools.TwoFactorResetTool;
 import org.smap.sdal.mcp.tools.TokenRevokeTool;
 import org.smap.sdal.mcp.tools.TopicListTool;
 import org.smap.sdal.mcp.tools.WhoAmITool;
@@ -149,6 +161,18 @@ public class MCP extends Application {
 		registry.register(new UserListTool());
 		registry.register(new UserUpdateTool());
 		registry.register(new GroupListTool());
+		registry.register(new RoleListTool());
+		registry.register(new UserSetGroupsTool());
+		registry.register(new UserSetProjectsTool());
+		registry.register(new UserSetRolesTool());
+		registry.register(new UserCreateTool());
+		registry.register(new UserDeleteTool());
+		registry.register(new RoleCreateTool());
+		registry.register(new RoleUpdateTool());
+		registry.register(new RoleDeleteTool());
+		registry.register(new TwoFactorResetTool());
+		registry.register(new OrganisationGetTool());
+		registry.register(new OrganisationUpdateTool());
 		registry.register(new TokenListTool());
 		registry.register(new TokenRevokeTool());
 		registry.register(new SurveyListTool());
@@ -339,8 +363,15 @@ public class MCP extends Application {
 
 		int uId = GeneralUtilityMethods.getUserId(sd, user);
 
-		return new McpToolContext(sd, cResults, request, user, uId, token.oId, token.scope,
-				false, localisation, tz, maxRows, token.clientId);
+		McpToolContext ctx = new McpToolContext(sd, cResults, request, user, uId, token.oId,
+				token.scope, false, localisation, tz, maxRows, token.clientId);
+		/*
+		 * Whether this server issues smap:access at all.  A tool needing a scope nobody here can be
+		 * granted is not listed and cannot be called, rather than being offered and then refused with
+		 * a challenge the client has no way to satisfy.
+		 */
+		ctx.accessAllowed = server.mcp_allow_access;
+		return ctx;
 	}
 
 	/*
