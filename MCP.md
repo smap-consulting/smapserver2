@@ -801,6 +801,32 @@ than inferring from an empty answer.
 Row filters are the caller's own. A data protection officer who cannot reach a survey does not get a
 fuller answer from an agent than from the console.
 
+## The multi step jobs, written down
+
+A tool list says what can be done one call at a time. It does not say that moving a survey between
+projects means creating the project, **putting people in it**, and only then changing the survey's
+settings - or that the middle step is the one everybody forgets and the one that locks somebody out
+of their own work. Somebody reading only the tool descriptions rediscovers each procedure, and
+rediscovers some of them wrongly.
+
+So `prompts/list` and `prompts/get` carry procedures rather than clever wording: which tool first,
+what to check before changing anything, and which mistakes are the expensive ones. Eight of them -
+analysing data, designing a survey, checking data quality, triaging tasks, summarising a week,
+finding out why data is not arriving, reorganising projects, and onboarding somebody.
+
+Two rules run through all of them because they are the two that cost something when forgotten: **read
+before you write**, since nearly every write tool here replaces a list rather than adding to it; and
+**say what changed, not that it worked**, since every write tool returns what it replaced and passing
+that on is the difference between an audit trail and an assurance.
+
+**Arguments are not interpolated into the text.** A procedure that says "analyse the survey named in
+the argument" stays true whatever arrives, and nothing the caller sends can rewrite the instruction it
+is attached to. What was supplied is appended after a rule, as context.
+
+Completion now asks what kind of reference it is being completed for. It was answering every request
+from the resource templates, so a prompt argument expecting a project name would have been offered
+survey idents.
+
 ## What happened, and how things stand
 
 `event_list` is the organisation's log - surveys created and changed, users added, errors, refused

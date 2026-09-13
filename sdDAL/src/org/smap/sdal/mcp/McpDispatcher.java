@@ -36,6 +36,7 @@ public class McpDispatcher {
 
 	private final McpToolRegistry registry;
 	private final McpResources resources;
+	private final McpPrompts prompts = new McpPrompts();
 	private final LogManager lm = new LogManager();
 
 	public McpDispatcher(McpToolRegistry registry) {
@@ -98,6 +99,10 @@ public class McpDispatcher {
 				return ok(request.getId(), map("resourceTemplates", resources.templates()));
 			case "resources/read":
 				return resourcesRead(ctx, request);
+			case "prompts/list":
+				return ok(request.getId(), map("prompts", prompts.list()));
+			case "prompts/get":
+				return promptsGet(request);
 			case "completion/complete":
 				return ok(request.getId(), complete(ctx, request));
 			default:
@@ -193,12 +198,47 @@ public class McpDispatcher {
 			value = (String) argument.get("value");
 		}
 
-		List<String> values = resources.complete(ctx, name, value);
+		/*
+		 * Completion is asked against a reference - a resource template or a prompt - and the two
+		 * have entirely different argument names.  Asking the resources for a prompt's argument would
+		 * return survey idents for a field expecting a project name.
+		 */
+		String refType = null;
+		if(params != null && params.get("ref") instanceof Map) {
+			refType = (String) ((Map<String, Object>) params.get("ref")).get("type");
+		}
+
+		List<String> values = "ref/prompt".equals(refType)
+				? new ArrayList<String>()
+				: resources.complete(ctx, name, value);
 		Map<String, Object> completion = new LinkedHashMap<>();
 		completion.put("values", values);
 		completion.put("total", values.size());
 		completion.put("hasMore", Boolean.FALSE);
 		return map("completion", completion);
+	}
+
+	/*
+	 * One prompt by name.  Unknown is an invalid params error rather than an empty result: a client
+	 * that asked for a procedure by name and got nothing back would present the emptiness as the
+	 * answer.
+	 */
+	@SuppressWarnings("unchecked")
+	private MCPResponse promptsGet(MCPRequest request) {
+
+		Map<String, Object> params = request.getParams();
+		String name = params == null ? null : (String) params.get("name");
+		if(name == null || name.isEmpty()) {
+			return error(request.getId(), McpProtocol.INVALID_PARAMS, "A prompt name is required");
+		}
+		McpPrompts.Prompt p = prompts.get(name);
+		if(p == null) {
+			return error(request.getId(), McpProtocol.INVALID_PARAMS, "Unknown prompt: " + name);
+		}
+		Map<String, Object> arguments = params.get("arguments") instanceof Map
+				? (Map<String, Object>) params.get("arguments")
+				: null;
+		return ok(request.getId(), prompts.render(p, arguments));
 	}
 
 	private Map<String, Object> capabilities() {
@@ -219,6 +259,13 @@ public class McpDispatcher {
 		resourceCapability.put("subscribe", Boolean.FALSE);
 		resourceCapability.put("listChanged", Boolean.FALSE);
 		capabilities.put("resources", resourceCapability);
+
+		Map<String, Object> promptCapability = new LinkedHashMap<>();
+		/*
+		 * The prompts are compiled in, so the list cannot change under a caller.
+		 */
+		promptCapability.put("listChanged", Boolean.FALSE);
+		capabilities.put("prompts", promptCapability);
 
 		capabilities.put("completions", new LinkedHashMap<String, Object>());
 		return capabilities;
