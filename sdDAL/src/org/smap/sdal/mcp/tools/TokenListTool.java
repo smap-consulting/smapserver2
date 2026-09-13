@@ -63,6 +63,28 @@ public class TokenListTool extends AbstractMcpTool {
 		return noArguments();
 	}
 
+	/*
+	 * The scopes an application holds, each named once.
+	 *
+	 * The query aggregates them with a distinct over each token's whole scope STRING, not over the
+	 * scopes inside it, so a client with one token allowing read and write and another allowing read,
+	 * write and admin comes back as "smap:read smap:write smap:read smap:write smap:admin".  Read
+	 * aloud that says the application is allowed to read twice, which is not a thing.
+	 */
+	private String tidyScopes(String scopes) {
+
+		if(scopes == null || scopes.trim().isEmpty()) {
+			return null;
+		}
+		List<String> seen = new ArrayList<>();
+		for(String scope : scopes.trim().split("\\s+")) {
+			if(!scope.isEmpty() && !seen.contains(scope)) {
+				seen.add(scope);
+			}
+		}
+		return String.join(" ", seen);
+	}
+
 	@Override
 	public MCPToolResult execute(McpToolContext ctx, Map<String, Object> arguments) throws Exception {
 
@@ -86,7 +108,7 @@ public class TokenListTool extends AbstractMcpTool {
 			row.put("client_id", g.clientId);
 			row.put("application", g.clientName == null ? g.clientId : g.clientName);
 			row.put("user", g.user);
-			row.put("allowedTo", g.scopes);
+			row.put("allowedTo", tidyScopes(g.scopes));
 			row.put("firstAllowed", g.firstIssued);
 			row.put("lastUsed", g.lastUsed);
 			row.put("selfRegistered", g.selfRegistered);
@@ -94,8 +116,9 @@ public class TokenListTool extends AbstractMcpTool {
 
 			text.append("\n- ").append(g.clientName == null ? g.clientId : g.clientName)
 					.append(" acting as ").append(g.user);
-			if(g.scopes != null) {
-				text.append(", allowed to ").append(g.scopes);
+			String scopes = tidyScopes(g.scopes);
+			if(scopes != null) {
+				text.append(", allowed to ").append(scopes);
 			}
 			text.append("\n    last used ")
 					.append(g.lastUsed == null ? "never" : g.lastUsed);
