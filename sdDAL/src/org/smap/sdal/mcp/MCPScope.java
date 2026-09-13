@@ -77,7 +77,8 @@ public class MCPScope {
 	 * made every one of them unreachable, which is the fault this list was widened to fix.  ACCESS is
 	 * not here because it depends on a server setting - see advertised().
 	 */
-	private static final List<String> ADVERTISED = Arrays.asList(READ, WRITE, ADMIN);
+	private static final List<String> ADVERTISED =
+			Arrays.asList(READ, WRITE, ADMIN, SERVER, PRIVACY);
 
 	/*
 	 * What a client is told it may ask for, on this server.
@@ -88,7 +89,10 @@ public class MCPScope {
 	 * which is exactly the fault the list was widened to fix for WRITE and ADMIN.  A switch keeps what
 	 * that was for: on a server where nobody has turned it on, there is no way to ask.
 	 *
-	 * SERVER and PRIVACY stay out until something uses them.
+	 * SERVER and PRIVACY are advertised now that tools use them.  Neither gets a switch of its own:
+	 * what they reach is held shut by the groups instead - server settings by server owner, a data
+	 * subject search by the data protection officer - and those are groups almost nobody has.  ACCESS
+	 * has a switch because what it changes is who holds groups in the first place.
 	 */
 	public static List<String> advertised(boolean allowAccess) {
 		if(!allowAccess) {

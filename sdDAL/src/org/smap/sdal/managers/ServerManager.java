@@ -72,6 +72,46 @@ public class ServerManager {
 		return enabled;
 	}
 
+	/*
+	 * Change the server's operational limits, and only those.
+	 *
+	 * The settings row holds the mail relay password, the SMS and map keys, the Turnstile secret and a
+	 * SharePoint private key, and the console's save writes every column from one object.  Nudging a
+	 * rate limit through that would mean sending every credential back with it - and a caller that did
+	 * not have them to send would blank them.
+	 *
+	 * The MCP settings are deliberately not here either, and that is not about credentials.  A client
+	 * that could set mcp_allow_access could switch on the permission to change permissions and then
+	 * ask for it, which is the whole of what that switch is for.  It is changed in the console by a
+	 * person, or not at all.
+	 */
+	public void updateOperationalLimits(Connection sd,
+			int ratePerMinute,
+			int apiMaxRecords,
+			double passwordStrength,
+			int keepErasedDays,
+			String userIdent) throws SQLException {
+
+		String sql = "update server set "
+				+ "max_rate = ?, "
+				+ "api_max_records = ?, "
+				+ "password_strength = ?, "
+				+ "keep_erased_days = ?";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, ratePerMinute);
+			pstmt.setInt(2, apiMaxRecords);
+			pstmt.setDouble(3, passwordStrength);
+			pstmt.setInt(4, keepErasedDays);
+			log.info("Update server limits by " + userIdent + ": " + pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+	}
+
 	public ServerData getServer(Connection sd, ResourceBundle l) {
 
 		localisation = l;

@@ -750,6 +750,57 @@ through and wrote the **soft delete log entry as well**. The audit trail recorde
 version as the reversible one, which is the worst direction for that error, and this tool would have
 inherited it.
 
+## The server itself, and one person's data
+
+`smap:server` and `smap:privacy` are advertised without a switch of their own. What they reach is held
+shut by groups instead - server settings by **server owner**, a data subject search by the **data
+protection officer** - and those are groups almost nobody has. `smap:access` has a switch because what
+it changes is who holds groups in the first place, which is a different kind of thing.
+
+`server_settings_get` reports numbers and switches, and for every credential says only **whether it is
+set**. "Is mail configured" is a real operational question; "what is the mail password" is not, and
+one tool returning "the server settings" would have answered both the first time somebody asked an
+open question. The row holds the relay password, the SMS and map keys, the Turnstile secret and a
+SharePoint private key.
+
+`server_settings_set` changes four numbers. What is absent is the design:
+
+- **No credentials**, for the reason above - and because the console's save writes every column from
+  one object, so nudging a rate limit through it would mean sending every secret back, and blanking
+  the ones the caller did not have. That is the **fifth** narrow manager method written to avoid this
+  exact shape.
+- **No MCP settings**, and this one is not about credentials. A client that could set
+  `mcp_allow_access` could switch on the permission to change permissions and then ask for it. The
+  switch exists so that is a decision a person takes, so it cannot be reachable from the thing it
+  holds shut. `mcp_enabled` likewise - it is the switch under everything here.
+- **No `css_set`.** It is in the plan and is not built: it writes a stylesheet served to every console
+  user, which is a way to change what other people see without changing any data, and the only person
+  who would notice is the one who did it.
+
+Setting erased-data retention to zero is refused rather than accepted quietly. Nothing forbids the
+number, but it means erased data goes immediately and cannot be recovered, and a caller who meant to
+set the API limit and mistyped a field name would otherwise turn it off.
+
+### Finding somebody without reading them
+
+`dsar_find` answers the first half of a data subject access request - is there anything, where is it,
+and which field is their name actually in - and answers it **in locations and counts, never values**.
+The request is answered by sending the person their data, not by reading it into a chat transcript,
+and those two are easy to conflate when the tool that finds it could just as easily print it. The
+spreadsheet comes from the console, which is also where it can be handed over properly.
+
+The survey-form-column walk was lifted out of `DSARManager.export` into `findTargets`, so the search
+and the export share one definition of which columns count as personal data. Re-implementing it would
+have given the server two answers to that question. `countMatches` uses the predicate `writeSheet`
+searches with, so a count and a spreadsheet cannot disagree.
+
+A nil return says what it means: nothing **marked as personal data** matched. A survey whose name
+field was never marked is invisible to this and to the export both, which is worth being told rather
+than inferring from an empty answer.
+
+Row filters are the caller's own. A data protection officer who cannot reach a survey does not get a
+fuller answer from an agent than from the console.
+
 ## What happened, and how things stand
 
 `event_list` is the organisation's log - surveys created and changed, users added, errors, refused

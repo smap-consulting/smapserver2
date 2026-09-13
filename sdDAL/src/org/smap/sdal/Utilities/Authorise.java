@@ -53,6 +53,7 @@ public class Authorise {
 	public static String LINKS = "links";
 	public static String CONSOLE_ADMIN = "console admin";
 	public static String MCP_ACCESS = "mcp access";
+	public static String DPO = "dpo";		// Data protection officer
 	
 	public static int ADMIN_ID = 1;
 	public static int ANALYST_ID = 2;
@@ -90,6 +91,7 @@ public class Authorise {
 		if(DASHBOARD.equals(group)) return DASHBOARD_ID;
 		if(CONSOLE_ADMIN.equals(group)) return CONSOLE_ADMIN_ID;
 		if(MCP_ACCESS.equals(group)) return MCP_ACCESS_ID;
+		if(DPO.equals(group)) return DPO_ID;
 		return -1;		// No such group, so nobody is in it
 	}
 
