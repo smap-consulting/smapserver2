@@ -443,9 +443,23 @@ have removed somebody's access to everything and reported success. The username 
 either, being what the person signs in with and what every log entry is written against.
 
 `group_list` exists so the permission names in `user_list` mean something - "manage" and "manage
-tasks" are different, and neither is "admin" - and so a caller can see that a group they were about
-to ask for does not exist. It notes which group grants AI access and that only a server owner can
-give it.
+tasks" are different, and neither is "admin" - and so a caller can see that a group they were about to
+ask for does not exist.
+
+It also reports **who may grant each group**, because that is not one rule but a hierarchy, taken from
+`insertUserGroupsProjects`:
+
+| Group | Who can grant it |
+| --- | --- |
+| server owner | nobody - not granted through user administration at all |
+| mcp access | a server owner, and only while the MCP server is switched on |
+| enterprise admin | a server owner or an enterprise manager |
+| organisation admin | not a security manager, and not a plain administrator |
+| security, DPO | not a plain administrator |
+| everything else | any administrator |
+
+Worth reporting because a caller who is not told will ask for a group the person in front of them has
+no power to give, and the refusal then arrives from the console rather than from here.
 
 `user_list` reports each person's groups and projects, because "who can see this survey" and "who
 could I assign this to" are the questions actually asked of a user list and neither is answerable
