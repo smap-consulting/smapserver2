@@ -59,7 +59,9 @@ import org.smap.sdal.mcp.tools.ProjectCreateTool;
 import org.smap.sdal.mcp.tools.ProjectDeleteTool;
 import org.smap.sdal.mcp.tools.ProjectListTool;
 import org.smap.sdal.mcp.tools.ProjectUpdateTool;
+import org.smap.sdal.mcp.tools.GroupListTool;
 import org.smap.sdal.mcp.tools.UserListTool;
+import org.smap.sdal.mcp.tools.UserUpdateTool;
 import org.smap.sdal.mcp.tools.ReferenceFilterListTool;
 import org.smap.sdal.mcp.tools.ReferenceFilterSetTool;
 import org.smap.sdal.mcp.tools.SurveyCreateTool;
@@ -143,6 +145,8 @@ public class MCP extends Application {
 		registry.register(new ProjectUpdateTool());
 		registry.register(new ProjectDeleteTool());
 		registry.register(new UserListTool());
+		registry.register(new UserUpdateTool());
+		registry.register(new GroupListTool());
 		registry.register(new SurveyListTool());
 		registry.register(new SurveySubmissionCountTool());
 		registry.register(new SurveyEffectsTool());

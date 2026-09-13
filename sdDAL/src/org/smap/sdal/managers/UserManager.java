@@ -720,6 +720,41 @@ public class UserManager {
 	/*
 	 * Update a users details
 	 */
+	/*
+	 * Change a user's own details - their name, their email address - and nothing that decides what
+	 * they can reach.
+	 *
+	 * updateUser cannot be used for this.  It ends by calling insertUserGroupsProjects, which
+	 * rewrites the user's groups, projects and roles from the User object it was handed: passing one
+	 * that carries no lists does not leave them alone, it deletes them.  A tool meaning only to
+	 * correct a spelling would quietly remove somebody's access to everything, and the update would
+	 * report success.
+	 *
+	 * So this writes the user row and stops.  Nothing here touches user_group, user_project,
+	 * user_role or user_organisation, and the username itself is left alone as well - it is what the
+	 * person signs in with and what the logs are written against.
+	 */
+	public void updateUserDetails(Connection sd, int uId, String name, String email,
+			String adminUserIdent) throws SQLException {
+
+		String sql = "update users set "
+				+ "name = ?, "
+				+ "email = ? "
+				+ "where id = ?";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, name);
+			pstmt.setString(2, email);
+			pstmt.setInt(3, uId);
+			log.info("Update user details: " + pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+	}
+
 	public void updateUser(Connection sd, 
 			User u, 						// New details for user being updated
 			int adminUserOrgId, 			// Organisation Id of administrator updating the user

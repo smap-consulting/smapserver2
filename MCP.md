@@ -72,6 +72,8 @@ may do.
 | `project_update` | admin | admin, owner | done |
 | `project_delete` | admin | admin, owner | done |
 | `user_list` | admin | admin, owner | done |
+| `user_update` | admin | admin, owner | done |
+| `group_list` | admin | admin, owner | done |
 | `survey_list` | read | analyst, admin, view data, manage | done |
 | `survey_submission_counts` | read | analyst, admin, view data | done |
 | `data_query` | read | analyst, admin, view data | done |
@@ -164,7 +166,7 @@ not done.
 | Cases and workflow | `case_settings`, `case_settings_set`, `case_assign`, `workflow_list` | read and write |
 | Notifications and messaging | `notification_list`, `notification_create`, `notification_enable`, `notification_delete`, `mailout_list` | read and write, but nothing sends |
 | Reporting and monitoring | `event_list`, `ops_status`, `usage_report` | read only |
-| Users, roles and access | `user_list` | read only; granting access is not offered |
+| Users, roles and access | `user_list`, `user_update`, `group_list` | details only; granting access is not offered |
 | Server administration | — | not started |
 
 ## Deliberately not exposed
@@ -432,6 +434,18 @@ naming what is in the way. That check is Smap's, not this tool's, and it is why 
 honestly say its reversal is "delete it while it is still empty". The refusal is reported as an
 answer rather than a failure: the server is saying move those first, and `survey_set_settings` is
 how.
+
+`user_update` changes a person's display name or email and **nothing that decides what they can
+reach**. Not by declining to touch it - by using a manager method that cannot. The ordinary user
+update finishes by rewriting groups, projects and roles from the object it was handed, so passing one
+that carries no lists does not leave them alone, it deletes them: correcting a misspelt surname would
+have removed somebody's access to everything and reported success. The username is not changeable
+either, being what the person signs in with and what every log entry is written against.
+
+`group_list` exists so the permission names in `user_list` mean something - "manage" and "manage
+tasks" are different, and neither is "admin" - and so a caller can see that a group they were about
+to ask for does not exist. It notes which group grants AI access and that only a server owner can
+give it.
 
 `user_list` reports each person's groups and projects, because "who can see this survey" and "who
 could I assign this to" are the questions actually asked of a user list and neither is answerable
