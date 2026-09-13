@@ -58,11 +58,9 @@ public class SurveyAddQuestionTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Adds a question to a survey, at the end of a form unless a position is given. The "
-				+ "question appears in the design at once; if the survey already has data, the "
-				+ "column that will hold the answers is added separately a moment later, which is "
-				+ "what resultsStatus reports. Groups and repeats cannot be added here. Undo it "
-				+ "with survey_delete_question.";
+		return "Adds a question at the end of a form unless a position is given. If the survey has data the "
+				+ "column follows a moment later, which resultsStatus reports. Undo with "
+				+ "survey_delete_question.";
 	}
 
 	@Override

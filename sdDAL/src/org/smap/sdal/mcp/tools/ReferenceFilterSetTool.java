@@ -42,10 +42,8 @@ public class ReferenceFilterSetTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Sets the filter on the reference data one survey reads from another: an expression "
-				+ "narrowing which of the source survey's records come across, and a cap on how "
-				+ "many. reference_filter_list shows the connections and what is on them now. The "
-				+ "previous setting is returned, so it can be put back.";
+		return "Sets the filter on the reference data one survey reads from another, and a cap on how many "
+				+ "records come across. Returns the previous setting.";
 	}
 
 	@Override

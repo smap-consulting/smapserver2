@@ -40,11 +40,8 @@ public class DataAuditTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Returns the history of one record: when it was submitted, every later change with "
-				+ "the old and new values, who made it, and any task or notification that touched "
-				+ "it. Records are named by instance id, which data_query returns as instanceid. "
-				+ "Corrections create a new instance in the same thread, so this returns the whole "
-				+ "history rather than one submission's part in it.";
+		return "The history of one record: its submission, every later change with old and new values, who "
+				+ "made it, and any task or notification that touched it. Named by instance id from data_query.";
 	}
 
 	@Override

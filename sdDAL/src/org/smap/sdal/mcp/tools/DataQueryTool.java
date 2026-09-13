@@ -48,20 +48,9 @@ public class DataQueryTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Returns submitted records for one survey, with filtering, sorting and paging. "
-				+ "Use survey_list first to find the survey id, and the resource "
-				+ "smap://survey/{ident}/definition to learn the question names. "
-				+ "Pass select to return only the questions you need; a survey can have dozens of "
-				+ "questions and reading them all when you want two is slow and fills your "
-				+ "context. "
-				+ "filter is an expression over question names written as "
-				+ "${question} = 'value', combined with and, or and not, for example "
-				+ "${age} > 30 and ${district} = 'North'. Returns at most "
-				+ DEFAULT_LIMIT + " records unless limit says otherwise; when more remain, "
-				+ "next_cursor is returned and should be passed back as cursor for the next page. "
-				+ "Attachments appear as https URLs that need a browser login; to look at one, read "
-				+ "the resource smap://attachment/{survey ident}/{file}, which is the part of that "
-				+ "URL after /attachments/.";
+		return "Submitted records for one survey, filtered, sorted and paged. Pass select to return only the "
+				+ "questions you need. Results are capped - when more remain, pass next_cursor back as cursor. "
+				+ "For files, use data_attachments.";
 	}
 
 	@Override

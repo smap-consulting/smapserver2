@@ -49,11 +49,9 @@ public class SurveyDeleteQuestionTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Removes a question from a survey. A question that has already collected answers is "
-				+ "marked deleted rather than removed, and its answers are kept: adding a question "
-				+ "of the same name back to the same form brings them back. A question that never "
-				+ "collected anything is removed outright. Groups and repeats cannot be deleted "
-				+ "here, because deleting a group deletes everything inside it.";
+		return "Removes a question. One that has collected answers is marked deleted and its answers kept - "
+				+ "adding the same name back to the same form restores them. Groups and repeats cannot be "
+				+ "deleted here.";
 	}
 
 	@Override

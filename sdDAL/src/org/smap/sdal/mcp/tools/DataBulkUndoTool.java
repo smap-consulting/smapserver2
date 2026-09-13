@@ -45,10 +45,9 @@ public class DataBulkUndoTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Puts every record changed by one bulk update back to the value it held. Takes the "
-				+ "change set id that data_bulk_update returned. Records changed again since are "
-				+ "still put back to what they were before that bulk change, so check "
-				+ "data_audit first if others may have edited them.";
+		return "Puts every record changed by one bulk update back to what it held. Takes the change set id "
+				+ "data_bulk_update returned. Records edited since are still reverted, so check data_audit "
+				+ "first.";
 	}
 
 	@Override

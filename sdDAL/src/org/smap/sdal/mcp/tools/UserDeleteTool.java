@@ -56,12 +56,9 @@ public class UserDeleteTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Removes somebody. For a user who belongs only to this organisation this is "
-				+ "PERMANENT - their account, what belongs to it and their uploaded files are "
-				+ "deleted and cannot be recovered. Somebody who is in several organisations is only "
-				+ "removed from this one. Consider user_set_groups with an empty list instead, which "
-				+ "leaves an account that can do nothing and can be undone. Somebody has to agree to "
-				+ "this.";
+		return "Removes somebody. For a user in only this organisation it is PERMANENT and unrecoverable, "
+				+ "uploaded files included; somebody in several organisations is only removed from this one. "
+				+ "user_set_groups with an empty list is the undoable alternative. Needs agreement.";
 	}
 
 	@Override

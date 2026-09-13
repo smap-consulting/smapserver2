@@ -44,10 +44,8 @@ public class UserSetProjectsTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Sets which projects somebody belongs to, which is what decides the surveys they can "
-				+ "reach. THIS REPLACES THE WHOLE LIST - projects left out are removed, so include "
-				+ "everything they should keep. user_list shows what they have now. Returns the "
-				+ "previous list, and what changed. You cannot change your own.";
+		return "Sets which projects somebody belongs to, which decides the surveys they can reach. REPLACES "
+				+ "THE WHOLE LIST - include everything they should keep. You cannot change your own.";
 	}
 
 	@Override

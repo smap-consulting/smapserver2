@@ -50,10 +50,8 @@ public class ServerSettingsSetTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Changes the server's operational limits: API rate, API records per request, minimum "
-				+ "password entropy and how long erased data is kept. These apply to everybody on the "
-				+ "server. Keys, passwords, the custom stylesheet and the MCP settings cannot be "
-				+ "changed here - those are console only. Returns the previous values.";
+		return "Changes the server's operational limits, which apply to everybody on it. Keys, passwords, "
+				+ "the stylesheet and the MCP settings are console only. Returns the previous values.";
 	}
 
 	@Override

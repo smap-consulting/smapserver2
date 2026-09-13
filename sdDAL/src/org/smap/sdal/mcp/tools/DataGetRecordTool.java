@@ -38,11 +38,8 @@ public class DataGetRecordTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Returns a single submitted record with any repeating groups nested inside it. "
-				+ "Records are named by instance id, which data_query returns as instanceid when "
-				+ "include_meta is on. Attachments appear as https URLs that need a browser login; "
-				+ "to look at one, read the resource smap://attachment/{survey ident}/{file}, "
-				+ "which is the part of that URL after /attachments/.";
+		return "One submitted record with its repeating groups nested inside. Named by instance id, which "
+				+ "data_query returns as instanceid. For files, use data_attachments.";
 	}
 
 	@Override

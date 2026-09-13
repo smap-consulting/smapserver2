@@ -50,11 +50,9 @@ public class CaseSettingsSetTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Makes a survey's records into cases, or changes how its cases work, by naming the "
-				+ "question that holds a case's status and the answer that means it is finished. "
-				+ "After this, setting that question to that value closes a case and the server "
-				+ "records when. Both are checked against the survey's own questions and choices. "
-				+ "Returns the previous settings, so this can be put back.";
+		return "Makes a survey's records into cases, or changes how its cases work: the question holding a "
+				+ "case's status and the value meaning finished. Both are checked against the survey. Returns "
+				+ "the previous settings.";
 	}
 
 	@Override

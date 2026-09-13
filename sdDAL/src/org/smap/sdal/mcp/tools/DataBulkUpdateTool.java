@@ -46,10 +46,9 @@ public class DataBulkUpdateTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Sets the same answers on every record matching a filter. Use data_count with the "
-				+ "same filter first to see how many records that is. Every record changed is "
-				+ "tagged with one change set id, which data_bulk_undo takes to put all of them "
-				+ "back. Above " + BULK_THRESHOLD + " records you will be asked to confirm.";
+		return "Sets the same answers on every record matching a filter. Check data_count with the same "
+				+ "filter first. Every record is tagged with one change set id that data_bulk_undo puts back. A "
+				+ "large change asks for confirmation.";
 	}
 
 	@Override

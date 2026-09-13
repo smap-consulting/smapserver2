@@ -53,10 +53,8 @@ public class UsageReportTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "How much this organisation has used month by month: submissions received, and the "
-				+ "metered services such as SMS, transcription and translation. Use it to see "
-				+ "whether usage is rising or why a month looks unusual. Counts only - what a "
-				+ "month cost depends on the plan and is not worked out here.";
+		return "Submissions received and metered services used, month by month, for this organisation. "
+				+ "Counts only - what a month cost depends on the plan and is not worked out here.";
 	}
 
 	@Override

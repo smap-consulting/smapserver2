@@ -41,10 +41,8 @@ public class SurveyMediaListTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "The files published with a survey: images, audio and video used in questions, and "
-				+ "csv files a question reads its choices from. These are part of the form itself "
-				+ "and are the same for everyone filling it in. For photographs and recordings "
-				+ "collected while answering, use data_attachments instead.";
+		return "The files published with a survey: images, audio, video and the csv files a question reads "
+				+ "its choices from. For photographs collected while answering, use data_attachments.";
 	}
 
 	@Override

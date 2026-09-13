@@ -39,10 +39,8 @@ public class NotificationDeleteTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Removes a notification for good - unlike a survey or a record, it is not kept. To "
-				+ "stop one sending while keeping it, switch it off with notification_enable "
-				+ "instead, which is usually what is wanted. Returns what the notification was, "
-				+ "since that is all an undo can work from.";
+		return "Removes a notification for good - unlike a survey or a record it is not kept. To stop one "
+				+ "sending while keeping it, switch it off with notification_enable. Returns what it was.";
 	}
 
 	@Override

@@ -38,11 +38,9 @@ public class OrganisationGetTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "The organisation this connection belongs to: its name and contact details, its "
-				+ "locale and time zone, and whether submitting, the API, notifications and SMS are "
-				+ "switched on for it. Check this first when data is not arriving or messages are "
-				+ "not being sent - any of these being off stops it for everybody. Mail relay "
-				+ "settings are not reported.";
+		return "This organisation's details, and whether submitting, the API, notifications and SMS are "
+				+ "switched on for it. Check this first when data is not arriving - any of them being off stops "
+				+ "it for everybody.";
 	}
 
 	@Override

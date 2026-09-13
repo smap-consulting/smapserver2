@@ -34,12 +34,9 @@ public class SurveyEffectsTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Reports what adding a record to a survey would send and create: how many emails, "
-				+ "SMS messages, webhook calls and tasks, and which notifications and task groups "
-				+ "are responsible. The numbers are the most that can happen, because each "
-				+ "notification and task rule is also filtered on the record itself. Ask this "
-				+ "before submitting data on someone's behalf, and show the answer to them: "
-				+ "messages that go out cannot be recalled.";
+		return "What submitting a record to this survey would send and create: emails, SMS, webhooks and "
+				+ "tasks, and which rules are responsible. These are upper bounds. Ask before submitting for "
+				+ "somebody - messages cannot be recalled.";
 	}
 
 	@Override

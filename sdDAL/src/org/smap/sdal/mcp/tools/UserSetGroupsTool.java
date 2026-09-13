@@ -52,11 +52,9 @@ public class UserSetGroupsTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Sets which permission groups somebody belongs to. THIS REPLACES THE WHOLE LIST - "
-				+ "groups left out are removed, so include everything they should keep. group_list "
-				+ "shows the groups and who may grant each; not every administrator may grant every "
-				+ "one, and the call is refused rather than partly applied. Returns the previous "
-				+ "list. You cannot change your own.";
+		return "Sets which permission groups somebody belongs to. REPLACES THE WHOLE LIST - include "
+				+ "everything they should keep. Not every administrator may grant every group, and the call is "
+				+ "refused rather than partly applied. You cannot change your own.";
 	}
 
 	@Override

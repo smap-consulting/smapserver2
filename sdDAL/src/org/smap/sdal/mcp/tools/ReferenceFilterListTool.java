@@ -46,10 +46,8 @@ public class ReferenceFilterListTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "The other surveys this one reads reference data from, and the filter on each: the "
-				+ "expression narrowing which of their records come across, and any cap on how "
-				+ "many. Connections with no filter are listed too, because those hand over "
-				+ "everything the source survey holds.";
+		return "The surveys this one reads reference data from, and the filter and cap on each. A connection "
+				+ "with no filter hands over everything the source survey holds.";
 	}
 
 	@Override

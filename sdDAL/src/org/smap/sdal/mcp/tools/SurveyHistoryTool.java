@@ -38,11 +38,8 @@ public class SurveyHistoryTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "The history of changes to one survey's design: what changed, which version it "
-				+ "applied to, who made it and which application made it if one did. Use this to "
-				+ "review what has been done to a form, including changes made by an AI client. "
-				+ "Returns the whole history, newest first. For the history of a submitted record "
-				+ "rather than the form, use data_audit.";
+		return "Changes to one survey's design: what changed, which version it applied to, who made it and "
+				+ "which application did if one did. For a record's history, use data_audit.";
 	}
 
 	@Override

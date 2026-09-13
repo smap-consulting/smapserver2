@@ -46,10 +46,8 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Changes the answers on one submitted record. Give the new answers keyed by question "
-				+ "name; anything not named is left alone. The value before and after is written to "
-				+ "the record's history, so data_audit will show what changed and it can be put "
-				+ "back. Records are named by instance id, which data_query returns as instanceid.";
+		return "Changes the answers on one record; anything not named is left alone. The value before and "
+				+ "after is written to the record's history, so data_audit shows it and it can be put back.";
 	}
 
 	@Override

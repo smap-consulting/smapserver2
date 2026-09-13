@@ -43,10 +43,8 @@ public class WorkflowListTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "What happens after a form is submitted: the notifications, task groups and case "
-				+ "steps in this organisation and how they lead into each other. Use this to see "
-				+ "what a submission sets off, or where a step comes from. Read only - a workflow "
-				+ "is made by creating the notifications and task groups it is drawn from.";
+		return "What a submission sets off: the notifications, task groups and case steps in this "
+				+ "organisation and how they lead into each other. Read only.";
 	}
 
 	@Override

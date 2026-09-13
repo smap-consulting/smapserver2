@@ -42,11 +42,8 @@ public class CaseSettingsTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "How cases work in a survey: the question that holds a case's status, the value that "
-				+ "means it is finished, the question holding its criticality, and the alerts "
-				+ "watching for cases that need attention. Read this before closing a case - "
-				+ "closing one is setting its status question to the final value with "
-				+ "data_update_record.";
+		return "How cases work in a survey: the question holding status, the value meaning finished, the "
+				+ "criticality question, and the alerts watching for cases that need attention.";
 	}
 
 	@Override

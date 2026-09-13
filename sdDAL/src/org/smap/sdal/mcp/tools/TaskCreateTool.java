@@ -44,11 +44,9 @@ public class TaskCreateTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Creates one task: work to be done in a survey, optionally about an existing record "
-				+ "and optionally assigned to somebody. Give a task_group_id to put it in an "
-				+ "existing batch, or leave it out and a group named after the survey is used. To "
-				+ "assign work about a record, you must be able to see that record yourself; the "
-				+ "person you assign it to needs only to be in the project.";
+		return "Creates one task, optionally about an existing record and optionally assigned. To assign "
+				+ "work about a record you must be able to see that record; the person you assign it to need "
+				+ "only be in the project.";
 	}
 
 	@Override

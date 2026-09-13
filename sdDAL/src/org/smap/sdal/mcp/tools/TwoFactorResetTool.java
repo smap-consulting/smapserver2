@@ -49,10 +49,9 @@ public class TwoFactorResetTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Clears another user's two factor authentication, for somebody who has lost the "
-				+ "phone or authenticator app holding it. They sign in with their password alone "
-				+ "until they enrol again, so tell them to set it up afresh. You cannot reset your "
-				+ "own from here. Somebody has to agree to it first, so ask before calling.";
+		return "Clears another user's two factor authentication, for somebody who has lost the phone holding "
+				+ "it. They sign in with their password alone until they enrol again. Not your own. Needs "
+				+ "agreement.";
 	}
 
 	@Override

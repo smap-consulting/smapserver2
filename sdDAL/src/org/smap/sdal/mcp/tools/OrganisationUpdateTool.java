@@ -50,11 +50,9 @@ public class OrganisationUpdateTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Changes this organisation's name, contact details, locale or time zone. What the "
-				+ "organisation is allowed to do, its mail settings and its limits are untouched and "
-				+ "cannot be changed from here. The time zone is the one dates are reported in, so "
-				+ "changing it changes how every existing submission time reads. Returns the "
-				+ "previous values.";
+		return "Changes this organisation's name, contact details, locale or time zone. What it is allowed "
+				+ "to do, its mail settings and its limits are console only. Changing the time zone changes how "
+				+ "every existing date reads.";
 	}
 
 	@Override

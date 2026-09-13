@@ -38,10 +38,8 @@ public class DataDeleteRecordTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Marks one submitted record as deleted. Smap keeps deleted records rather than "
-				+ "removing them, so this can be undone with data_restore_record, and the record "
-				+ "is still readable by passing include_deleted to data_query. Records are named "
-				+ "by instance id, which data_query returns as instanceid.";
+		return "Marks one submitted record as deleted. Smap keeps it rather than removing it, so "
+				+ "data_restore_record undoes this and the record still reads with include_deleted.";
 	}
 
 	/* Deleting is not something everyone who can read data may do, which is what the console says */

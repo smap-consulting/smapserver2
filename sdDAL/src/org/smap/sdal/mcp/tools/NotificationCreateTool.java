@@ -50,11 +50,9 @@ public class NotificationCreateTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Sets up an email to be sent when a form is submitted, to the addresses you give. "
-				+ "It is created SWITCHED OFF and sends nothing until somebody turns it on with "
-				+ "notification_enable, so it can be read over first. Only email on submission to "
-				+ "fixed addresses is made here; SMS, webhooks, timed notifications and recipients "
-				+ "taken from an answer are set up in the console.";
+		return "Sets up an email to fixed addresses when a form is submitted. Created SWITCHED OFF and sends "
+				+ "nothing until notification_enable turns it on. SMS, webhooks and timed notifications are "
+				+ "console only.";
 	}
 
 	@Override

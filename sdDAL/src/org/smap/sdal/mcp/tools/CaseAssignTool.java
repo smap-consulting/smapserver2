@@ -43,10 +43,9 @@ public class CaseAssignTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Gives a case to somebody, releases it so anyone can take it, or locks it. A case is "
-				+ "a record, so find one with data_query and use its instance id. To give a case "
-				+ "away you must be able to see it yourself; the person you give it to needs only "
-				+ "to be in the project. Closing a case is different - see case_settings.";
+		return "Gives a case to somebody, releases it so anyone can take it, or locks it. A case is a "
+				+ "record, so find one with data_query. To give one away you must be able to see it. Closing is "
+				+ "different - see case_settings.";
 	}
 
 	@Override

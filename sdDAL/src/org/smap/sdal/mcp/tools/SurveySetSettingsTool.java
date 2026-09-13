@@ -46,11 +46,8 @@ public class SurveySetSettingsTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Changes a survey's settings: its name, its project, its default language, and the "
-				+ "options governing how it behaves. Moving a survey to another project is done "
-				+ "here, because the project is one of these settings. Only the settings you name "
-				+ "are changed; the rest are left as they are. Returns the previous value of each "
-				+ "setting changed, so any of it can be put back.";
+		return "Changes a survey's settings, including which project it is in. Only the settings you name "
+				+ "are changed. Returns the previous value of each one changed.";
 	}
 
 	@Override

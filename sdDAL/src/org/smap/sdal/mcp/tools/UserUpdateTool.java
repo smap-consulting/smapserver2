@@ -44,10 +44,8 @@ public class UserUpdateTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Changes a person's display name or email address. What they are allowed to do, the "
-				+ "projects they belong to and the roles they hold are untouched, and their username "
-				+ "cannot be changed here because it is what they sign in with and what their "
-				+ "history is recorded against. Returns the previous values.";
+		return "Changes a person's display name or email address. Their permissions, projects and roles are "
+				+ "untouched, and the username cannot be changed here. Returns the previous values.";
 	}
 
 	@Override

@@ -40,10 +40,8 @@ public class UserListTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "The people in this organisation: their username, name, email, what they are allowed "
-				+ "to do, and which projects they belong to. Use it to find who to assign work to, "
-				+ "or to see who can reach a survey. Listing only - nothing here changes anyone's "
-				+ "access.";
+		return "The people in this organisation: username, name, email, what they are allowed to do and "
+				+ "which projects they belong to. Listing only - nothing here changes anyone's access.";
 	}
 
 	@Override

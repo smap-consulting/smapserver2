@@ -65,11 +65,9 @@ public class SurveyCheckTypeChangeTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Reports what changing a question's type would do to the answers already collected: "
-				+ "how many would not convert, examples of the ones that would not, and whether "
-				+ "answers of the new type will still fit the column that holds them. Reads only - "
-				+ "the change itself is made in the console, deliberately, because it cannot be "
-				+ "undone. Ask this before proposing a type change on a survey that has data.";
+		return "What changing a question's type would do to the answers already collected: how many would "
+				+ "not convert, and whether the new type still fits the column. Read only - the change itself "
+				+ "is made in the console.";
 	}
 
 	@Override

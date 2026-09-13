@@ -52,10 +52,8 @@ public class TaskActionTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Assigns tasks to somebody, marks them accepted, or cancels them. Takes one task or "
-				+ "many, so it is how a single task is dealt with as well as a batch. task_list "
-				+ "gives the task ids. Cancelling a task does not delete anything that was already "
-				+ "submitted for it.";
+		return "Assigns tasks to somebody, marks them accepted, or cancels them - one or many. Ids come from "
+				+ "task_list. Cancelling does not delete anything already submitted for it.";
 	}
 
 	@Override

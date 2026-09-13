@@ -43,10 +43,9 @@ public class UserSetRolesTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Sets which roles somebody holds, which decides the records they see inside the "
-				+ "surveys they can reach. THIS REPLACES THE WHOLE LIST - roles left out are taken "
-				+ "away. role_list shows the roles and what each filters. Needs an organisation "
-				+ "administrator or a security manager. You cannot change your own.";
+		return "Sets which roles somebody holds, which decides the records they see. REPLACES THE WHOLE LIST "
+				+ "- roles left out are taken away. Needs an organisation administrator or a security manager. "
+				+ "You cannot change your own.";
 	}
 
 	@Override

@@ -37,11 +37,8 @@ public class DataAggregateTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Groups records by the answer to one question and returns a summary per group, "
-				+ "computed in the database rather than by reading the records. Use this for "
-				+ "questions like how many submissions per district, or the average age by region. "
-				+ "function defaults to count; sum, avg, min and max need value_question and only "
-				+ "work on numeric answers. Groups come back with the largest value first.";
+		return "Groups records by the answer to one question and summarises each group in the database. "
+				+ "function defaults to count; sum, avg, min and max need value_question and numeric answers.";
 	}
 
 	@Override

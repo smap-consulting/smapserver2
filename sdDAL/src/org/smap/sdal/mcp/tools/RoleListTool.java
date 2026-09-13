@@ -44,11 +44,9 @@ public class RoleListTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "The roles in this organisation: what each is called, how many people hold it, and "
-				+ "which surveys it filters records on. A role decides which records somebody sees "
-				+ "within a survey they can already reach, which is a different question from what "
-				+ "user_list and group_list report. Use it to answer why somebody can see only some "
-				+ "of the data.";
+		return "The roles in this organisation: what each is called, how many people hold it, and which "
+				+ "surveys it filters records on. A role decides which records somebody sees in a survey they "
+				+ "can already reach.";
 	}
 
 	@Override

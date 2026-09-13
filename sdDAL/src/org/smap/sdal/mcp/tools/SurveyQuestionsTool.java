@@ -43,11 +43,8 @@ public class SurveyQuestionsTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "The questions in a survey: name, type, label, and the logic on each one - whether "
-				+ "it is required, what makes it relevant, its constraint, appearance and any "
-				+ "calculation. Use survey_get first if you only need the survey's shape. Questions "
-				+ "that have been deleted are not returned. For the choices on a select question, "
-				+ "use survey_options with the list name reported here.";
+		return "The questions in a survey: name, type, label and the logic on each. Deleted questions are "
+				+ "not returned. For the choices on a select question, use survey_options.";
 	}
 
 	@Override

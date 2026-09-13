@@ -51,10 +51,8 @@ public class GroupListTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "The permission groups a person can belong to, which is what user_list reports for "
-				+ "each of them, and who is allowed to grant each one - not every group can be "
-				+ "given by every administrator. Listing only: who belongs to a group is changed "
-				+ "in the console.";
+		return "The permission groups a person can belong to, and who may grant each - not every group can "
+				+ "be given by every administrator. Listing only.";
 	}
 
 	@Override

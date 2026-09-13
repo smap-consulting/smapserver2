@@ -46,10 +46,8 @@ public class TokenRevokeTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Withdraws an application's access for one person: every token it holds stops "
-				+ "working immediately, so it has to be authorised again by a person before it can "
-				+ "do anything. Use token_list to find the application. If you revoke the "
-				+ "application you are speaking through, this conversation ends.";
+		return "Withdraws an application's access for one person; every token it holds stops working "
+				+ "immediately. If you revoke the application you are speaking through, this conversation ends.";
 	}
 
 	@Override

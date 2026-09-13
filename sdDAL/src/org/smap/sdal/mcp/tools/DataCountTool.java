@@ -33,10 +33,8 @@ public class DataCountTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Counts the submitted records matching a filter, without returning them. Use this "
-				+ "rather than data_query when the question is how many, because data_query only "
-				+ "reports how many it returned, which is capped. filter is an expression over "
-				+ "question names written as ${question} = 'value', combined with and, or and not.";
+		return "Counts the records matching a filter without returning them. Use this rather than data_query "
+				+ "to answer how many - data_query reports only how many it returned, which is capped.";
 	}
 
 	@Override

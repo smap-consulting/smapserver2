@@ -42,10 +42,9 @@ public class RoleDeleteTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Removes a role, its row filters, and it from everybody who holds it. This changes "
-				+ "what those people can see - on some surveys they will see more, on surveys where "
-				+ "a role is what grants access they will see nothing. Check role_list first. "
-				+ "Somebody has to agree to it.";
+		return "Removes a role, its row filters, and it from everybody who holds it. This changes what those "
+				+ "people see - more on some surveys, nothing on ones where a role is what grants access. Needs "
+				+ "agreement.";
 	}
 
 	@Override

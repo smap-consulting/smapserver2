@@ -43,10 +43,9 @@ public class TaskListTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "The tasks in a project or a task group: what is to be done, in which survey, who it "
-				+ "is assigned to and what state it is in. Pass mine to see only your own "
-				+ "assignments. One task can be assigned to several people, so the assignment id is "
-				+ "reported alongside the task id.";
+		return "The tasks in a project or task group: what is to be done, in which survey, who it is "
+				+ "assigned to and its state. One task can have several assignees, so assignment ids are "
+				+ "reported too.";
 	}
 
 	@Override

@@ -47,11 +47,8 @@ public class DataAttachmentsTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Lists the photos, audio, video and other files attached to a survey's records, "
-				+ "with the resource uri that fetches each one. Read that uri to look at a file. "
-				+ "Give an instance_id for one record's files, or a filter to narrow which records "
-				+ "are looked at. Prefer this over reading attachment URLs out of data_query, "
-				+ "because those need a browser login and these uris do not.";
+		return "The photos, audio, video and files attached to a survey's records, each with a uri that "
+				+ "reads it. Prefer this over the attachment URLs in data_query, which need a browser login.";
 	}
 
 	@Override

@@ -44,10 +44,8 @@ public class NotificationEnableTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Switches a notification on or off. Switching one off stops it sending anything, and "
-				+ "is the quickest way to stop email or SMS going out. Switching one on means the "
-				+ "next submission that matches it will send. Nothing is sent by this tool itself, "
-				+ "and the notification is otherwise unchanged.";
+		return "Switches a notification on or off. Off is the quickest way to stop email or SMS going out. "
+				+ "Nothing is sent by this tool itself.";
 	}
 
 	@Override

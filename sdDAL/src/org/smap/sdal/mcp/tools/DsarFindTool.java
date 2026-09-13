@@ -46,10 +46,9 @@ public class DsarFindTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Finds where personal data about somebody is held: which projects, surveys and forms "
-				+ "mention them, in which fields, and how many records. Reports locations and counts "
-				+ "only, never the values - the data itself is exported from the console. Use it to "
-				+ "answer a data subject access request, or to check before one.";
+		return "Where personal data about somebody is held: which projects, surveys, forms and fields, and "
+				+ "how many records. Locations and counts only, never the values - the data itself is exported "
+				+ "from the console.";
 	}
 
 	@Override

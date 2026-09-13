@@ -44,12 +44,9 @@ public class DataSubmitTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Submits a new record to a survey, as though it had been filled in on a form. "
-				+ "Give answers keyed by question name. Check survey_submission_effects first: a "
-				+ "submission can send email and SMS and create tasks, and none of that can be "
-				+ "recalled, so if this survey sends anything you will be asked to confirm before "
-				+ "it goes. The record is queued and appears in the data a moment later, not "
-				+ "immediately.";
+		return "Submits a new record as though it had been filled in on a form, with answers keyed by "
+				+ "question name. Check survey_submission_effects first - a submission can send email and SMS "
+				+ "that cannot be recalled. The record appears a moment later.";
 	}
 
 	@Override
