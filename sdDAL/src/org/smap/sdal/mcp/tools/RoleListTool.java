@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.mcp.AbstractMcpTool;
 import org.smap.sdal.mcp.MCPScope;
 import org.smap.sdal.mcp.McpToolContext;
@@ -134,6 +135,14 @@ public class RoleListTool extends AbstractMcpTool {
 					surveys.add(s);
 				}
 				row.put("surveys", surveys);
+
+				/*
+				 * Where else the role is used.  Filtering is only half of what a role does - the
+				 * other half is being the thing work is assigned to - and reporting only the first
+				 * made every role in a real case workflow look like it did nothing.
+				 */
+				List<String> usedBy = new RoleManager(ctx.localisation).getRoleUsage(ctx.sd, rId, oId);
+				row.put("assignsWorkIn", usedBy);
 				row.put("changedBy", rs.getString("changed_by") == null
 						? "" : rs.getString("changed_by"));
 				rows.add(row);
@@ -144,13 +153,17 @@ public class RoleListTool extends AbstractMcpTool {
 				}
 				text.append("\n  held by ").append(holders)
 						.append(holders == 1 ? " person" : " people");
+				if(!usedBy.isEmpty()) {
+					text.append("\n  work assigned to it by: ").append(String.join(", ", usedBy));
+				}
 				if(surveys.isEmpty()) {
 					/*
-					 * Worth saying rather than leaving blank.  A role attached to no survey filters
-					 * nothing, so holding it has no effect at all - which is either a role somebody
-					 * has not finished setting up, or one left behind after its survey went.
+					 * "Filters nothing" is true and, on its own, misleading: a role can filter no
+					 * records and still be what an entire case flow assigns work to.  Say which.
 					 */
-					text.append("\n  not attached to any survey, so it filters nothing");
+					text.append(usedBy.isEmpty()
+							? "\n  filters no records, and nothing assigns work to it"
+							: "\n  filters no records, but work is assigned to it");
 				} else {
 					for(Map<String, Object> s : surveys) {
 						text.append("\n  - ").append(s.get("survey"));
@@ -181,9 +194,9 @@ public class RoleListTool extends AbstractMcpTool {
 					: "There is no role called \"" + wanted + "\".");
 		} else {
 			text.insert(0, rows.size() + (rows.size() == 1 ? " role:" : " roles:"));
-			text.append("\n\nA role narrows which records somebody sees inside a survey they can "
-					+ "already reach. Reaching the survey at all is project membership, which "
-					+ "user_list reports.");
+			text.append("\n\nA role does two things: it narrows which records somebody sees inside a "
+					+ "survey they can already reach, and it is what a case step or task rule "
+					+ "assigns work to. A role that filters nothing may still be doing the second.");
 		}
 
 		Map<String, Object> data = new LinkedHashMap<>();

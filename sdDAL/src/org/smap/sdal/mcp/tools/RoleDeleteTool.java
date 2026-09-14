@@ -42,9 +42,10 @@ public class RoleDeleteTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Removes a role, its row filters, and it from everybody who holds it. This changes what those "
-				+ "people see - more on some surveys, nothing on ones where a role is what grants access. Needs "
-				+ "agreement.";
+		return "Removes a role, its row filters, and it from everybody who holds it. A role that a case "
+				+ "step or task rule still assigns work to is refused - repoint those first. This changes "
+				+ "what the holders see: more on some surveys, nothing where a role is what grants access. "
+				+ "Needs agreement.";
 	}
 
 	@Override
@@ -123,6 +124,31 @@ public class RoleDeleteTool extends AbstractMcpTool {
 			}
 		}
 
+		/*
+		 * Where work is assigned to this role, which is the half survey_role does not know about.
+		 * Fetched before the question is put, because it changes the answer completely: a role that
+		 * filters nothing can still be what an entire case flow assigns to.
+		 */
+		List<String> usedBy = new RoleManager(ctx.localisation).getRoleUsage(ctx.sd, rId, oId);
+
+		/*
+		 * Refused while work is still assigned to it, the way project_delete refuses a project that
+		 * still holds surveys.  The alternative was to rewrite those rules and drop the assignee,
+		 * which is this tool editing notifications nobody mentioned, and leaves a case step assigning
+		 * to nobody - the failure being guarded against rather than a repair of it.
+		 *
+		 * Holders and survey filters are not in this list because the database removes them: both
+		 * user_role.r_id and survey_role.r_id cascade.  These cannot, being a bare number inside JSON
+		 * with nothing for Postgres to follow.
+		 */
+		if(!usedBy.isEmpty()) {
+			return new MCPToolResult("\"" + name + "\" was not deleted: work is still assigned to it "
+					+ "by " + String.join(", ", usedBy) + ".\n\nThose keep the role's number with "
+					+ "nothing linking it back, so deleting the role would leave them assigning to "
+					+ "nobody without reporting an error. Point them at another role or a person in "
+					+ "the console, then delete this.", true);
+		}
+
 		if(refused(ctx)) {
 			return new MCPToolResult("Left alone. \"" + name + "\" still exists.", false);
 		}
@@ -131,8 +157,10 @@ public class RoleDeleteTool extends AbstractMcpTool {
 			what.append("\n\nIt is held by ").append(holders)
 					.append(holders == 1 ? " person" : " people").append(".");
 			if(surveys.isEmpty()) {
-				what.append(" It is not attached to any survey, so it filters nothing and deleting "
-						+ "it changes what nobody sees.");
+				what.append(usedBy.isEmpty()
+						? " It filters no records and nothing assigns work to it, so deleting it "
+								+ "changes what nobody sees."
+						: " It filters no records.");
 			} else {
 				what.append(" It filters records on ").append(String.join(", ", surveys))
 						.append(". Deleting it changes what those ")
@@ -172,6 +200,7 @@ public class RoleDeleteTool extends AbstractMcpTool {
 		data.put("name", name);
 		data.put("holdersAffected", holders);
 		data.put("surveys", surveys);
+		data.put("assignedWorkIn", usedBy);
 
 		StringBuilder text = new StringBuilder();
 		text.append("Deleted the role \"").append(name).append("\".");

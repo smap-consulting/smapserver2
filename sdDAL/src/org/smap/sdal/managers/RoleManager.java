@@ -233,6 +233,84 @@ public class RoleManager {
 	}
 	
 	/*
+	 * Where a role is used, beyond the survey filters.
+	 *
+	 * A role does two unrelated jobs in Smap and only one of them is in survey_role.  It filters which
+	 * records its holders see - and it is also what work is assigned **to**: a case step or a task
+	 * rule names a role rather than a person, so the right lawyer picks it up.
+	 *
+	 * Those references live in JSON, with no foreign key to follow: a notification keeps an assignee
+	 * of "_role_5" inside notify_details, and a task group keeps role_id or fixed_role_id inside its
+	 * rule.  So deleting a role succeeds, leaves the number behind, and quietly breaks the assignment.
+	 *
+	 * Found on a real prosecution workflow where every role reported no surveys at all - which was
+	 * true, and read as "this role does nothing", while those same roles were the teams the whole case
+	 * flow assigned to.  A tool that says deleting one changes nothing has to look here too.
+	 */
+	public ArrayList<String> getRoleUsage(Connection sd, int rId, int oId) throws SQLException {
+
+		ArrayList<String> used = new ArrayList<>();
+
+		/*
+		 * A notification's assignee is a column, not JSON: forward.remote_user holds "_role:5" when a
+		 * step assigns to a role rather than to a person.  So this is an equality test, not a search.
+		 *
+		 * It was written first against notify_details looking for "_role_5", which is neither the
+		 * right column nor the right separator - the underscore form is only the DOM safe key the
+		 * workflow page builds for a node id. It found nothing, silently, and a role that six case
+		 * steps assigned to reported that nothing assigned to it.
+		 */
+		/*
+		 * forward has no organisation of its own - it belongs to a project, or to a survey that
+		 * belongs to one - so the organisation is reached through whichever of those is set.
+		 */
+		String sqlNotifications = "select f.name, f.trigger from forward f "
+				+ "where f.remote_user = ('_role:' || ?) "
+				+ "and (exists (select 1 from project p where p.id = f.p_id and p.o_id = ?) "
+				+ "  or exists (select 1 from survey s, project p "
+				+ "             where s.s_id = f.s_id and p.id = s.p_id and p.o_id = ?))";
+
+		try (PreparedStatement pstmt = sd.prepareStatement(sqlNotifications)) {
+			pstmt.setString(1, String.valueOf(rId));
+			pstmt.setInt(2, oId);
+			pstmt.setInt(3, oId);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String name = rs.getString(1);
+				String trigger = rs.getString(2);
+				used.add((name == null || name.trim().isEmpty() ? "an unnamed notification" : name)
+						+ (trigger == null ? "" : " (" + trigger + ")"));
+			}
+		} catch (SQLException e) {
+			log.log(Level.WARNING, "Looking for role " + rId + " in notifications", e);
+			throw e;
+		}
+
+		String sqlTaskGroups = "select tg.name from task_group tg, project p "
+				+ "where tg.p_id = p.id "
+				+ "and p.o_id = ? "
+				+ "and tg.rule is not null "
+				+ "and (tg.rule ~ ('\"role_id\"[^0-9-]*' || ? || '([^0-9]|$)') "
+				+ "  or tg.rule ~ ('\"fixed_role_id\"[^0-9-]*' || ? || '([^0-9]|$)'))";
+
+		try (PreparedStatement pstmt = sd.prepareStatement(sqlTaskGroups)) {
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, String.valueOf(rId));
+			pstmt.setString(3, String.valueOf(rId));
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String name = rs.getString(1);
+				used.add("task group " + (name == null || name.trim().isEmpty() ? "(unnamed)" : name));
+			}
+		} catch (SQLException e) {
+			log.log(Level.WARNING, "Looking for role " + rId + " in task groups", e);
+			throw e;
+		}
+
+		return used;
+	}
+
+	/*
 	 * Change a role's name or description, and nothing else.
 	 *
 	 * updateRole finishes by calling setUsersForRole, which deletes every holder of the role before
