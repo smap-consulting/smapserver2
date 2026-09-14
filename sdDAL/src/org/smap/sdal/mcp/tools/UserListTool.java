@@ -1,5 +1,7 @@
 package org.smap.sdal.mcp.tools;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,7 +43,8 @@ public class UserListTool extends AbstractMcpTool {
 	@Override
 	public String getDescription() {
 		return "The people in this organisation: username, name, email, what they are allowed to do and "
-				+ "which projects they belong to. Listing only - nothing here changes anyone's access.";
+				+ "which projects they belong to, and which roles they hold. Listing only - nothing "
+				+ "here changes anyone's access.";
 	}
 
 	@Override
@@ -89,6 +92,35 @@ public class UserListTool extends AbstractMcpTool {
 				true,			// isAdminUser
 				ctx.user);
 
+		/*
+		 * Roles, read straight from user_role rather than taken from the User objects.
+		 *
+		 * getUserList builds an empty roles list and fills it only when it was told the caller is an
+		 * organisation administrator or a security manager, which this is not - so every user would
+		 * come back holding none.  Not null, empty, which reads as an answer.
+		 *
+		 * One query for everybody rather than one per user: this list is often the whole
+		 * organisation.
+		 */
+		Map<String, List<String>> rolesByUser = new LinkedHashMap<>();
+		try (PreparedStatement pstmt = ctx.sd.prepareStatement(
+				"select u.ident, r.name from users u, user_role ur, role r "
+				+ "where ur.u_id = u.id and ur.r_id = r.id "
+				+ "and r.o_id = ? "
+				+ "order by u.ident, r.name")) {
+			pstmt.setInt(1, oId);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String ident = rs.getString(1);
+				List<String> list = rolesByUser.get(ident);
+				if(list == null) {
+					list = new ArrayList<>();
+					rolesByUser.put(ident, list);
+				}
+				list.add(rs.getString(2));
+			}
+		}
+
 		List<Map<String, Object>> rows = new ArrayList<>();
 		StringBuilder text = new StringBuilder();
 
@@ -128,6 +160,13 @@ public class UserListTool extends AbstractMcpTool {
 				}
 			}
 			row.put("allowedTo", allowed);
+			/*
+			 * Which records they see, as distinct from what they may do.  Reported because
+			 * user_set_roles replaces the whole list, and there was no way to read what was about to
+			 * be replaced.
+			 */
+			List<String> roles = rolesByUser.get(u.ident);
+			row.put("roles", roles == null ? new ArrayList<String>() : roles);
 			rows.add(row);
 
 			text.append("\n- ").append(u.ident);
@@ -136,6 +175,9 @@ public class UserListTool extends AbstractMcpTool {
 			}
 			if(!allowed.isEmpty()) {
 				text.append(": ").append(String.join(", ", allowed));
+			}
+			if(roles != null && !roles.isEmpty()) {
+				text.append("\n    roles: ").append(String.join(", ", roles));
 			}
 			if(!projects.isEmpty()) {
 				text.append(" - in ").append(String.join(", ", projects));
