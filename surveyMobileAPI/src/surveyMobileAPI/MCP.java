@@ -21,6 +21,8 @@ package surveyMobileAPI;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -80,6 +82,7 @@ import org.smap.sdal.mcp.tools.SurveyCreateTool;
 import org.smap.sdal.mcp.tools.SurveyDeleteTool;
 import org.smap.sdal.mcp.tools.SurveyUndeleteTool;
 import org.smap.sdal.mcp.tools.SurveyMediaListTool;
+import org.smap.sdal.mcp.tools.SurveyMoveQuestionTool;
 import org.smap.sdal.mcp.tools.EventListTool;
 import org.smap.sdal.mcp.tools.OpsStatusTool;
 import org.smap.sdal.mcp.tools.DsarFindTool;
@@ -104,12 +107,15 @@ import org.smap.sdal.mcp.tools.DataUpdateRecordTool;
 import org.smap.sdal.mcp.tools.DataGetRecordTool;
 import org.smap.sdal.mcp.tools.DataQueryTool;
 import org.smap.sdal.mcp.tools.SurveyEffectsTool;
+import org.smap.sdal.mcp.tools.SurveyAddGroupTool;
 import org.smap.sdal.mcp.tools.SurveyAddQuestionTool;
 import org.smap.sdal.mcp.tools.SurveyCheckTypeChangeTool;
 import org.smap.sdal.mcp.tools.SurveyDeleteQuestionTool;
 import org.smap.sdal.mcp.tools.SurveyGetTool;
 import org.smap.sdal.mcp.tools.SurveyHistoryTool;
+import org.smap.sdal.mcp.tools.SurveyOptionsEditTool;
 import org.smap.sdal.mcp.tools.SurveyOptionsTool;
+import org.smap.sdal.mcp.tools.SurveyQuestionSetListTool;
 import org.smap.sdal.mcp.tools.SurveyQuestionsTool;
 import org.smap.sdal.mcp.tools.SurveySetSettingsTool;
 import org.smap.sdal.mcp.tools.SurveyListTool;
@@ -188,6 +194,8 @@ public class MCP extends Application {
 		registry.register(new SurveyGetTool());
 		registry.register(new SurveyQuestionsTool());
 		registry.register(new SurveyOptionsTool());
+		registry.register(new SurveyOptionsEditTool());
+		registry.register(new SurveyQuestionSetListTool());
 		registry.register(new SurveyHistoryTool());
 		registry.register(new SurveyMediaListTool());
 		registry.register(new ReferenceFilterListTool());
@@ -198,6 +206,8 @@ public class MCP extends Application {
 		registry.register(new SurveyUndeleteTool());
 		registry.register(new ReferenceFilterSetTool());
 		registry.register(new SurveyAddQuestionTool());
+		registry.register(new SurveyAddGroupTool());
+		registry.register(new SurveyMoveQuestionTool());
 		registry.register(new SurveyDeleteQuestionTool());
 		registry.register(new DataQueryTool());
 		registry.register(new DataGetRecordTool());
@@ -396,6 +406,24 @@ public class MCP extends Application {
 		 * a challenge the client has no way to satisfy.
 		 */
 		ctx.accessAllowed = server.mcp_allow_access;
+
+		/*
+		 * The application's name, resolved once, for the log to say who acted in words.  A client id
+		 * means nothing to somebody reading an activity page; the name is what whoever authorised it
+		 * saw on the consent screen.
+		 */
+		if(token.clientId != null) {
+			try (PreparedStatement pstmtClient = sd.prepareStatement(
+					"select client_name from oauth_client where client_id = ?")) {
+				pstmtClient.setString(1, token.clientId);
+				ResultSet rsClient = pstmtClient.executeQuery();
+				if(rsClient.next()) {
+					ctx.clientName = rsClient.getString(1);
+				}
+			} catch (Exception e) {
+				log.log(Level.WARNING, "Reading client name", e);
+			}
+		}
 		return ctx;
 	}
 

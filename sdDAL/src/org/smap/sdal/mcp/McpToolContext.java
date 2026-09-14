@@ -35,6 +35,15 @@ public class McpToolContext {
 	 */
 	public final String clientId;
 
+	/*
+	 * The application's registered name, for saying who acted in words.
+	 *
+	 * The client id is a URL or an opaque string and means nothing to somebody reading a log; the
+	 * name is what the person authorising it saw and agreed to.  Null when a token was minted in the
+	 * console, where there is no third party.
+	 */
+	public String clientName;
+
 	public final ResourceBundle localisation;
 	public final String timezone;
 

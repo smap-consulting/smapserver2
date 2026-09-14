@@ -135,12 +135,45 @@ public class McpData {
 	 * from the survey it is handed, so a survey without its languages yields questions without
 	 * their labels.
 	 */
+	/*
+	 * Questions and their choice lists together.
+	 *
+	 * Both loaders start from outline() and fill in one half each, so asking for one and reading the
+	 * other finds an empty list rather than an error - which reads as "this survey has no questions"
+	 * and is how a tool ends up reporting that a question nobody could miss does not exist.
+	 */
+	public static Survey design(McpToolContext ctx, int surveyId) throws Exception {
+
+		/*
+		 * Lists first, questions last, and the order is not arbitrary.
+		 *
+		 * Filling the questions and then asking for the lists left six questions across two forms in
+		 * a survey that has about thirty five - something in the option list path rewrites the forms
+		 * it is handed, and getQuestionsInForm takes the Survey itself as an argument, so neither
+		 * half is only reading.  Doing the questions last means whatever else moves, they are what
+		 * is there at the end.
+		 */
+		Survey s = optionLists(ctx, surveyId);
+		if(s == null) {
+			return null;
+		}
+		fillQuestions(ctx, s, surveyId);
+		return s;
+	}
+
 	public static Survey questions(McpToolContext ctx, int surveyId) throws Exception {
 
 		Survey s = outline(ctx, surveyId);
 		if(s == null) {
 			return null;
 		}
+		fillQuestions(ctx, s, surveyId);
+		return s;
+	}
+
+	/* Fill each form's questions, in place */
+	private static void fillQuestions(McpToolContext ctx, Survey s, int surveyId) throws Exception {
+
 		QuestionManager qm = new QuestionManager(ctx.localisation);
 		int oId = GeneralUtilityMethods.getOrganisationId(ctx.sd, ctx.user);
 
@@ -158,7 +191,6 @@ public class McpData {
 					s,
 					false);			// mergeDefaultSetValue
 		}
-		return s;
 	}
 
 	/*
