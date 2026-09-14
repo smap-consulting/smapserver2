@@ -244,8 +244,16 @@ public class SurveyMoveQuestionTool extends AbstractMcpTool {
 		move.sourceFormId = q.fId;
 		move.seq = targetSeq;
 		move.sourceSeq = q.seq;
-		move.formIndex = -1;
-		move.sourceFormIndex = -1;
+		/*
+		 * The index of each form within the survey, not -1.
+		 *
+		 * The move is carried out with form ids, so the indexes look redundant - but they are written
+		 * into the change log, and the changes page reads forms[sourceFormIndex].name to say where a
+		 * question came from.  Minus one meant forms[-1], which is undefined, and the page failed on
+		 * the first such entry and rendered none of the others.
+		 */
+		move.formIndex = formIndex(s, targetFId);
+		move.sourceFormIndex = formIndex(s, q.fId);
 
 		ChangeItem ci = new ChangeItem();
 		ci.question = move;
@@ -293,6 +301,18 @@ public class SurveyMoveQuestionTool extends AbstractMcpTool {
 		MCPToolResult result = new MCPToolResult(text.toString());
 		result.setStructuredContent(data);
 		return result;
+	}
+
+	/* Where a form sits in the survey's own list, which is what the change log records */
+	private int formIndex(Survey s, int fId) {
+		if(s.surveyData.forms != null) {
+			for(int i = 0; i < s.surveyData.forms.size(); i++) {
+				if(s.surveyData.forms.get(i).id == fId) {
+					return i;
+				}
+			}
+		}
+		return 0;
 	}
 
 	/* The form a repeat question created, which is the form whose parentquestion is that question */
