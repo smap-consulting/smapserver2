@@ -67,6 +67,15 @@ public class EmailManager {
 	 */
 	private static volatile long maxAttachmentBytes = 20L * 1024L * 1024L;
 
+
+	/*
+	 * What to put in a log message where there is no value.  A dash, not an empty string: "survey
+	 * \"\"" reads as a survey with a blank name rather than as a message that had no survey.
+	 */
+	private String value(String v) {
+		return v == null || v.trim().isEmpty() ? "-" : v;
+	}
+
 	public static void setMaxAttachmentMb(int mb) {
 		if(mb > 0) {
 			maxAttachmentBytes = mb * 1024L * 1024L;
@@ -253,24 +262,28 @@ public class EmailManager {
 				/*
 				 * Create notification details for the monitor
 				 */
+				/*
+				 * Every placeholder is replaced, whether or not there is a value for it.
+				 *
+				 * These were conditional on the value being present, so a periodic notification -
+				 * which has no survey - wrote its own template into the log: 'survey "%s3" in
+				 * project "%s4"'.  A log line is read by a person, and a placeholder in it is worse
+				 * than the dash that says there was nothing to put there.
+				 *
+				 * replace rather than replaceAll: the second argument of replaceAll is not a literal,
+				 * so a survey or project with a $ in its name corrupts the message or throws, and
+				 * nothing here is a regex.
+				 */
 				if(topic.equals(NotificationManager.TOPIC_PERIODIC)) {
 					resp.notify_details = localisation.getString("msg_pn");
-					resp.notify_details = resp.notify_details.replaceAll("%s2", name);
+					resp.notify_details = resp.notify_details.replace("%s2", value(name));
 				} else {
 					resp.notify_details = localisation.getString("msg_en");
-					if(logContent != null) {
-						resp.notify_details = resp.notify_details.replaceAll("%s2", logContent);
-					} else {
-						resp.notify_details = resp.notify_details.replaceAll("%s2", "-");
-					}
+					resp.notify_details = resp.notify_details.replace("%s2", value(logContent));
 				}
-				resp.notify_details = resp.notify_details.replaceAll("%s1", emails);	
-				if(surveyName != null) {
-					resp.notify_details = resp.notify_details.replaceAll("%s3", surveyName);
-				}
-				if(projectName != null) {
-					resp.notify_details = resp.notify_details.replaceAll("%s4", projectName);
-				}
+				resp.notify_details = resp.notify_details.replace("%s1", value(emails));
+				resp.notify_details = resp.notify_details.replace("%s3", value(surveyName));
+				resp.notify_details = resp.notify_details.replace("%s4", value(projectName));
 
 				log.fine("+++ emailing to: " + emails + " docUrl: " + logContent + 
 						" from: " + from + 
