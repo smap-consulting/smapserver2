@@ -85,6 +85,7 @@ public class LogManager {
 	public static String REPORT = "report";
 	public static String RESOURCES = "resources";
 	public static String RESTORE = "restore";
+	public static String SURVEY_DESIGN = "survey design";
 	public static String SECURITY = "security";
 	public static String SERVER = "server";
 	public static String SUBMISSION = "submissions";
@@ -115,6 +116,25 @@ public class LogManager {
 			String note,
 			int measure,
 			String server)  {
+		writeLog(sd, sId, uIdent, event, note, measure, server, null);
+	}
+
+	/*
+	 * The same, naming the application that acted.
+	 *
+	 * Attribution is a property of who did it, not of what happened, so it goes in a column beside
+	 * the user rather than into the event or the note.  Before this the event itself was "mcp",
+	 * which said a program was involved and left no room to say what the program had done.
+	 */
+	public void writeLog(
+			Connection sd, 
+			int sId,
+			String uIdent,
+			String event,
+			String note,
+			int measure,
+			String server,
+			String agent)  {
 		
 		String sql = "insert into log ("
 				+ "log_time,"
@@ -125,7 +145,8 @@ public class LogManager {
 				+ "event,"
 				+ "note,"
 				+ "measure,"
-				+ "server) values (now(), ?, ?, (select e_id from organisation where id = ?), ?, ?, ?, ?, ?);";
+				+ "server,"
+				+ "agent) values (now(), ?, ?, (select e_id from organisation where id = ?), ?, ?, ?, ?, ?, ?);";
 
 		PreparedStatement pstmt = null;
 		
@@ -145,6 +166,7 @@ public class LogManager {
 			pstmt.setString(6,  note);
 			pstmt.setInt(7, measure);
 			pstmt.setString(8,  server);
+			pstmt.setString(9,  agent);
 				
 			pstmt.executeUpdate();
 			
@@ -350,7 +372,7 @@ public class LogManager {
 		
 		try {
 
-			StringBuilder sql = new StringBuilder("select l.id, l.log_time, l.s_id, s.display_name, l.user_ident, l.event, l.note, l.server "
+			StringBuilder sql = new StringBuilder("select l.id, l.log_time, l.s_id, s.display_name, l.user_ident, l.event, l.note, l.server, l.agent "
 					+ "from log l "
 					+ "left outer join survey s "
 					+ "on s.s_id = l.s_id "
@@ -419,7 +441,7 @@ public class LogManager {
 		
 		try {
 
-			StringBuilder sql = new StringBuilder("select l.id, l.log_time, l.s_id, l.user_ident, l.event, l.note, l.server,"
+			StringBuilder sql = new StringBuilder("select l.id, l.log_time, l.s_id, l.user_ident, l.event, l.note, l.server, l.agent,"
 					+ "(select display_name from survey where ident = s.group_survey_ident) as display_name "
 					+ "from log l "
 					+ "left outer join survey s "
@@ -485,6 +507,17 @@ public class LogManager {
 			li.event = "";
 		}
 		li.note = GeneralUtilityMethods.getSafeText(rs.getString("note"), forHtml);
+		/*
+		 * Read defensively.  Two queries feed this method and only one was updated when the column
+		 * was added, which took down the whole log page with "column agent was not found" - a display
+		 * detail breaking the page it decorates.  A column this method wants and a query did not
+		 * select is now a missing attribution, not an exception.
+		 */
+		try {
+			li.agent = GeneralUtilityMethods.getSafeText(rs.getString("agent"), forHtml);
+		} catch (SQLException e) {
+			li.agent = null;
+		}
 		
 		li.server = rs.getString("server");
 		if(li.server == null) {

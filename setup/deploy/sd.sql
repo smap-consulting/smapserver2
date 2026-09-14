@@ -915,3 +915,15 @@ alter table survey_change add column if not exists agent text;
 -- every server, new and existing: with it off the scope is not advertised, is stripped from any
 -- authorisation request that names it anyway, and no tool needing it can be reached.
 alter table server add column if not exists mcp_allow_access boolean default false;
+
+-- Which application acted, as distinct from which person it acted for.  The same fact
+-- survey_change.agent records, on the application log, so a log entry can say "neil, via Claude
+-- Code" instead of spending its note on attribution and its event on the fact that a program was
+-- involved.  Null for anything a person did themselves, which is most entries.
+alter table log add column if not exists agent text;
+-- log_archive must match log column for column.  archive.sql moves rows with
+-- "insert into log_archive select * from archived_rows", which is positional and has no column
+-- list, so a column on one and not the other stops archiving outright - loudly, which is the right
+-- way round: the alternative of naming the columns would quietly archive everything except the new
+-- one.  Anything added to log above belongs here too.
+alter table log_archive add column if not exists agent text;

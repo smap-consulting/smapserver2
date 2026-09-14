@@ -443,7 +443,7 @@ public class McpDispatcher {
 			result = new MCPToolResult("The tool could not complete. Reference " + reference, true);
 		}
 
-		audit(ctx, name, arguments, result, System.currentTimeMillis() - started);
+		audit(ctx, tool, name, arguments, result, System.currentTimeMillis() - started);
 
 		/*
 		 * The tool wants to ask before it acts.  The call ends here and the client is expected to
@@ -510,35 +510,148 @@ public class McpDispatcher {
 	}
 
 	/*
-	 * One line per tool call in the application log.
+	 * What happened, for the page people read to find out what happened.
 	 *
-	 * Argument names but not argument values: the values are the caller's data, and a log that
-	 * records them turns every query into a second copy of what was queried.  The names are enough
-	 * to see what an agent was doing.
+	 * This used to write one entry per call, under the event "mcp", with a note naming the tool and
+	 * its argument NAMES, and the client id.  Every part of that was wrong for its purpose:
+	 *
+	 *   "mcp" is not an event.  It says a program was involved, which is who acted, not what was
+	 *   done - and it left the event column with nothing to say.  Attribution now goes in the agent
+	 *   column beside the user, the same fact survey_change.agent already records, so the event can
+	 *   be the kind of change it actually was.
+	 *
+	 *   "survey_move_question (survey_id, name, after)" tells a reader nothing.  The tool already
+	 *   composes a sentence for the person who asked - "Moved pp_decision after opinion_date, inside
+	 *   opinion_decision" - and that sentence is exactly what the log wanted.  Argument values are
+	 *   still not logged wholesale; what is logged is the tool's own account of what it did.
+	 *
+	 *   The client id is machinery.  The name is what whoever authorised it agreed to, and that is
+	 *   what the column holds.
+	 *
+	 *   The survey was never recorded, so every survey change appeared against no survey.  The page
+	 *   has a column for it and joins on l.s_id; passing it is all that was missing.
+	 *
+	 * Reads are no longer logged at all.  A page meant to tell people what happened is not helped by
+	 * a line for every question anybody asked, and the tools whose reading is itself the event -
+	 * dsar_find - write their own entry saying so.
 	 */
-	private void audit(McpToolContext ctx, String name, Map<String, Object> arguments,
+	private void audit(McpToolContext ctx, McpTool tool, String name, Map<String, Object> arguments,
 			MCPToolResult result, long ms) {
 		try {
-			StringBuilder note = new StringBuilder("tool ").append(name);
-			if(!arguments.isEmpty()) {
-				note.append(" (").append(String.join(", ", arguments.keySet())).append(")");
+			if(!tool.isMutating()) {
+				return;
 			}
 			/*
-			 * Which application asked, not only which person it asked as.  Without it the log says a
-			 * user did something at a time they may well have been asleep, and cannot distinguish
-			 * one agent from another when a person has authorised several.
+			 * A refused call changed nothing.  Worth a line even so - somebody trying repeatedly to
+			 * do something they may not is the thing an activity page should show - but said as the
+			 * refusal it was rather than as the change it was not.
 			 */
-			note.append(ctx.clientId == null
-					? " via a token minted in the console"
-					: " via client " + ctx.clientId);
-			if(result.isError()) {
-				note.append(" failed");
+			String note = firstSentence(textOf(result));
+			if(note == null || note.isEmpty()) {
+				note = name;
 			}
-			lm.writeLog(ctx.sd, 0, ctx.user, LogManager.MCP, note.toString(), (int) ms, null);
+			if(result.isError()) {
+				note = "Refused: " + note;
+			}
+
+			/*
+			 * The survey, when the call named one.  Every tool that changes a survey takes survey_id,
+			 * so this needs nothing of the tools themselves.
+			 */
+			int sId = 0;
+			Object surveyArg = arguments.get("survey_id");
+			if(surveyArg instanceof Number) {
+				sId = ((Number) surveyArg).intValue();
+			}
+
+			lm.writeLog(ctx.sd, sId, ctx.user, eventFor(name), note, (int) ms, null,
+					ctx.clientName == null ? ctx.clientId : ctx.clientName);
 		} catch (Exception e) {
 			// Never fail a call because it could not be logged
 			log.log(Level.WARNING, "Writing MCP audit entry", e);
 		}
+	}
+
+	/*
+	 * The kind of thing that happened, from the tool's own name.
+	 *
+	 * Derived rather than declared on each tool, because the prefix already says it and a mapping
+	 * kept in one place cannot fall out of step with seventy tools that would each have to remember.
+	 */
+	private String eventFor(String toolName) {
+		if(toolName == null) {
+			return LogManager.MCP;
+		}
+		if(toolName.startsWith("survey_")) {
+			return LogManager.SURVEY_DESIGN;
+		}
+		if(toolName.startsWith("data_")) {
+			return LogManager.SUBMISSION;
+		}
+		if(toolName.startsWith("user_") || toolName.startsWith("two_factor")) {
+			return LogManager.USER;
+		}
+		if(toolName.startsWith("project_")) {
+			return LogManager.PROJECT;
+		}
+		if(toolName.startsWith("role_")) {
+			return LogManager.ROLE;
+		}
+		if(toolName.startsWith("organisation_")) {
+			return LogManager.ORGANISATION_UPDATE;
+		}
+		if(toolName.startsWith("notification_") || toolName.startsWith("mailout_")) {
+			return LogManager.NOTIFICATION;
+		}
+		if(toolName.startsWith("task_")) {
+			return LogManager.TASK;
+		}
+		if(toolName.startsWith("case_")) {
+			return LogManager.CASE_MANAGEMENT;
+		}
+		if(toolName.startsWith("token_")) {
+			return LogManager.API_TOKEN;
+		}
+		if(toolName.startsWith("server_")) {
+			return LogManager.SERVER;
+		}
+		return LogManager.MCP;
+	}
+
+	/*
+	 * The first sentence of what the tool told the caller, which is its own account of what it did.
+	 *
+	 * Capped, because some answers go on to explain consequences at length and a log line is not the
+	 * place for that; and stripped of the markdown emphasis the answers use, which is for a chat
+	 * window rather than a table.
+	 */
+	/* The text block of a result, which is the tool's own account of what it did */
+	private String textOf(MCPToolResult result) {
+		if(result.getContent() == null) {
+			return null;
+		}
+		for(org.smap.sdal.model.MCPToolContent c : result.getContent()) {
+			if("text".equals(c.getType())) {
+				return c.getText();
+			}
+		}
+		return null;
+	}
+
+	private String firstSentence(String text) {
+		if(text == null) {
+			return null;
+		}
+		String t = text.replace("**", "").trim();
+		int nl = t.indexOf('\n');
+		if(nl > 0) {
+			t = t.substring(0, nl).trim();
+		}
+		if(t.length() > 250) {
+			int stop = t.lastIndexOf(' ', 250);
+			t = t.substring(0, stop > 0 ? stop : 250).trim() + "...";
+		}
+		return t;
 	}
 
 	/*

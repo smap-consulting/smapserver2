@@ -14,4 +14,5 @@ public class LogItemDt {
 	public String event;
 	public String note;
 	public String server;
+	public String agent;		// The application that acted for the user, null when they acted themselves
 }
