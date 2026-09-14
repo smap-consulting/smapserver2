@@ -1061,8 +1061,23 @@ public class QuestionManager {
 					 */
 					if(qType.equals("begin repeat") || qType.equals("geopolygon") || qType.equals("geolinestring")) {
 
-						// 3. Delete the form
-						String sqlDeleteForm = "delete from form where parentquestion = ? and s_id = ?;";
+						/*
+						 * 3. Delete the form this repeat created.
+						 *
+						 * Guarded, because a main form has parentquestion zero: a caller that did not
+						 * set the question id deletes the main form of the survey instead of the
+						 * repeat's, orphaning every question in it against a form row that no longer
+						 * exists.  Nothing about that fails at the time and it is not recoverable
+						 * without putting the row back by hand.  A question with no id is a caller
+						 * error, and refusing to act on it is the only safe reading.
+						 */
+						if(q.id <= 0) {
+							throw new Exception("Cannot delete the form for repeat " + q.name
+									+ ": the question id was not supplied. Deleting with an id of "
+									+ "zero would match the main form.");
+						}
+						String sqlDeleteForm = "delete from form where parentquestion = ? and s_id = ? "
+								+ "and parentform > 0;";
 						pstmtDeleteForm = sd.prepareStatement(sqlDeleteForm);
 						pstmtDeleteForm.setInt(1, q.id);
 						pstmtDeleteForm.setInt(2, sId);
