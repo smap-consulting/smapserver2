@@ -359,10 +359,27 @@ public class MCP extends Application {
 			 */
 			return withRoutingHeaders(insufficientScope(request, e.scope), method, toolName).build();
 
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "MCP request failed", e);
+		} catch (Throwable e) {
+			/*
+			 * Throwable, not Exception.
+			 *
+			 * An Error - a stack overflow in a recursive walk of a survey, a heap exhausted building
+			 * a large answer - is not an Exception and was not caught here, so the request died
+			 * without a response and the client saw the connection close with nothing to say why.
+			 * That is the worst failure this endpoint can produce: no status, no message, nothing in
+			 * the client's hands to distinguish it from a network fault.
+			 *
+			 * Catching it turns that into a JSON-RPC error and a line in the log naming the tool.
+			 * Rethrowing an Error would be the usual advice, but the alternative here is a silent
+			 * dropped connection, and the JVM is no more likely to recover from the throw than from
+			 * the catch.
+			 */
+			log.log(Level.SEVERE, "MCP request failed"
+					+ (toolName == null ? "" : " in tool " + toolName)
+					+ (method == null ? "" : " (" + method + ")"), e);
 			return Response.ok(gson.toJson(new MCPResponse(null,
-					new MCPError(McpProtocol.INTERNAL_ERROR, "The request could not be completed"))))
+					new MCPError(McpProtocol.INTERNAL_ERROR,
+							"The request could not be completed: " + e.getClass().getSimpleName()))))
 					.build();
 		} finally {
 			if(cResults != null) {
