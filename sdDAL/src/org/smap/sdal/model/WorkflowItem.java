@@ -39,4 +39,11 @@ public class WorkflowItem {
 	public List<Integer> startIds = new ArrayList<>();  // workflow_start record IDs backing this node
 	public int caseSurveyId;    // for case nodes: the integer ID of the case management survey
 	public int targetSurveyId;  // for task nodes: the integer ID of the target survey
+	/*
+	 * Whether x and y are where this user put this node, as opposed to where the default layout
+	 * computed it.  Sent so the page can save back only the positions somebody actually chose: a
+	 * computed default written into the saved layout becomes indistinguishable from a choice, and
+	 * from then on the node no longer follows the layout it is supposed to.
+	 */
+	public boolean pinned;
 }

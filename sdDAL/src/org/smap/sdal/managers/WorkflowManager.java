@@ -706,18 +706,51 @@ public class WorkflowManager {
 	}
 
 	/*
-	 * Save the full positions map for the user's current organisation.
-	 * Replaces any existing saved positions, which implicitly removes orphaned nodes.
-	 * positions: map of node_id -> WorkflowItem (only x and y are used)
+	 * Save the positions the user has chosen, merged into the ones already saved.
+	 *
+	 * Merged rather than replaced because the page now sends only the nodes somebody actually
+	 * placed.  It used to send every node it was holding, defaults included, so one drag wrote the
+	 * whole computed layout back as though all of it had been chosen - and a node that had lost its
+	 * saved position, which is what happens when the rule behind it is replaced, was pinned to
+	 * wherever the default layout had just dropped it.
+	 *
+	 * Nothing is pruned here.  A saved position whose node is gone is what mergeUserPositions reads
+	 * to find the node again after its id changes, and it can only ever match the record it came
+	 * from, because forward and task group ids are not reused.  Reset clears the lot.
+	 *
+	 * positions: map of node_id -> WorkflowItem (x, y and the backing record ids are used)
 	 */
 	public void savePositions(Connection sd, String user, Map<String, WorkflowItem> positions) throws Exception {
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
+		if(positions == null) {
+			positions = new HashMap<>();
+		}
+
+		Map<String, WorkflowItem> merged = new HashMap<>();
+		String sqlGet = "select positions from workflow_node_positions where user_ident = ? and o_id = ?";
+		try (PreparedStatement pstmt = sd.prepareStatement(sqlGet)) {
+			pstmt.setString(1, user);
+			pstmt.setInt(2, oId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				String json = rs.getString("positions");
+				if (json != null) {
+					Map<String, WorkflowItem> existing = new Gson().fromJson(json,
+							new TypeToken<Map<String, WorkflowItem>>(){}.getType());
+					if (existing != null) {
+						merged.putAll(existing);
+					}
+				}
+			}
+		}
+		merged.putAll(positions);
+
 		String sql = "insert into workflow_node_positions(user_ident, o_id, positions) values(?, ?, ?::jsonb) "
 				+ "on conflict(user_ident, o_id) do update set positions = excluded.positions";
 		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
 			pstmt.setString(1, user);
 			pstmt.setInt(2, oId);
-			pstmt.setString(3, new Gson().toJson(positions));
+			pstmt.setString(3, new Gson().toJson(merged));
 			pstmt.executeUpdate();
 		}
 	}
@@ -780,6 +813,7 @@ public class WorkflowManager {
 						if (pos != null) {
 							item.x = pos.x;
 							item.y = pos.y;
+							item.pinned = true;
 						}
 					}
 				}
