@@ -1503,29 +1503,13 @@ public class AllAssignments extends Application {
 			String tz = "UTC";	// get default timezone
 			String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tg_id);
 			
-			// Delete the tasks
+			/*
+			 * The whole removal - tasks, the group, and any reminder notification naming it - lives
+			 * in TaskManager so this and the MCP tool cannot drift apart on the third step, which is
+			 * the one that is easy to leave out.
+			 */
 			TaskManager tm = new TaskManager(localisation, tz);
-			tm.deleteTasksInTaskGroup(sd, tg_id);		// Note can't rely on cascading delete as temporary users need to be deleted
-
-			// Delete the task group
-			String deleteSQL = "delete from task_group where tg_id = ?"; 
-			pstmtDelete = sd.prepareStatement(deleteSQL);
-			pstmtDelete.setInt(1, tg_id);
-			log.info("SQL: " + pstmtDelete.toString());
-			pstmtDelete.execute();
-			
-			// Delete any reminder notifications
-			deleteSQL = "delete from forward where tg_id = ?"; 
-			if (pstmtDelete != null) try {pstmtDelete.close();}catch(Exception e) {}
-			pstmtDelete = sd.prepareStatement(deleteSQL);
-			pstmtDelete.setInt(1, tg_id);
-			log.info("SQL: " + pstmtDelete.toString());
-			pstmtDelete.execute();
-			
-			// Log the delete event
-			String logMessage = localisation.getString("lm_del_task_group");
-			logMessage = logMessage.replaceAll("%s1", tgName);
-			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.DELETE, logMessage, 0, request.getServerName());
+			tm.deleteTaskGroup(sd, tg_id, request.getRemoteUser(), request.getServerName());
 
 		} catch (Exception e) {
 			response = Response.serverError().build();

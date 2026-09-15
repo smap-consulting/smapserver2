@@ -2589,6 +2589,45 @@ public class TaskManager {
 	/*
 	 * Delete the tasks in a task group
 	 */
+	/*
+	 * Remove a task group: its tasks, the group itself, and any reminder notification attached to it.
+	 *
+	 * Three steps rather than one delete, and the third is the one nobody expects.  A reminder
+	 * notification names its task group in forward.tg_id, with no foreign key behind it, so a group
+	 * removed without clearing them leaves a notification pointing at a group that is gone.
+	 *
+	 * The tasks go first and go through deleteTasksInTaskGroup rather than by cascade, because the
+	 * temporary users created to carry an assignment have to be removed with them and the people
+	 * holding an accepted assignment have to be told it has gone.
+	 */
+	public void deleteTaskGroup(Connection sd, int tgId, String user, String serverName)
+			throws Exception {
+
+		String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tgId);
+
+		deleteTasksInTaskGroup(sd, tgId);
+
+		try (PreparedStatement pstmt = sd.prepareStatement(
+				"delete from task_group where tg_id = ?")) {
+			pstmt.setInt(1, tgId);
+			log.info("Delete task group: " + pstmt.toString());
+			pstmt.execute();
+		}
+
+		try (PreparedStatement pstmt = sd.prepareStatement(
+				"delete from forward where tg_id = ?")) {
+			pstmt.setInt(1, tgId);
+			log.info("Delete reminder notifications for task group: " + pstmt.toString());
+			pstmt.execute();
+		}
+
+		if(tgName != null) {
+			String msg = localisation.getString("lm_del_task_group");
+			msg = msg.replaceAll("%s1", tgName);
+			lm.writeLog(sd, 0, user, LogManager.DELETE, msg, 0, serverName);
+		}
+	}
+
 	public void deleteTasksInTaskGroup(Connection sd, int tgId) throws SQLException {
 
 		String sqlUsers = "delete from users where temporary = true and id in "
