@@ -136,6 +136,33 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 				topForm.tableName, false, false, false);
 
 		/*
+		 * The columns the update will actually be able to write, which are not the same as this
+		 * survey's.
+		 *
+		 * processUpdateGroupSurvey resolves what to write from the top level form of the BUNDLE, not
+		 * of the survey it was handed, so a question belonging to a later stage form in the bundle is
+		 * not in its list and is dropped.  Silently: the record was unchanged and the history had no
+		 * entry, while this tool reported the questions as updated.
+		 *
+		 * So the check is made against the same list the manager uses.  A question this survey has
+		 * and the bundle root does not is refused, and told apart from a misspelling, because the two
+		 * need completely different things from whoever is reading.
+		 */
+		ArrayList<TableColumn> writable = columns;
+		String bundleIdent = GeneralUtilityMethods.getGroupSurveyIdent(ctx.sd, surveyId);
+		if(bundleIdent != null && !bundleIdent.equals(survey.getIdent())) {
+			int bundleSurveyId = GeneralUtilityMethods.getSurveyId(ctx.sd, bundleIdent);
+			if(bundleSurveyId > 0) {
+				Survey bundleSurvey = McpData.surveyById(ctx, bundleSurveyId);
+				if(bundleSurvey != null) {
+					Form bundleTop = GeneralUtilityMethods.getTopLevelForm(ctx.sd, bundleSurveyId);
+					writable = McpData.columns(ctx, bundleSurvey, 0, bundleTop.id,
+							bundleTop.tableName, false, false, false);
+				}
+			}
+		}
+
+		/*
 		 * Every name is resolved against the survey before anything is written, so a misspelling is
 		 * a refusal rather than a change that silently misses.
 		 */
@@ -143,10 +170,16 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 		List<String> changed = new ArrayList<>();
 		List<String> unknown = new ArrayList<>();
 
+		List<String> notWritable = new ArrayList<>();
+
 		for(Map.Entry<String, Object> e : ((Map<String, Object>) answersArg).entrySet()) {
 			TableColumn c = column(columns, e.getKey());
 			if(c == null) {
 				unknown.add(e.getKey());
+				continue;
+			}
+			if(column(writable, e.getKey()) == null) {
+				notWritable.add(e.getKey());
 				continue;
 			}
 			String value = e.getValue() == null ? "" : e.getValue().toString();
@@ -168,6 +201,22 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 			return new MCPToolResult("This survey has no question called " + String.join(", ", unknown)
 					+ ". Read smap://survey/" + survey.getIdent() + "/definition to see the names.",
 					true);
+		}
+
+		if(!notWritable.isEmpty()) {
+			/*
+			 * A real question on a real record that this operation cannot reach.  Said as what it is
+			 * rather than as "no such question", which would send somebody looking for a typo that is
+			 * not there.
+			 */
+			return new MCPToolResult(String.join(", ", notWritable)
+					+ (notWritable.size() == 1 ? " is a question on \"" : " are questions on \"")
+					+ survey.getDisplayName() + "\", but updating a record reaches only the questions "
+					+ "of \"" + bundleIdent + "\", the survey this one shares its record with. "
+					+ "Nothing was changed.\n\nA later stage of a process is recorded by filling in "
+					+ "its own form against the record, not by updating it - which is done in the "
+					+ "console. Questions that belong to the first form of the bundle can be updated "
+					+ "here.", true);
 		}
 
 		/*

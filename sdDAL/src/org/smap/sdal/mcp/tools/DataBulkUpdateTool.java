@@ -150,6 +150,28 @@ public class DataBulkUpdateTool extends AbstractMcpTool {
 				topForm.tableName, false, false, true);
 
 		/*
+		 * What the update can actually write, which is not the same as what this survey has.
+		 *
+		 * processUpdateGroupSurvey resolves its columns from the top level form of the BUNDLE, so a
+		 * question belonging to a later stage form is dropped without a word.  Here that would be
+		 * worse than in a single update: the answer names a count of records changed, and every one
+		 * of them would be unchanged.
+		 */
+		ArrayList<TableColumn> writable = columns;
+		String bundleIdent = GeneralUtilityMethods.getGroupSurveyIdent(ctx.sd, surveyId);
+		if(bundleIdent != null && !bundleIdent.equals(survey.getIdent())) {
+			int bundleSurveyId = GeneralUtilityMethods.getSurveyId(ctx.sd, bundleIdent);
+			if(bundleSurveyId > 0) {
+				Survey bundleSurvey = McpData.surveyById(ctx, bundleSurveyId);
+				if(bundleSurvey != null) {
+					Form bundleTop = GeneralUtilityMethods.getTopLevelForm(ctx.sd, bundleSurveyId);
+					writable = McpData.columns(ctx, bundleSurvey, 0, bundleTop.id,
+							bundleTop.tableName, false, false, true);
+				}
+			}
+		}
+
+		/*
 		 * Which records, read through the row filtered path, so a caller only ever changes records
 		 * they could have read. The filter is validated there too, so a bad one is refused before
 		 * anything is written.
@@ -207,10 +229,15 @@ public class DataBulkUpdateTool extends AbstractMcpTool {
 		List<Map<String, Object>> updates = new ArrayList<>();
 		List<String> changed = new ArrayList<>();
 		List<String> unknown = new ArrayList<>();
+		List<String> notWritable = new ArrayList<>();
 		for(Map.Entry<String, Object> e : ((Map<String, Object>) answersArg).entrySet()) {
 			TableColumn c = column(columns, e.getKey());
 			if(c == null) {
 				unknown.add(e.getKey());
+				continue;
+			}
+			if(column(writable, e.getKey()) == null) {
+				notWritable.add(e.getKey());
 				continue;
 			}
 			String value = e.getValue() == null ? "" : e.getValue().toString();
@@ -228,6 +255,14 @@ public class DataBulkUpdateTool extends AbstractMcpTool {
 			return new MCPToolResult("This survey has no question called " + String.join(", ", unknown)
 					+ ". Read smap://survey/" + survey.getIdent() + "/definition to see the names.",
 					true);
+		}
+
+		if(!notWritable.isEmpty()) {
+			return new MCPToolResult(String.join(", ", notWritable)
+					+ (notWritable.size() == 1 ? " is a question on \"" : " are questions on \"")
+					+ survey.getDisplayName() + "\", but a bulk change reaches only the questions of "
+					+ "\"" + bundleIdent + "\", the survey this one shares its record with. No record "
+					+ "was changed.", true);
 		}
 
 		/*
