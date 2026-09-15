@@ -46,4 +46,15 @@ public class WorkflowItem {
 	 * from then on the node no longer follows the layout it is supposed to.
 	 */
 	public boolean pinned;
+	/*
+	 * The bundle this node belongs to for the purpose of grouping and colouring, worked out by
+	 * following the links rather than read off the node.
+	 *
+	 * Distinct from bundle, which is only set where the node has a survey of its own to take it
+	 * from - forms.  A case, a decision or an email has none, so bundle is empty on most of the
+	 * graph and cannot be what the page groups or colours by.  Kept separate rather than filled
+	 * into bundle because this one is inferred: a step reachable from two bundles is put in the
+	 * first that reaches it, which is a reasonable place to draw it and not a fact about the step.
+	 */
+	public String band;
 }

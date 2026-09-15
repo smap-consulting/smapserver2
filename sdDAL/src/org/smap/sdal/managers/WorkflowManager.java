@@ -984,6 +984,8 @@ public class WorkflowManager {
 			int r = bandStart.getOrDefault(b, 0) + within;
 			item.x = item.x * X_SPACING;
 			item.y = Y_OFFSET + r * Y_SPACING;
+			/* Reported so the page can colour a whole process, not only the forms in it */
+			item.band = b;
 		}
 	}
 
