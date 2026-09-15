@@ -202,7 +202,8 @@ public class TaskActionTool extends AbstractMcpTool {
 			 * Project membership, which is the rule for who may be given work.  Asked here because
 			 * the bulk path in the manager inserts the assignments without asking.
 			 */
-			if(!new Authorise(null, null).isValidProject(ctx.sd, assignee, pId)) {
+			/* Asked rather than enforced, so the refusal below is what the caller sees */
+			if(!new Authorise(null, null).isProjectMember(ctx.sd, assignee, pId)) {
 				return new MCPToolResult(assignee + " is not a member of "
 						+ projects.get(pId) + ", the project this work is in, so the work cannot be "
 						+ "given to them.", true);

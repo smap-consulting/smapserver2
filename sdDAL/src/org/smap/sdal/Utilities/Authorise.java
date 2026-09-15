@@ -1723,6 +1723,33 @@ public class Authorise {
 	/*
 	 * Verify that the user is entitled to access this project
 	 */
+	/*
+	 * Whether a user is a member of a project, answered rather than enforced.
+	 *
+	 * isValidProject below throws when the answer is no, which is what an authorisation guard wants
+	 * and what nearly every caller uses it for.  A caller asking about somebody *else* - may this
+	 * person be given this work - wants the answer instead, so that it can say why in its own words
+	 * and log it.  Given only the throwing form, such a caller cannot: the exception leaves through
+	 * it as a bare 403 and whatever message it meant to return is never reached.
+	 */
+	public boolean isProjectMember(Connection conn, String user, int pId) {
+
+		if(user == null || user.trim().isEmpty()) {
+			return false;
+		}
+		String sql = "select count(*) from users u, user_project up, project p "
+				+ "where u.id = up.u_id and p.id = up.p_id and p.id = ? and u.ident = ?";
+		try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+			pstmt.setInt(1, pId);
+			pstmt.setString(2, user);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() && rs.getInt(1) > 0;
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error checking project membership", e);
+			return false;
+		}
+	}
+
 	public boolean isValidProject(Connection conn, String user, int pId) {
 		ResultSet resultSet = null;
 		PreparedStatement pstmt = null;
@@ -1759,9 +1786,14 @@ public class Authorise {
 		
  		if(count == 0) {
  			log.log(Level.SEVERE, "Project validation failed for: " + user + " project was: " + pId);
- 			
- 			SDDataSource.closeConnection("isValidProject", conn);
-			
+
+			/*
+			 * The connection is the caller's and is closed by the caller, which has a finally block
+			 * for exactly this path.  Closing it here as well returned it to the pool twice and took
+			 * the open-connection count negative - "$$$$ -2 Close SurveyDefinitions connection" in
+			 * the log is this, not a miscount.
+			 */
+
 			if(sqlError) {
 				throw new ServerException();
 			} else {

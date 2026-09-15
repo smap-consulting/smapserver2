@@ -874,7 +874,16 @@ public class RoleManager {
 			String updateId, String assignee, String requester, String tz, String serverName)
 					throws Exception {
 
-		if(assignee == null || assignee.trim().length() == 0) {
+		/*
+		 * "_none" is how the console says take this away from whoever has it, and is recognised as
+		 * that everywhere else - the endpoint above skips its user check for it, and assignRecord
+		 * turns it into a null assignee.  Here it was read as a username, which meant asking whether
+		 * a user called "_none" was in the project, and refusing because no such user exists.
+		 *
+		 * There is nothing to check when the assignment is to nobody.  The question this answers is
+		 * whether work may be handed to a particular person, and unassigning hands it to no one.
+		 */
+		if(assignee == null || assignee.trim().length() == 0 || assignee.equals("_none")) {
 			return true;		// Nobody to check
 		}
 
@@ -882,7 +891,12 @@ public class RoleManager {
 		if(pId <= 0) {
 			return true;		// No project to check against
 		}
-		if(new Authorise(null, null).isValidProject(sd, assignee, pId)) {
+		/*
+		 * Asked, not enforced.  isValidProject throws on a refusal, which would leave through this
+		 * method as a bare 403 and skip both the caller's message and the log entry below - so the
+		 * refusal this method exists to describe would arrive undescribed.
+		 */
+		if(new Authorise(null, null).isProjectMember(sd, assignee, pId)) {
 			return true;
 		}
 
