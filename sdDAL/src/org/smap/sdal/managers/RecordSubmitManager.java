@@ -92,6 +92,26 @@ public class RecordSubmitManager {
 			Map<String, String> values, String user, String agent, String basePath,
 			String serverName) throws Exception {
 
+		return submit(sd, cResults, survey, values, user, agent, basePath, serverName, null);
+	}
+
+	/*
+	 * The same, against a record that already exists.
+	 *
+	 * updateInstanceId names the record this submission continues.  It is how a device edits a
+	 * record it has already sent, and how a case management process records its later stages: the
+	 * next form in the bundle is filled in against the record, and the subscriber writes the answers
+	 * onto the existing row rather than making a new one.  The instance id of the new document goes
+	 * into the same thread, so the record's history reads as one thing.
+	 *
+	 * The answers of the form being submitted are the ones that are written.  A question this form
+	 * does not have is not touched, which is what lets a four stage process keep adding to one record
+	 * without each stage having to restate what the stages before it recorded.
+	 */
+	public Submitted submit(Connection sd, Connection cResults, Survey survey,
+			Map<String, String> values, String user, String agent, String basePath,
+			String serverName, String updateInstanceId) throws Exception {
+
 		String templateName = survey.getIdent();
 
 		/*
@@ -119,17 +139,31 @@ public class RecordSubmitManager {
 		initialData.values.putAll(values);
 		initialData.values.put(INSTANCE_ID, instanceId);
 
+		/*
+		 * A blank form for a new record; the existing record loaded into the form when continuing one.
+		 *
+		 * This matters more than it looks.  The document that is submitted carries every question the
+		 * form has, so a question the form asks and the caller did not answer is submitted empty and
+		 * clears what was there.  Filling in the Public Prosecutor's form without restating the
+		 * urgency that reception recorded wiped it.
+		 *
+		 * A device does not have this problem because the webform loads the record into the form
+		 * before the person edits it, and submits what is on the screen.  So this loads it the same
+		 * way - by instanceid, which getInstanceXml resolves to a primary key itself and refuses to
+		 * take directly, a primary key being guessable.  The caller's answers are applied over the
+		 * top, so what they gave wins and what they left out keeps the value it had.
+		 */
 		GetXForm xForm = new GetXForm(localisation, user, tz);
 		String instanceXml = xForm.getInstanceXml(survey.getId(), templateName, template,
-				null,			// key
-				null,			// key value
-				0,				// prikey
+				updateInstanceId == null ? null : "instanceid",
+				updateInstanceId,
+				0,				// prikey: never supplied directly, resolved from the instance id
 				false,			// simplifyMedia
 				false,			// isWebForms
 				0,				// taskKey
 				null,			// url prefix: no media is being referenced
 				initialData,
-				true);			// createBlank
+				true);			// createBlank, used only when there is no record to load
 
 		if(instanceXml == null || instanceXml.trim().isEmpty()) {
 			throw new ApplicationException("The survey definition could not be turned into a record");
@@ -195,6 +229,11 @@ public class RecordSubmitManager {
 		ue.setUploadTime(new Date());
 		ue.setSurveyName(survey.getDisplayName());
 		ue.setInstanceId(instanceId);
+		/*
+		 * Null for a new record, and the record being continued otherwise.  The subscriber reads this
+		 * to decide whether to insert a row or find an existing one and update it.
+		 */
+		ue.setUpdateId(updateInstanceId);
 		ue.setStatus("success");
 		ue.setIncomplete(false);
 		ue.setFormStatus("complete");
@@ -214,7 +253,8 @@ public class RecordSubmitManager {
 			uem.close();
 		}
 
-		log.info("MCP submission queued for " + templateName + ", instance " + instanceId);
+		log.info("MCP submission queued for " + templateName + ", instance " + instanceId
+				+ (updateInstanceId == null ? "" : ", updating " + updateInstanceId));
 
 		Submitted submitted = new Submitted();
 		submitted.instanceId = instanceId;

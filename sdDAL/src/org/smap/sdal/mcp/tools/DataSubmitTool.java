@@ -44,9 +44,10 @@ public class DataSubmitTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Submits a new record as though it had been filled in on a form, with answers keyed by "
-				+ "question name. Check survey_submission_effects first - a submission can send email and SMS "
-				+ "that cannot be recalled. The record appears a moment later.";
+		return "Fills in a form, as though somebody had done it: a new record, or - with continues - "
+				+ "the next stage of a record that already exists, which is how a case management "
+				+ "process is carried forward. Check survey_submission_effects first: a submission "
+				+ "can send email and SMS that cannot be recalled. The record appears a moment later.";
 	}
 
 	@Override
@@ -93,8 +94,13 @@ public class DataSubmitTool extends AbstractMcpTool {
 				+ "cannot be guessed, and repeating them puts what is about to be sent in front of "
 				+ "whoever approves the call.");
 
-		properties.put("survey_id", property("integer", "The survey to add a record to"));
+		properties.put("survey_id", property("integer", "The survey whose form is being filled in"));
 		properties.put("answers", answers);
+		properties.put("continues", property("string",
+				"Optional. The instance id of a record this form is being filled in against, rather "
+						+ "than starting a new one. The two forms have to share a record - that is, "
+						+ "be in the same bundle - and the answers given here are written onto that "
+						+ "record. Anything this form does not ask is left as it was."));
 		properties.put("acknowledge", acknowledge);
 		schema.put("type", "object");
 		schema.put("properties", properties);
@@ -106,7 +112,9 @@ public class DataSubmitTool extends AbstractMcpTool {
 	public Map<String, Object> getOutputSchema() {
 		Map<String, Object> properties = new LinkedHashMap<>();
 		properties.put("submitted", property("boolean", "Whether the record was accepted"));
-		properties.put("instanceid", property("string", "The new record's instance id"));
+		properties.put("instanceid", property("string", "The instance id of this submission"));
+		properties.put("continues", property("string",
+				"The record carried forward, when one was named"));
 		properties.put("queued", property("boolean",
 				"Always true: the record is applied by the subscriber a moment later"));
 
@@ -156,6 +164,34 @@ public class DataSubmitTool extends AbstractMcpTool {
 			return new MCPToolResult("This survey has no question called " + String.join(", ", unknown)
 					+ ". Read smap://survey/" + survey.getIdent()
 					+ "/definition to see the names.", true);
+		}
+
+		/*
+		 * The record this form is being filled in against, when it is continuing one.
+		 *
+		 * Checked here rather than left to the subscriber, which would find no such record and write
+		 * a new one - a silent fork, and the hardest kind of mistake to notice because both records
+		 * look right on their own.
+		 *
+		 * Both conditions matter. The record has to exist and be one this caller may see, for the
+		 * reason every other record tool checks. And the two forms have to share a record: writing
+		 * this form's answers onto a record in a different results table is not a thing that can
+		 * happen, and asking for it is a misunderstanding worth naming rather than a failure.
+		 */
+		String continues = stringArg(arguments, "continues");
+		if(continues != null) {
+			continues = continues.trim();
+			if(continues.isEmpty()) {
+				continues = null;
+			}
+		}
+		if(continues != null) {
+			if(!McpData.canSeeRecord(ctx, survey, continues)) {
+				return new MCPToolResult("There is no record " + continues + " that you can reach "
+						+ "through \"" + survey.getDisplayName() + "\". A form can only be filled in "
+						+ "against a record it shares - the two have to be in the same bundle. "
+						+ "Nothing was submitted.", true);
+			}
 		}
 
 		/*
@@ -221,16 +257,31 @@ public class DataSubmitTool extends AbstractMcpTool {
 				ctx.user,
 				ctx.clientId,
 				GeneralUtilityMethods.getBasePath(ctx.request),
-				ctx.request.getServerName());
+				ctx.request.getServerName(),
+				continues);
 
 		Map<String, Object> structured = new LinkedHashMap<>();
 		structured.put("submitted", Boolean.TRUE);
 		structured.put("instanceid", submitted.instanceId);
+		structured.put("continues", continues == null ? "" : continues);
 		structured.put("queued", Boolean.TRUE);
 
-		StringBuilder text = new StringBuilder("Record accepted, instance id ")
-				.append(submitted.instanceId)
-				.append(". It is queued and will appear in the data shortly.");
+		StringBuilder text = new StringBuilder();
+		if(continues == null) {
+			text.append("Record accepted, instance id ").append(submitted.instanceId)
+					.append(". It is queued and will appear in the data shortly.");
+		} else {
+			/*
+			 * Said as what happened to the record rather than as a new submission, because that is
+			 * what it is to whoever asked: the same case, one stage further on.
+			 */
+			text.append("\"").append(survey.getDisplayName())
+					.append("\" filled in against record ").append(continues)
+					.append(". It is queued, and the answers appear on that record shortly. The "
+							+ "record keeps what the earlier stages put on it: this form is filled "
+							+ "in over the record as it stands, so a question you did not answer "
+							+ "keeps the value it had.");
+		}
 		if(!effects.isEmpty()) {
 			text.append(" ").append(effects.describe());
 		}
