@@ -76,7 +76,8 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 		Map<String, Object> answers = new LinkedHashMap<>();
 		answers.put("type", "object");
 		answers.put("description", "The new answers, keyed by question name. Questions not named "
-				+ "here keep the values they have.");
+				+ "here keep the values they have, and so does a question given null - use null for "
+				+ "an answer you do not have. An empty string clears the answer instead.");
 
 		Map<String, Object> properties = new LinkedHashMap<>();
 		properties.put("survey_id", property("integer", "The survey the record belongs to"));
@@ -171,6 +172,7 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 		List<String> unknown = new ArrayList<>();
 
 		List<String> notWritable = new ArrayList<>();
+		List<String> retained = new ArrayList<>();
 
 		for(Map.Entry<String, Object> e : ((Map<String, Object>) answersArg).entrySet()) {
 			TableColumn c = column(columns, e.getKey());
@@ -182,19 +184,30 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 				notWritable.add(e.getKey());
 				continue;
 			}
-			String value = e.getValue() == null ? "" : e.getValue().toString();
+			String name = c.question_name != null ? c.question_name : c.column_name;
+
+			/*
+			 * Null and "" are two different instructions, and the difference matters most to a caller
+			 * assembling answers from something that has gaps in it.
+			 *
+			 * Null says nothing about this question, so the record keeps what it has - the question is
+			 * left out of the update entirely rather than written as blank.  "" says the answer is to
+			 * be taken away, which is a clearing rather than the text "", the distinction the console
+			 * draws and the one the history reads back correctly.
+			 */
+			if(e.getValue() == null) {
+				retained.add(name);
+				continue;
+			}
+			String value = e.getValue().toString();
 
 			Map<String, Object> update = new LinkedHashMap<>();
-			update.put("name", c.question_name != null ? c.question_name : c.column_name);
+			update.put("name", name);
 			update.put("displayName", c.displayName);
 			update.put("value", value);
-			/*
-			 * An empty answer is a clearing rather than the text "", which is the distinction the
-			 * console draws and the one the history reads back correctly.
-			 */
 			update.put("clear", value.isEmpty());
 			updates.add(update);
-			changed.add(c.question_name != null ? c.question_name : c.column_name);
+			changed.add(name);
 		}
 
 		if(!unknown.isEmpty()) {
@@ -217,6 +230,18 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 					+ "its own form against the record, not by updating it - which is done in the "
 					+ "console. Questions that belong to the first form of the bundle can be updated "
 					+ "here.", true);
+		}
+
+		if(updates.isEmpty()) {
+			/*
+			 * Every question given was null, so every one of them was a "leave this alone".  Reported
+			 * rather than run: processUpdateGroupSurvey with an empty list writes a change event for a
+			 * change that did not happen, and the record would read as having been edited.
+			 */
+			return new MCPToolResult("Nothing was changed. " + String.join(", ", retained)
+					+ (retained.size() == 1 ? " was given null, which means keep the value it has."
+							: " were given null, which means keep the values they have.")
+					+ " To take an answer away, give it as an empty string.", false);
 		}
 
 		/*
@@ -254,9 +279,16 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 		structured.put("updated", Boolean.TRUE);
 		structured.put("instanceid", instanceId);
 		structured.put("questions", changed);
+		structured.put("retained", retained);
 
-		MCPToolResult result = new MCPToolResult("Changed " + String.join(", ", changed)
+		StringBuilder text = new StringBuilder("Changed " + String.join(", ", changed)
 				+ ". data_audit shows the values before and after.");
+		if(!retained.isEmpty()) {
+			text.append("\n\n").append(String.join(", ", retained))
+					.append(retained.size() == 1 ? " was given null, so it keeps the value it had."
+							: " were given null, so they keep the values they had.");
+		}
+		MCPToolResult result = new MCPToolResult(text.toString());
 		result.setStructuredContent(structured);
 		return result;
 	}

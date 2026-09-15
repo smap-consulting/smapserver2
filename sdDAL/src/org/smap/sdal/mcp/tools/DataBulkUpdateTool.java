@@ -89,7 +89,8 @@ public class DataBulkUpdateTool extends AbstractMcpTool {
 		Map<String, Object> answers = new LinkedHashMap<>();
 		answers.put("type", "object");
 		answers.put("description", "The answers to set on every matching record, keyed by question "
-				+ "name. Questions not named keep the values they have.");
+				+ "name. Questions not named keep the values they have, and so does a question "
+				+ "given null. An empty string clears the answer instead.");
 
 		Map<String, Object> acknowledge = new LinkedHashMap<>();
 		acknowledge.put("type", "object");
@@ -230,6 +231,7 @@ public class DataBulkUpdateTool extends AbstractMcpTool {
 		List<String> changed = new ArrayList<>();
 		List<String> unknown = new ArrayList<>();
 		List<String> notWritable = new ArrayList<>();
+		List<String> retained = new ArrayList<>();
 		for(Map.Entry<String, Object> e : ((Map<String, Object>) answersArg).entrySet()) {
 			TableColumn c = column(columns, e.getKey());
 			if(c == null) {
@@ -240,8 +242,18 @@ public class DataBulkUpdateTool extends AbstractMcpTool {
 				notWritable.add(e.getKey());
 				continue;
 			}
-			String value = e.getValue() == null ? "" : e.getValue().toString();
 			String name = c.question_name != null ? c.question_name : c.column_name;
+
+			/*
+			 * Null means leave this question as it is on every record, so it is left out of the update
+			 * altogether; "" means take the answer away.  Across many records the difference is the
+			 * whole change: written as blank, a null would empty a question on every record matched.
+			 */
+			if(e.getValue() == null) {
+				retained.add(name);
+				continue;
+			}
+			String value = e.getValue().toString();
 
 			Map<String, Object> update = new LinkedHashMap<>();
 			update.put("name", name);
@@ -263,6 +275,13 @@ public class DataBulkUpdateTool extends AbstractMcpTool {
 					+ survey.getDisplayName() + "\", but a bulk change reaches only the questions of "
 					+ "\"" + bundleIdent + "\", the survey this one shares its record with. No record "
 					+ "was changed.", true);
+		}
+
+		if(updates.isEmpty()) {
+			return new MCPToolResult("No record was changed. " + String.join(", ", retained)
+					+ (retained.size() == 1 ? " was given null, which means keep the value it has."
+							: " were given null, which means keep the values they have.")
+					+ " To take an answer away, give it as an empty string.", false);
 		}
 
 		/*
@@ -291,9 +310,16 @@ public class DataBulkUpdateTool extends AbstractMcpTool {
 		structured.put("updated", updated);
 		structured.put("change_set", changeSet);
 		structured.put("questions", changed);
+		structured.put("retained", retained);
 
-		MCPToolResult result = new MCPToolResult("Changed " + updated + " record(s). "
+		StringBuilder text = new StringBuilder("Changed " + updated + " record(s). "
 				+ "To put them back, call data_bulk_undo with change_set " + changeSet + ".");
+		if(!retained.isEmpty()) {
+			text.append("\n\n").append(String.join(", ", retained))
+					.append(retained.size() == 1 ? " was given null, so every record keeps the value "
+							+ "it had." : " were given null, so every record keeps the values it had.");
+		}
+		MCPToolResult result = new MCPToolResult(text.toString());
 		result.setStructuredContent(structured);
 		return result;
 	}

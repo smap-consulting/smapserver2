@@ -81,7 +81,9 @@ public class DataSubmitTool extends AbstractMcpTool {
 		Map<String, Object> answers = new LinkedHashMap<>();
 		answers.put("type", "object");
 		answers.put("description", "The answers, keyed by question name, as they would have been "
-				+ "typed into the form. Read smap://survey/{ident}/definition for the names.");
+				+ "typed into the form. Read smap://survey/{ident}/definition for the names. A "
+				+ "question given null is left unanswered, and when continues is used it keeps the "
+				+ "value the record already has; an empty string takes that answer away.");
 
 		Map<String, Object> schema = new LinkedHashMap<>();
 		Map<String, Object> properties = new LinkedHashMap<>();
@@ -156,9 +158,18 @@ public class DataSubmitTool extends AbstractMcpTool {
 			String question = questionFor(columns, e.getKey());
 			if(question == null) {
 				unknown.add(e.getKey());
-			} else {
-				values.put(question, e.getValue() == null ? "" : e.getValue().toString());
+			} else if(e.getValue() != null) {
+				values.put(question, e.getValue().toString());
 			}
+			/*
+			 * A null answer is left out of the document entirely rather than written as empty.
+			 *
+			 * On a new record the two look the same, but when this form is filled in against an
+			 * existing one they are opposites: the record is loaded into the form first, so a question
+			 * written as empty takes away what an earlier stage put there, while one left out keeps
+			 * it.  An empty string is still passed through, because taking an answer away is a
+			 * legitimate thing for a later stage to do.
+			 */
 		}
 		if(!unknown.isEmpty()) {
 			return new MCPToolResult("This survey has no question called " + String.join(", ", unknown)
