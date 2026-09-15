@@ -22,8 +22,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -700,6 +702,8 @@ public class WorkflowManager {
 			}
 		}
 
+		linkCasesToTheirForms(sd, data, itemMap, surveyBundleNames);
+
 		data.items.addAll(itemMap.values());
 		applyLayout(data);
 		mergeUserPositions(sd, user, data);
@@ -1033,6 +1037,119 @@ public class WorkflowManager {
 			}
 		}
 		return band;
+	}
+
+
+	/*
+	 * Join each case step to the form it sends somebody to.
+	 *
+	 * A case step and the form its case points at were built as unconnected nodes: the step came
+	 * from the rule that creates it, and the form came from being the trigger of some other rule.
+	 * Nothing linked them, so every form in a bundle after the first appeared to start a workflow
+	 * of its own - the Bail process drew as three separate beginnings rather than one.
+	 *
+	 * The two are a single step of a process.  A case says go and fill this form in, and submitting
+	 * it is what fires whatever comes next, so the edge is real and this draws it.
+	 *
+	 * A form node is created for a case survey that has none.  Without it the last stage of a
+	 * process - the one whose submission triggers nothing further, because it is the end - would be
+	 * the one stage missing from the picture.
+	 *
+	 * Only case steps.  A reference gives somebody read only sight of a record, not a form to fill
+	 * in, so linking it would draw a step nobody is being asked to perform.
+	 */
+	private void linkCasesToTheirForms(Connection sd, WorkflowData data,
+			LinkedHashMap<String, WorkflowItem> itemMap, Map<Integer, String> surveyBundleNames)
+					throws SQLException {
+
+		/* The case surveys that have no form node yet, looked up in one query rather than per node */
+		Set<Integer> wanted = new HashSet<>();
+		for (WorkflowItem item : itemMap.values()) {
+			if (TYPE_CASE.equals(item.type) && item.caseSurveyId > 0
+					&& !itemMap.containsKey("form:s:" + item.caseSurveyId)) {
+				wanted.add(item.caseSurveyId);
+			}
+		}
+		Map<Integer, String[]> missing = new HashMap<>();	// s_id -> [display_name, project_name]
+		if (!wanted.isEmpty()) {
+			StringBuilder in = new StringBuilder();
+			for (int i = 0; i < wanted.size(); i++) {
+				in.append(i == 0 ? "?" : ",?");
+			}
+			String sql = "select s.s_id, s.display_name, p.name as project_name "
+					+ "from survey s join project p on p.id = s.p_id "
+					+ "where s.s_id in (" + in + ") and not s.deleted";
+			try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+				int idx = 1;
+				for (Integer id : wanted) {
+					pstmt.setInt(idx++, id);
+				}
+				ResultSet rs = pstmt.executeQuery();
+				while (rs.next()) {
+					missing.put(rs.getInt("s_id"), new String[] {
+							rs.getString("display_name"), rs.getString("project_name") });
+				}
+			}
+		}
+
+		for (WorkflowItem item : new ArrayList<>(itemMap.values())) {
+			if (!TYPE_CASE.equals(item.type) || item.caseSurveyId <= 0) {
+				continue;
+			}
+			String formKey = "form:s:" + item.caseSurveyId;
+			if (!itemMap.containsKey(formKey)) {
+				String[] survey = missing.get(item.caseSurveyId);
+				if (survey == null) {
+					/*
+					 * Deleted, or outside what this user can reach.  Left undrawn rather than drawn
+					 * as a step, because a case pointing at a survey that is not there is a fault to
+					 * be found, not a stage of the process.
+					 */
+					continue;
+				}
+				WorkflowItem form = new WorkflowItem();
+				form.id      = formKey;
+				form.type    = TYPE_FORM;
+				form.role    = ROLE_FORM;
+				form.name    = survey[0];
+				form.project = survey[1];
+				form.enabled = true;
+				form.bundle  = surveyBundleNames.get(item.caseSurveyId);
+				itemMap.put(formKey, form);
+			}
+			/*
+			 * A process that keeps somebody on the same form - a status question moving a record
+			 * through its stages - would otherwise be drawn as a loop back into its own trigger, and
+			 * the column layout walks forward through the links until it stops changing.  So the
+			 * edge is added only where it does not close a circle.
+			 */
+			if (!reaches(data, formKey, item.id)) {
+				addLinkIfAbsent(data, item.id, formKey);
+			}
+		}
+	}
+
+	/* Whether to is reachable from from by following links */
+	private boolean reaches(WorkflowData data, String from, String to) {
+		if (from.equals(to)) {
+			return true;
+		}
+		Set<String> seen = new HashSet<>();
+		Deque<String> queue = new ArrayDeque<>();
+		queue.add(from);
+		seen.add(from);
+		while (!queue.isEmpty()) {
+			String at = queue.poll();
+			for (WorkflowLink link : data.links) {
+				if (link.from.equals(at) && seen.add(link.to)) {
+					if (link.to.equals(to)) {
+						return true;
+					}
+					queue.add(link.to);
+				}
+			}
+		}
+		return false;
 	}
 
 	/*
