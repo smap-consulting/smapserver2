@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -868,6 +869,16 @@ public class WorkflowManager {
 	private static final int X_SPACING = CARD_W + 80;   // 320px — card width plus gap
 	private static final int Y_SPACING = 150;
 	private static final int Y_OFFSET  = 40;            // top margin below the menu bar
+	private static final int BAND_GAP  = 1;             // blank rows between one bundle and the next
+	/*
+	 * Joins a band name to a column number to make one map key.  A character no bundle name can
+	 * contain, so that two different band-and-column pairs cannot produce the same key.
+	 */
+	private static final String KEY_SEP = "\u0000";
+
+	private static String slot(String band, int column) {
+		return band + KEY_SEP + column;
+	}
 
 	/*
 	 * Assign x/y pixel positions to each node.
@@ -905,18 +916,121 @@ public class WorkflowManager {
 			log.warning("applyLayout: cycle detected in workflow graph — layout may be incorrect");
 		}
 
-		LinkedHashMap<Integer, List<WorkflowItem>> columns = new LinkedHashMap<>();
-		for (WorkflowItem item : data.items) {
-			columns.computeIfAbsent(item.x, k -> new ArrayList<>()).add(item);
-		}
+		/*
+		 * Which bundle each node belongs to, so that one process reads as one horizontal band.
+		 *
+		 * Only form nodes are given a bundle when they are built - a case, a decision or an email
+		 * has no survey of its own to take one from - so stacking on the field alone would put a
+		 * form in its band and every step of its process in with the unbundled ones.  The band is
+		 * therefore taken from the links: a step belongs to the process that leads to it.
+		 */
+		Map<String, String> band = bands(data, byId);
 
-		for (List<WorkflowItem> col : columns.values()) {
-			for (int row = 0; row < col.size(); row++) {
-				WorkflowItem item = col.get(row);
-				item.x = item.x * X_SPACING;
-				item.y = Y_OFFSET + row * Y_SPACING;
+		/*
+		 * Bands in name order, the ones belonging to no bundle last.  Alphabetical rather than
+		 * insertion order because this runs when somebody asks to reset the layout, and a reset
+		 * that returned a different arrangement each time would be no easier to read than what it
+		 * replaced.
+		 */
+		TreeSet<String> named = new TreeSet<>();
+		boolean anyUnbundled = false;
+		for (WorkflowItem item : data.items) {
+			String b = band.get(item.id);
+			if (b == null || b.isEmpty()) {
+				anyUnbundled = true;
+			} else {
+				named.add(b);
 			}
 		}
+		List<String> order = new ArrayList<>(named);
+		if (anyUnbundled) {
+			order.add("");
+		}
+
+		/*
+		 * How many rows each band needs: the most nodes it ever has in a single column.  Counted
+		 * before anything is placed so that the bands below start clear of the one above however
+		 * wide this one gets.
+		 */
+		Map<String, Integer> heights = new LinkedHashMap<>();
+		for (WorkflowItem item : data.items) {
+			String b = band.get(item.id);
+			b = b == null ? "" : b;
+			heights.merge(slot(b, item.x), 1, Integer::sum);
+		}
+		Map<String, Integer> bandRows = new LinkedHashMap<>();
+		for (Map.Entry<String, Integer> e : heights.entrySet()) {
+			String b = e.getKey().substring(0, e.getKey().indexOf(KEY_SEP));
+			bandRows.merge(b, e.getValue(), Math::max);
+		}
+
+		Map<String, Integer> bandStart = new LinkedHashMap<>();
+		int row = 0;
+		for (String b : order) {
+			bandStart.put(b, row);
+			row += bandRows.getOrDefault(b, 1) + BAND_GAP;
+		}
+
+		/*
+		 * Place each node: its column decides x, and its position within its band's rows decides y.
+		 * Within a band and column the nodes keep the order they were built in, which follows the
+		 * order the rules were made.
+		 */
+		Map<String, Integer> nextRow = new LinkedHashMap<>();
+		for (WorkflowItem item : data.items) {
+			String b = band.get(item.id);
+			b = b == null ? "" : b;
+			int within = nextRow.merge(slot(b, item.x), 1, Integer::sum) - 1;
+			int r = bandStart.getOrDefault(b, 0) + within;
+			item.x = item.x * X_SPACING;
+			item.y = Y_OFFSET + r * Y_SPACING;
+		}
+	}
+
+	/*
+	 * The bundle each node belongs to.
+	 *
+	 * Seeded from the nodes that carry one and spread along the links, forwards first - a form's
+	 * bundle reaching the decisions and cases that follow from submitting it - and then backwards,
+	 * so a trigger with no bundle of its own joins the process it feeds.  Repeated until nothing
+	 * more changes, capped at the number of nodes because a cyclic graph would otherwise not stop.
+	 *
+	 * A node reachable from two bundles keeps the first one to reach it.  The passes run over the
+	 * links in the order they were built, so the same graph always bands the same way.
+	 */
+	private Map<String, String> bands(WorkflowData data, LinkedHashMap<String, WorkflowItem> byId) {
+
+		Map<String, String> band = new LinkedHashMap<>();
+		for (WorkflowItem item : data.items) {
+			if (item.bundle != null && !item.bundle.trim().isEmpty()) {
+				band.put(item.id, item.bundle.trim());
+			}
+		}
+
+		int maxPasses = data.items.size();
+		boolean changed = true;
+		for (int pass = 0; changed && pass < maxPasses; pass++) {
+			changed = false;
+			for (WorkflowLink link : data.links) {
+				String from = band.get(link.from);
+				if (from != null && byId.containsKey(link.to) && !band.containsKey(link.to)) {
+					band.put(link.to, from);
+					changed = true;
+				}
+			}
+		}
+		changed = true;
+		for (int pass = 0; changed && pass < maxPasses; pass++) {
+			changed = false;
+			for (WorkflowLink link : data.links) {
+				String to = band.get(link.to);
+				if (to != null && byId.containsKey(link.from) && !band.containsKey(link.from)) {
+					band.put(link.from, to);
+					changed = true;
+				}
+			}
+		}
+		return band;
 	}
 
 	/*
