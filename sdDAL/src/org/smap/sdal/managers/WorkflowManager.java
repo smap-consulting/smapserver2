@@ -702,7 +702,7 @@ public class WorkflowManager {
 			}
 		}
 
-		linkCasesToTheirForms(sd, data, itemMap, surveyBundleNames);
+		mergeCasesWithTheirForms(data, itemMap);
 
 		data.items.addAll(itemMap.values());
 		applyLayout(data);
@@ -1041,92 +1041,85 @@ public class WorkflowManager {
 
 
 	/*
-	 * Join each case step to the form it sends somebody to.
+	 * A case step and the form it sends somebody to are one step, so draw one node.
 	 *
-	 * A case step and the form its case points at were built as unconnected nodes: the step came
-	 * from the rule that creates it, and the form came from being the trigger of some other rule.
-	 * Nothing linked them, so every form in a bundle after the first appeared to start a workflow
-	 * of its own - the Bail process drew as three separate beginnings rather than one.
+	 * The case node already names the form: its body is the case survey's display name and its
+	 * header the rule that created it, so "Annotation / Bail Annotation / PP" says who does what to
+	 * which form.  The survey also gets a form node of its own, because rules fire when it is
+	 * submitted and that made it the trigger of something.  Left alone the two sit side by side
+	 * saying the same thing, and before they were linked the form read as the start of a workflow
+	 * of its own - the Bail process drew as three beginnings instead of one.
 	 *
-	 * The two are a single step of a process.  A case says go and fill this form in, and submitting
-	 * it is what fires whatever comes next, so the edge is real and this draws it.
+	 * So the case absorbs the form: whatever fired on submitting the form now hangs off the case,
+	 * and the form node goes.  Being given the work and finishing it are two moments, but they are
+	 * one step of a process and one box on the page.
 	 *
-	 * A form node is created for a case survey that has none.  Without it the last stage of a
-	 * process - the one whose submission triggers nothing further, because it is the end - would be
-	 * the one stage missing from the picture.
+	 * Left alone where absorbing would lose something or say something untrue:
 	 *
-	 * Only case steps.  A reference gives somebody read only sight of a record, not a form to fill
-	 * in, so linking it would draw a step nobody is being asked to perform.
+	 *   - more than one case leads to the same form.  Which of them the form belongs to has no
+	 *     answer, and folding it into either would hide the other route.
+	 *   - the form was put on the canvas as a start in its own right, so somebody meant it to be
+	 *     there.
+	 *   - something else already leads into the form, which would be orphaned by removing it.
+	 *   - the merge would close a circle.  A process that keeps somebody on one form - a status
+	 *     question moving a record through its stages - feeds its own trigger, and the column
+	 *     layout walks forward through the links until it stops changing.
 	 */
-	private void linkCasesToTheirForms(Connection sd, WorkflowData data,
-			LinkedHashMap<String, WorkflowItem> itemMap, Map<Integer, String> surveyBundleNames)
-					throws SQLException {
+	private void mergeCasesWithTheirForms(WorkflowData data,
+			LinkedHashMap<String, WorkflowItem> itemMap) {
 
-		/* The case surveys that have no form node yet, looked up in one query rather than per node */
-		Set<Integer> wanted = new HashSet<>();
+		/* How many case steps lead to each survey, so a shared form can be left as its own node */
+		Map<Integer, Integer> casesPerSurvey = new HashMap<>();
 		for (WorkflowItem item : itemMap.values()) {
-			if (TYPE_CASE.equals(item.type) && item.caseSurveyId > 0
-					&& !itemMap.containsKey("form:s:" + item.caseSurveyId)) {
-				wanted.add(item.caseSurveyId);
-			}
-		}
-		Map<Integer, String[]> missing = new HashMap<>();	// s_id -> [display_name, project_name]
-		if (!wanted.isEmpty()) {
-			StringBuilder in = new StringBuilder();
-			for (int i = 0; i < wanted.size(); i++) {
-				in.append(i == 0 ? "?" : ",?");
-			}
-			String sql = "select s.s_id, s.display_name, p.name as project_name "
-					+ "from survey s join project p on p.id = s.p_id "
-					+ "where s.s_id in (" + in + ") and not s.deleted";
-			try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
-				int idx = 1;
-				for (Integer id : wanted) {
-					pstmt.setInt(idx++, id);
-				}
-				ResultSet rs = pstmt.executeQuery();
-				while (rs.next()) {
-					missing.put(rs.getInt("s_id"), new String[] {
-							rs.getString("display_name"), rs.getString("project_name") });
-				}
+			if (TYPE_CASE.equals(item.type) && item.caseSurveyId > 0) {
+				casesPerSurvey.merge(item.caseSurveyId, 1, Integer::sum);
 			}
 		}
 
-		for (WorkflowItem item : new ArrayList<>(itemMap.values())) {
-			if (!TYPE_CASE.equals(item.type) || item.caseSurveyId <= 0) {
+		for (WorkflowItem caseItem : new ArrayList<>(itemMap.values())) {
+			if (!TYPE_CASE.equals(caseItem.type) || caseItem.caseSurveyId <= 0) {
 				continue;
 			}
-			String formKey = "form:s:" + item.caseSurveyId;
-			if (!itemMap.containsKey(formKey)) {
-				String[] survey = missing.get(item.caseSurveyId);
-				if (survey == null) {
-					/*
-					 * Deleted, or outside what this user can reach.  Left undrawn rather than drawn
-					 * as a step, because a case pointing at a survey that is not there is a fault to
-					 * be found, not a stage of the process.
-					 */
-					continue;
+			String formKey = "form:s:" + caseItem.caseSurveyId;
+			WorkflowItem form = itemMap.get(formKey);
+			if (form == null) {
+				continue;		// nothing drawn for it; the case node already stands for the form
+			}
+			if (casesPerSurvey.getOrDefault(caseItem.caseSurveyId, 0) != 1) {
+				continue;
+			}
+			if (form.startIds != null && !form.startIds.isEmpty()) {
+				continue;
+			}
+			boolean ledInto = false;
+			for (WorkflowLink link : data.links) {
+				if (link.to.equals(formKey)) {
+					ledInto = true;
+					break;
 				}
-				WorkflowItem form = new WorkflowItem();
-				form.id      = formKey;
-				form.type    = TYPE_FORM;
-				form.role    = ROLE_FORM;
-				form.name    = survey[0];
-				form.project = survey[1];
-				form.enabled = true;
-				form.bundle  = surveyBundleNames.get(item.caseSurveyId);
-				itemMap.put(formKey, form);
 			}
-			/*
-			 * A process that keeps somebody on the same form - a status question moving a record
-			 * through its stages - would otherwise be drawn as a loop back into its own trigger, and
-			 * the column layout walks forward through the links until it stops changing.  So the
-			 * edge is added only where it does not close a circle.
-			 */
-			if (!reaches(data, formKey, item.id)) {
-				addLinkIfAbsent(data, item.id, formKey);
+			if (ledInto || reaches(data, formKey, caseItem.id)) {
+				continue;
 			}
+
+			for (WorkflowLink link : data.links) {
+				if (link.from.equals(formKey)) {
+					link.from = caseItem.id;
+				}
+			}
+			if (caseItem.bundle == null || caseItem.bundle.trim().isEmpty()) {
+				caseItem.bundle = form.bundle;
+			}
+			itemMap.remove(formKey);
 		}
+
+		/*
+		 * Nothing is swept up after this.  A merge cannot leave a link pointing at the node it
+		 * removed - the links out of the form were moved and a form with anything leading into it
+		 * was not merged - and a link that dangles for some other reason is worth seeing: an
+		 * orphaned wf_prev_node_id shows up on the page exactly that way, as a chain starting from
+		 * a step that is not there.
+		 */
 	}
 
 	/* Whether to is reachable from from by following links */
