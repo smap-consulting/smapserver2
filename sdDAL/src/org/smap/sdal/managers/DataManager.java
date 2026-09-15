@@ -130,6 +130,33 @@ public class DataManager {
 			boolean poll			// Only recent data returned
 			) throws ApplicationException, Exception { 
 
+		return getRecordHierarchy(sd, cResults, user, sIdent, sId, uuid, merge, localisation, tz,
+				includeMeta, urlprefix, attachmentPrefix, poll, false);
+	}
+
+	/*
+	 * storedValues asks for the value a select1 answer is stored as rather than the label shown for
+	 * it.  Only the label is returned by default, which is what the console and the data APIs have
+	 * always shown; a caller that feeds what it reads back into a filter needs the value instead,
+	 * because that is what a filter matches on.
+	 */
+	public Response getRecordHierarchy(
+			Connection sd,
+			Connection cResults,
+			String user,
+			String sIdent,
+			int sId,
+			String uuid,
+			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
+			ResourceBundle localisation,
+			String tz,				// Timezone
+			boolean includeMeta,
+			String urlprefix,
+			String attachmentPrefix,
+			boolean poll,			// Only recent data returned
+			boolean storedValues	// Select1 answers as stored, not as labelled
+			) throws ApplicationException, Exception { 
+
 		Response response;
 
 		lm.writeLog(sd, sId, user, LogManager.API_SINGLE_VIEW, "Hierarchy view. ", 0, null);
@@ -176,7 +203,8 @@ public class DataManager {
 					includeMeta,
 					urlprefix,
 					attachmentPrefix,
-					poll);
+					poll,
+					storedValues);
 		} else {
 			throw new ApplicationException(localisation.getString("mf_snf"));
 		}
@@ -219,6 +247,26 @@ public class DataManager {
 			String urlprefix,
 			String attachmentPrefix,
 			boolean poll			// Not sure if this is used
+			) throws Exception {
+
+		return getInstanceData(sd, cResults, s, form, parkey, hrk, instanceId, sm, includeMeta,
+				urlprefix, attachmentPrefix, poll, false);
+	}
+
+	public JSONArray getInstanceData(
+			Connection sd,
+			Connection cResults, 
+			Survey s, 
+			Form form, 
+			int parkey,
+			String hrk,				// Usually either hrk or instanceId would be used to identify the instance
+			String instanceId,
+			SurveyManager sm,
+			boolean includeMeta,
+			String urlprefix,
+			String attachmentPrefix,
+			boolean poll,			// Not sure if this is used
+			boolean storedValues	// Select1 answers as stored, not as labelled
 			) throws Exception {
 
 		ArrayList<TableColumn> columns = null;
@@ -268,6 +316,18 @@ public class DataManager {
 					false,		// Accuracy and Altitude
 					true		// Server calculates
 					);
+
+			/*
+			 * The label is substituted for the stored value only when the choices carry a display
+			 * name, which is per option list, so the same answer reads back one way through the
+			 * survey that owns the list and another through a survey that shares its record.  A
+			 * caller asking for stored values wants neither substitution.
+			 */
+			if(storedValues) {
+				for(TableColumn tc : columns) {
+					tc.selectDisplayNames = false;
+				}
+			}
 
 			/*
 			 * Get the latest instanceid in case this record has been updated
@@ -445,7 +505,8 @@ public class DataManager {
 									false,
 									urlprefix,
 									attachmentPrefix,
-									poll));
+									poll,
+									storedValues));
 						}
 					}	
 					

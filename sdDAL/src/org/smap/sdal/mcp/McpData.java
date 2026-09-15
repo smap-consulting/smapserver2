@@ -254,7 +254,7 @@ public class McpData {
 			int fId, String tableName, boolean isChildForm, boolean includeBad, boolean includeMeta)
 			throws Exception {
 
-		return GeneralUtilityMethods.getColumnsInForm(
+		ArrayList<TableColumn> cols = GeneralUtilityMethods.getColumnsInForm(
 				ctx.sd,
 				ctx.cResults,
 				ctx.localisation,
@@ -284,6 +284,25 @@ public class McpData {
 				false,					// mgmt
 				false,					// accuracy and altitude
 				true);					// server calculates
+
+		/*
+		 * Answers as they are stored, not as they are labelled.
+		 *
+		 * A select1 answer is swapped for its label whenever the choices carry a display name, and
+		 * that is a property of the option list, which belongs to one survey.  So the same stored
+		 * answer reads back as "No" through the survey owning the list and as "no" through another
+		 * survey sharing the same record - the bundle case, where every form asks the same header
+		 * questions.
+		 *
+		 * The value is the answer here in any case.  Everything this interface accepts back - a
+		 * filter, an answer to data_submit, an only_when on a rule - matches on the stored value, so
+		 * a label read out of one tool and typed into the next would silently match nothing.
+		 * survey_options maps values to labels for anybody who wants to show them.
+		 */
+		for(TableColumn tc : cols) {
+			tc.selectDisplayNames = false;
+		}
+		return cols;
 	}
 
 	/*

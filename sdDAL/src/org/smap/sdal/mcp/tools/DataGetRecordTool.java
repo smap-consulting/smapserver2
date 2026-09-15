@@ -111,7 +111,13 @@ public class DataGetRecordTool extends AbstractMcpTool {
 				 */
 				GeneralUtilityMethods.getUrlPrefix(ctx.request),
 				GeneralUtilityMethods.getAttachmentPrefix(ctx.request, false),
-				false);					// do not poll
+				false,					// do not poll
+				/*
+				 * The answers as they are stored rather than as they are labelled, so that a value
+				 * read here matches the same value in a filter, in an only_when, and in an answer
+				 * given back to data_submit.  survey_options has the labels.
+				 */
+				true);
 
 		Object entity = response.getEntity();
 		String json = entity == null ? "{}" : entity.toString();

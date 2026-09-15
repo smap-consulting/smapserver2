@@ -266,7 +266,8 @@ public class McpResources {
 				false,
 				org.smap.sdal.Utilities.GeneralUtilityMethods.getUrlPrefix(ctx.request),
 				org.smap.sdal.Utilities.GeneralUtilityMethods.getAttachmentPrefix(ctx.request, false),
-				false);
+				false,
+				true);				// answers as stored, so what is read can be filtered on
 
 		Object entity = response.getEntity();
 		return new Content("smap://record/" + ident + "/" + instanceId, "application/json",
