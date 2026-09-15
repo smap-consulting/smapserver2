@@ -39,6 +39,7 @@ import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.WorkflowData;
 import org.smap.sdal.model.WorkflowItem;
 import org.smap.sdal.model.WorkflowLink;
+import org.smap.sdal.model.WorkflowPerson;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -301,6 +302,7 @@ public class WorkflowManager {
 					dst.type     = TYPE_TASK;
 					dst.role     = ROLE_FORM;
 					dst.assignee = assignee;
+					dst.assigneeRaw = remoteUser;
 				} else if ("escalate".equals(target)) {
 					String assignee   = mapAssignee(sd, remoteUser);
 					String assigneeK  = assigneeKey(remoteUser);
@@ -317,6 +319,7 @@ public class WorkflowManager {
 					dst.type         = TYPE_CASE;
 					dst.role         = ROLE_FORM;
 					dst.assignee     = assignee;
+					dst.assigneeRaw     = remoteUser;
 					dst.caseSurveyId = caseSurveyId;
 				} else if ("reference".equals(target)) {
 					String assignee   = mapAssignee(sd, remoteUser);
@@ -334,6 +337,7 @@ public class WorkflowManager {
 					dst.type         = TYPE_REFERENCE;
 					dst.role         = ROLE_FORM;
 					dst.assignee     = assignee;
+					dst.assigneeRaw     = remoteUser;
 					dst.caseSurveyId = caseSurveyId;
 				} else if ("email".equals(target)) {
 					dstKey   = "email:f:" + fId;
@@ -414,6 +418,7 @@ public class WorkflowManager {
 
 				String tgAssignee   = null;
 				String tgAssigneeK  = "";
+				String tgAssigneeRaw = null;
 				String tgFilterName = null;
 				boolean tgIsEmail   = false;
 				/*
@@ -444,6 +449,11 @@ public class WorkflowManager {
 						}
 						tgAssignee  = deriveAssignee(sd, afs);
 						tgAssigneeK = assigneeKey(tgAssignee);
+						/* The same assignee unresolved, so the people view can say who it is now */
+						tgAssigneeRaw = afs.role_id > 0 ? "_role:" + afs.role_id
+								: (afs.user_id > 0 ? lookupUserName(sd, afs.user_id)
+										: (afs.assign_data != null && !afs.assign_data.trim().isEmpty()
+												? "_data" : null));
 						tgIsEmail   = afs.emails != null && !afs.emails.trim().isEmpty();
 						if (afs.filter != null) {
 							tgFilterName = afs.filter.advanced != null ? afs.filter.advanced : afs.filter.qText;
@@ -466,6 +476,7 @@ public class WorkflowManager {
 					dst.enabled  = true;
 					dst.project  = tgProjectName;
 					dst.assignee       = tgAssignee;
+					dst.assigneeRaw    = tgAssigneeRaw;
 					dst.targetSurveyId = targetSId;
 					itemMap.put(dstKey, dst);
 				}
@@ -633,6 +644,7 @@ public class WorkflowManager {
 				dst.type     = TYPE_TASK;
 				dst.role     = ROLE_FORM;
 				dst.assignee = assignee;
+				dst.assigneeRaw = bn.remoteUser;
 			} else if ("escalate".equals(bn.target)) {
 				String assignee  = mapAssignee(sd, bn.remoteUser);
 				String assigneeK = assigneeKey(bn.remoteUser);
@@ -646,6 +658,7 @@ public class WorkflowManager {
 				dst.type     = TYPE_CASE;
 				dst.role     = ROLE_FORM;
 				dst.assignee = assignee;
+				dst.assigneeRaw = bn.remoteUser;
 			} else if ("reference".equals(bn.target)) {
 				String assignee  = mapAssignee(sd, bn.remoteUser);
 				String assigneeK = assigneeKey(bn.remoteUser);
@@ -659,6 +672,7 @@ public class WorkflowManager {
 				dst.type     = TYPE_REFERENCE;
 				dst.role     = ROLE_FORM;
 				dst.assignee = assignee;
+				dst.assigneeRaw = bn.remoteUser;
 			} else if ("email".equals(bn.target)) {
 				dstKey   = "email:f:" + bn.fId;
 				dst.type = TYPE_EMAIL;
@@ -707,6 +721,7 @@ public class WorkflowManager {
 		data.items.addAll(itemMap.values());
 		applyLayout(data);
 		mergeUserPositions(sd, user, data);
+		buildPeople(sd, data);		// after applyLayout, which is what works out the process
 		return data;
 	}
 
@@ -1120,6 +1135,249 @@ public class WorkflowManager {
 		 * orphaned wf_prev_node_id shows up on the page exactly that way, as a chain starting from
 		 * a step that is not there.
 		 */
+	}
+
+
+	/*
+	 * Every stage that has a person attached, as a flat list.
+	 *
+	 * The diagram answers what leads to what.  This answers who, and whether they can actually do
+	 * it, which the diagram cannot show and which is what decides whether a process runs at all.
+	 * Two faults in particular are invisible on the canvas and obvious here: a step assigned to a
+	 * role nobody holds, and a step assigned to somebody who is not in the project holding the form
+	 * they are sent to.  Both draw as ordinary steps and both silently do nothing.
+	 */
+	private void buildPeople(Connection sd, WorkflowData data) throws SQLException {
+
+		int oId = 0;
+		Map<Integer, List<String>> roleHolders = new HashMap<>();
+		Map<String, List<String>> projectMembers = new HashMap<>();
+		Map<Integer, String[]> surveyInfo = new HashMap<>();		// s_id -> [display_name, project]
+		Map<Integer, List<String>> emailsByFwd = new HashMap<>();
+
+		/* Scoped to the organisation the graph was read for */
+		try (PreparedStatement pstmt = sd.prepareStatement(
+				"select p.o_id from project p where p.name = ? limit 1")) {
+			for (WorkflowItem item : data.items) {
+				if (item.project != null && !item.project.isEmpty()) {
+					pstmt.setString(1, item.project);
+					ResultSet rs = pstmt.executeQuery();
+					if (rs.next()) {
+						oId = rs.getInt(1);
+						break;
+					}
+				}
+			}
+		}
+		if (oId == 0) {
+			return;		// nothing reachable, so nothing to report on
+		}
+
+		try (PreparedStatement pstmt = sd.prepareStatement(
+				"select ur.r_id, u.ident from users u, user_role ur "
+				+ "where u.id = ur.u_id and u.o_id = ? and not u.temporary order by u.ident")) {
+			pstmt.setInt(1, oId);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				roleHolders.computeIfAbsent(rs.getInt(1), k -> new ArrayList<>()).add(rs.getString(2));
+			}
+		}
+
+		try (PreparedStatement pstmt = sd.prepareStatement(
+				"select p.name, u.ident from project p, user_project up, users u "
+				+ "where p.id = up.p_id and up.u_id = u.id and p.o_id = ? and not u.temporary "
+				+ "order by u.ident")) {
+			pstmt.setInt(1, oId);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				projectMembers.computeIfAbsent(rs.getString(1), k -> new ArrayList<>()).add(rs.getString(2));
+			}
+		}
+
+		try (PreparedStatement pstmt = sd.prepareStatement(
+				"select s.s_id, s.display_name, p.name from survey s, project p "
+				+ "where s.p_id = p.id and p.o_id = ? and not s.deleted")) {
+			pstmt.setInt(1, oId);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				surveyInfo.put(rs.getInt(1), new String[] { rs.getString(2), rs.getString(3) });
+			}
+		}
+
+		/* Who an email would go to, which is the only kind of recipient not held as a user */
+		try (PreparedStatement pstmt = sd.prepareStatement(
+				"select f.id, f.notify_details::json->>'emails' from forward f, project p "
+				+ "where f.p_id = p.id and p.o_id = ? and f.target = 'email' "
+				+ "and f.notify_details is not null")) {
+			pstmt.setInt(1, oId);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				String raw = rs.getString(2);
+				List<String> addresses = new ArrayList<>();
+				if (raw != null) {
+					for (String a : raw.replaceAll("[\\[\\]\"]", "").split(",")) {
+						if (!a.trim().isEmpty()) {
+							addresses.add(a.trim());
+						}
+					}
+				}
+				emailsByFwd.put(rs.getInt(1), addresses);
+			}
+		}
+
+		for (WorkflowItem item : data.items) {
+			if (ROLE_DECISION.equals(item.role)) {
+				continue;		// a decision is a condition, not somebody's job
+			}
+
+			WorkflowPerson row = new WorkflowPerson();
+			row.nodeId = item.id;
+			row.process = item.band == null ? "" : item.band;
+			row.stage = item.label != null && !item.label.isEmpty() ? item.label : item.name;
+			row.type = item.type;
+			row.when = conditionReaching(data, item.id);
+
+			int surveyId = 0;
+			if (TYPE_FORM.equals(item.type)) {
+				surveyId = surveyIdOf(item.id);
+			} else if (TYPE_CASE.equals(item.type) || TYPE_REFERENCE.equals(item.type)) {
+				surveyId = item.caseSurveyId;
+			} else if (TYPE_TASK.equals(item.type) || TYPE_EMAILTASK.equals(item.type)) {
+				surveyId = item.targetSurveyId;
+			}
+			String[] survey = surveyInfo.get(surveyId);
+			row.form = survey != null ? survey[0] : item.name;
+			row.project = survey != null ? survey[1] : (item.project == null ? "" : item.project);
+
+			if (TYPE_EMAIL.equals(item.type)) {
+				row.assigneeType = "emails";
+				row.form = "";
+				List<String> addresses = new ArrayList<>();
+				for (Integer fwdId : item.fwdIds) {
+					List<String> a = emailsByFwd.get(fwdId);
+					if (a != null) {
+						addresses.addAll(a);
+					}
+				}
+				row.people = addresses;
+				row.assignedTo = addresses.isEmpty() ? "nobody" : String.join(", ", addresses);
+				row.ok = !addresses.isEmpty();
+				row.problem = row.ok ? null : "This sends to no address, so nothing goes anywhere.";
+			} else if (TYPE_FORM.equals(item.type)) {
+				/*
+				 * A form is performed by whoever can reach it, and reaching it is project
+				 * membership.  There is no assignee to resolve - the question is who could start
+				 * or submit this at all.
+				 */
+				row.assigneeType = "project";
+				row.assignedTo = "anyone in " + row.project;
+				row.people = projectMembers.getOrDefault(row.project, new ArrayList<>());
+				row.ok = !row.people.isEmpty();
+				row.problem = row.ok ? null
+						: "Nobody is in \"" + row.project + "\", so nobody can submit this form.";
+			} else {
+				resolveAssignee(item, row, roleHolders, projectMembers);
+			}
+
+			data.people.add(row);
+		}
+	}
+
+	/*
+	 * Who a case, task or reference goes to, and whether they can open what they are sent.
+	 */
+	private void resolveAssignee(WorkflowItem item, WorkflowPerson row,
+			Map<Integer, List<String>> roleHolders, Map<String, List<String>> projectMembers) {
+
+		String raw = item.assigneeRaw;
+		row.assignedTo = item.assignee == null ? "" : item.assignee;
+
+		if (raw == null || raw.trim().isEmpty()) {
+			row.assigneeType = "none";
+			row.ok = false;
+			row.problem = "This step assigns to nobody.";
+			return;
+		}
+		if ("_submitter".equals(raw)) {
+			row.assigneeType = "submitter";
+			row.assignedTo = "whoever submitted it";
+			return;			// by definition they could reach the form, so nothing to check
+		}
+		if ("_data".equals(raw)) {
+			row.assigneeType = "data";
+			row.assignedTo = "taken from an answer";
+			return;			// not known until a record exists
+		}
+
+		if (raw.startsWith("_role:")) {
+			row.assigneeType = "role";
+			int roleId = 0;
+			try {
+				roleId = Integer.parseInt(raw.substring("_role:".length()).trim());
+			} catch (NumberFormatException e) {
+				row.ok = false;
+				row.problem = "The assignee is stored as \"" + raw + "\", which names no role.";
+				return;
+			}
+			List<String> holders = roleHolders.getOrDefault(roleId, new ArrayList<>());
+			row.people = holders;
+			if (holders.isEmpty()) {
+				row.ok = false;
+				/*
+				 * The quiet one.  Smap takes the holders in order and gives the record to the first
+				 * who may see it; with none, the case is created and left unassigned with nothing
+				 * reported anywhere.
+				 */
+				row.problem = "Nobody holds this role, so every case it makes is left unassigned "
+						+ "with nothing reported.";
+				return;
+			}
+		} else {
+			row.assigneeType = "user";
+			row.people = new ArrayList<>();
+			row.people.add(raw);
+		}
+
+		/* Can they open the form they are being sent to */
+		List<String> members = projectMembers.getOrDefault(row.project, new ArrayList<>());
+		List<String> locked = new ArrayList<>();
+		for (String person : row.people) {
+			if (!members.contains(person)) {
+				locked.add(person);
+			}
+		}
+		if (!locked.isEmpty() && row.project != null && !row.project.isEmpty()) {
+			row.ok = locked.size() < row.people.size();
+			row.problem = String.join(", ", locked)
+					+ (locked.size() == 1 ? " is not in \"" : " are not in \"") + row.project
+					+ "\", so " + (locked.size() == 1 ? "they cannot" : "they cannot")
+					+ " open the form this step sends them to.";
+		}
+	}
+
+	/* The condition on the way into a step, read off the decision node that leads to it */
+	private String conditionReaching(WorkflowData data, String nodeId) {
+		List<String> conditions = new ArrayList<>();
+		for (WorkflowLink link : data.links) {
+			if (link.to.equals(nodeId) && link.from.startsWith("decision:")) {
+				for (WorkflowItem item : data.items) {
+					if (item.id.equals(link.from) && item.name != null
+							&& !conditions.contains(item.name)) {
+						conditions.add(item.name);
+					}
+				}
+			}
+		}
+		return String.join(" or ", conditions);
+	}
+
+	/* The survey id out of a "form:s:N" node id */
+	private int surveyIdOf(String nodeId) {
+		try {
+			return Integer.parseInt(nodeId.substring("form:s:".length()));
+		} catch (Exception e) {
+			return 0;
+		}
 	}
 
 	/* Whether to is reachable from from by following links */

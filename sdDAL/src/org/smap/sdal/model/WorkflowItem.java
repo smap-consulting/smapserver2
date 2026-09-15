@@ -57,4 +57,9 @@ public class WorkflowItem {
 	 * first that reaches it, which is a reasonable place to draw it and not a fact about the step.
 	 */
 	public String band;
+	/*
+	 * The assignee as it is stored - "_role:5", a username, "_submitter" - rather than as it reads.
+	 * assignee is for showing; this is for working out who that actually is now.
+	 */
+	public String assigneeRaw;
 }
