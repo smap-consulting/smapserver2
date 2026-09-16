@@ -491,6 +491,13 @@ public class WorkflowManager {
 			try { if (pstmt != null) pstmt.close(); } catch (SQLException e) {}
 		}
 
+		/*
+		 * Every task group's source survey, kept for a pass that runs once all the nodes exist.
+		 * wf_prev_node_id holds one predecessor, so a group that several branches reach is drawn
+		 * hanging off whichever one happened to be recorded.  See linkStepsIntoTaskGroups.
+		 */
+		List<Object[]> tgSources = new ArrayList<>();
+
 		// Sub-pass ii: resolve source nodes and create links.
 		// We look for nodes whose key directly encodes the source survey ID:
 		//   "form:s:{sourceSId}"          — plain form submission trigger
@@ -510,6 +517,9 @@ public class WorkflowManager {
 
 			List<String> srcKeyList = new ArrayList<>();
 			String formKey = "form:s:" + sourceSId;
+			if (sourceSId > 0) {
+				tgSources.add(new Object[]{ sourceSId, dstKey, tgFilterName, tgId });
+			}
 
 			// Explicit predecessor set by workflow canvas — skip inference.
 			if (wfPrevNodeId != null && !wfPrevNodeId.trim().isEmpty()) {
@@ -716,6 +726,7 @@ public class WorkflowManager {
 			}
 		}
 
+		linkStepsIntoTaskGroups(data, itemMap, tgSources);
 		mergeCasesWithTheirForms(data, itemMap);
 
 		data.items.addAll(itemMap.values());
@@ -1055,8 +1066,71 @@ public class WorkflowManager {
 	}
 
 
+
 	/*
-	 * A case step and the form it sends somebody to are one step, so draw one node.
+	 * Draw every route into a task group, not just the one recorded on it.
+	 *
+	 * What makes a task group fire is its own rule: a submission of its source survey that matches
+	 * its filter.  Nothing about that is particular to how the record arrived.  But the diagram
+	 * draws it from wf_prev_node_id, which holds a single node id, so a group that four branches
+	 * reach is drawn hanging off whichever branch was recorded - and the other three read as though
+	 * they never reach it.  On the OPP Section 526 process the Public Prosecutor's approval appeared
+	 * to follow only the General unit, when in fact every unit reaches it.
+	 *
+	 * So the routes are taken from the data instead: any step that sends somebody to the source
+	 * survey is a way of arriving at it, and therefore a way into this group.  The arrows converge
+	 * on one node rather than the step being drawn once per branch, which is both the compact
+	 * picture and the true one - there is one task group, and one task per record, however the
+	 * record got there.
+	 *
+	 * Added to whatever wf_prev_node_id already produced rather than replacing it: an explicitly
+	 * placed predecessor is somebody's choice, and where it names a route this finds anyway the
+	 * duplicate link is dropped.
+	 */
+	private void linkStepsIntoTaskGroups(WorkflowData data,
+			LinkedHashMap<String, WorkflowItem> itemMap, List<Object[]> tgSources) {
+
+		for (Object[] tg : tgSources) {
+			int    sourceSId    = (int)    tg[0];
+			String dstKey       = (String) tg[1];
+			String tgFilterName = (String) tg[2];
+			int    tgId         = (int)    tg[3];
+
+			String linkTarget = (tgFilterName != null && !tgFilterName.trim().isEmpty())
+					? "decision:tg:" + tgId : dstKey;
+			if (!itemMap.containsKey(linkTarget)) {
+				continue;		// nothing was drawn for this group
+			}
+
+			for (WorkflowItem item : itemMap.values()) {
+				if (stepTargetSurveyId(item) != sourceSId) {
+					continue;
+				}
+				if (item.id.equals(dstKey) || item.id.equals(linkTarget)) {
+					continue;	// a group whose work feeds its own trigger
+				}
+				/*
+				 * A route that the group already leads to is not a route in.  Chained task groups
+				 * can point at each other's surveys, and the column layout walks forward through the
+				 * links until it stops changing.
+				 */
+				if (reaches(data, linkTarget, item.id)) {
+					continue;
+				}
+				addLinkIfAbsent(data, item.id, linkTarget);
+			}
+		}
+	}
+
+	/*
+	 * A step and the form it sends somebody to are one step, so draw one node.
+	 *
+	 * Cases and tasks both, because both send somebody to a form: a case hands over the record, a
+	 * task gives out a piece of work in a named survey.  Leaving tasks out is what drew the Section
+	 * 526 process as two disconnected halves - the Public Prosecutor's approval task and the
+	 * Approval form it is performed on sat side by side with nothing between them, so everything
+	 * after the approval began again from nowhere.  Not references: one grants sight of a record
+	 * rather than work on it, so drawing it as a step would show work nobody has been asked to do.
 	 *
 	 * The case node already names the form: its body is the case survey's display name and its
 	 * header the rule that created it, so "Annotation / Bail Annotation / PP" says who does what to
@@ -1083,24 +1157,26 @@ public class WorkflowManager {
 	private void mergeCasesWithTheirForms(WorkflowData data,
 			LinkedHashMap<String, WorkflowItem> itemMap) {
 
-		/* How many case steps lead to each survey, so a shared form can be left as its own node */
-		Map<Integer, Integer> casesPerSurvey = new HashMap<>();
+		/* How many steps lead to each survey, so a shared form can be left as its own node */
+		Map<Integer, Integer> stepsPerSurvey = new HashMap<>();
 		for (WorkflowItem item : itemMap.values()) {
-			if (TYPE_CASE.equals(item.type) && item.caseSurveyId > 0) {
-				casesPerSurvey.merge(item.caseSurveyId, 1, Integer::sum);
+			int to = stepTargetSurveyId(item);
+			if (to > 0) {
+				stepsPerSurvey.merge(to, 1, Integer::sum);
 			}
 		}
 
 		for (WorkflowItem caseItem : new ArrayList<>(itemMap.values())) {
-			if (!TYPE_CASE.equals(caseItem.type) || caseItem.caseSurveyId <= 0) {
+			int targetSurvey = stepTargetSurveyId(caseItem);
+			if (targetSurvey <= 0) {
 				continue;
 			}
-			String formKey = "form:s:" + caseItem.caseSurveyId;
+			String formKey = "form:s:" + targetSurvey;
 			WorkflowItem form = itemMap.get(formKey);
 			if (form == null) {
 				continue;		// nothing drawn for it; the case node already stands for the form
 			}
-			if (casesPerSurvey.getOrDefault(caseItem.caseSurveyId, 0) != 1) {
+			if (stepsPerSurvey.getOrDefault(targetSurvey, 0) != 1) {
 				continue;
 			}
 			if (form.startIds != null && !form.startIds.isEmpty()) {
@@ -1284,6 +1360,20 @@ public class WorkflowManager {
 		}
 
 		surveysForDecisions(data);
+	}
+
+	/*
+	 * The survey a step sends somebody to, which is the form it should be drawn as one with.  Zero
+	 * for anything that sends nobody anywhere - a form, a decision, an email, or a reference.
+	 */
+	private int stepTargetSurveyId(WorkflowItem item) {
+		if (TYPE_CASE.equals(item.type)) {
+			return item.caseSurveyId;
+		}
+		if (TYPE_TASK.equals(item.type)) {
+			return item.targetSurveyId;
+		}
+		return 0;
 	}
 
 	/*
