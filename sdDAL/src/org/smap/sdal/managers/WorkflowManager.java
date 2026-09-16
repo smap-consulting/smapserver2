@@ -1226,8 +1226,17 @@ public class WorkflowManager {
 		}
 
 		for (WorkflowItem item : data.items) {
+
+			/*
+			 * Which survey this step concerns, recorded on every node including the ones that have
+			 * no person, so the page can colour by it.
+			 */
+			int itemSurveyId = surveyIdFor(item);
+			String[] itemSurvey = surveyInfo.get(itemSurveyId);
+			item.survey = itemSurvey != null ? itemSurvey[0] : "";
+
 			if (ROLE_DECISION.equals(item.role)) {
-				continue;		// a decision is a condition, not somebody's job
+				continue;		// a condition, not somebody's job - but it keeps its survey below
 			}
 
 			WorkflowPerson row = new WorkflowPerson();
@@ -1237,17 +1246,9 @@ public class WorkflowManager {
 			row.type = item.type;
 			row.when = conditionReaching(data, item.id);
 
-			int surveyId = 0;
-			if (TYPE_FORM.equals(item.type)) {
-				surveyId = surveyIdOf(item.id);
-			} else if (TYPE_CASE.equals(item.type) || TYPE_REFERENCE.equals(item.type)) {
-				surveyId = item.caseSurveyId;
-			} else if (TYPE_TASK.equals(item.type) || TYPE_EMAILTASK.equals(item.type)) {
-				surveyId = item.targetSurveyId;
-			}
-			String[] survey = surveyInfo.get(surveyId);
-			row.form = survey != null ? survey[0] : item.name;
-			row.project = survey != null ? survey[1] : (item.project == null ? "" : item.project);
+			row.form = itemSurvey != null ? itemSurvey[0] : item.name;
+			row.project = itemSurvey != null ? itemSurvey[1]
+					: (item.project == null ? "" : item.project);
 
 			if (TYPE_EMAIL.equals(item.type)) {
 				row.assigneeType = "emails";
@@ -1280,6 +1281,50 @@ public class WorkflowManager {
 			}
 
 			data.people.add(row);
+		}
+
+		surveysForDecisions(data);
+	}
+
+	/*
+	 * The survey a step concerns.  A form is its own; a case or a reference is the form the assignee
+	 * is sent to; a task is the survey the work is done in.  Anything else has none.
+	 */
+	private int surveyIdFor(WorkflowItem item) {
+		if (TYPE_FORM.equals(item.type)) {
+			return surveyIdOf(item.id);
+		}
+		if (TYPE_CASE.equals(item.type) || TYPE_REFERENCE.equals(item.type)) {
+			return item.caseSurveyId;
+		}
+		if (TYPE_TASK.equals(item.type) || TYPE_EMAILTASK.equals(item.type)) {
+			return item.targetSurveyId;
+		}
+		return 0;
+	}
+
+	/*
+	 * A decision has no survey of its own, but its filter is read against the submission of the step
+	 * that leads into it, so it belongs with that survey.  Left empty where nothing leads in.
+	 */
+	private void surveysForDecisions(WorkflowData data) {
+		Map<String, WorkflowItem> byId = new HashMap<>();
+		for (WorkflowItem item : data.items) {
+			byId.put(item.id, item);
+		}
+		for (WorkflowItem item : data.items) {
+			if (!ROLE_DECISION.equals(item.role) || (item.survey != null && !item.survey.isEmpty())) {
+				continue;
+			}
+			for (WorkflowLink link : data.links) {
+				if (link.to.equals(item.id)) {
+					WorkflowItem from = byId.get(link.from);
+					if (from != null && from.survey != null && !from.survey.isEmpty()) {
+						item.survey = from.survey;
+						break;
+					}
+				}
+			}
 		}
 	}
 

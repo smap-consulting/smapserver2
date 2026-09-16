@@ -62,4 +62,11 @@ public class WorkflowItem {
 	 * assignee is for showing; this is for working out who that actually is now.
 	 */
 	public String assigneeRaw;
+	/*
+	 * The survey this step concerns, by display name: a form's own, the form a case sends its
+	 * assignee to, the survey a task is done in.  A decision takes it from the step that leads into
+	 * it, because a filter is evaluated against that survey's submission.  Empty where there is
+	 * genuinely no survey, such as an email or a periodic trigger.
+	 */
+	public String survey;
 }
