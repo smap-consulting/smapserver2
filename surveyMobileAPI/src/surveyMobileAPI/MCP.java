@@ -127,6 +127,7 @@ import org.smap.sdal.mcp.tools.TaskActionTool;
 import org.smap.sdal.mcp.tools.TaskCreateTool;
 import org.smap.sdal.mcp.tools.TaskGroupCreateTool;
 import org.smap.sdal.mcp.tools.TaskGroupDeleteTool;
+import org.smap.sdal.mcp.tools.TaskGroupUpdateTool;
 import org.smap.sdal.mcp.tools.TaskGroupListTool;
 import org.smap.sdal.mcp.tools.TaskListTool;
 import org.smap.sdal.mcp.tools.TokenListTool;
@@ -229,6 +230,7 @@ public class MCP extends Application {
 		registry.register(new TaskGroupListTool());
 		registry.register(new TaskGroupCreateTool());
 		registry.register(new TaskGroupDeleteTool());
+		registry.register(new TaskGroupUpdateTool());
 		registry.register(new TaskListTool());
 		registry.register(new TaskCreateTool());
 		registry.register(new TaskActionTool());
