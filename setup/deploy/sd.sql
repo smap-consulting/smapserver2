@@ -927,3 +927,13 @@ alter table log add column if not exists agent text;
 -- way round: the alternative of naming the columns would quietly archive everything except the new
 -- one.  Anything added to log above belongs here too.
 alter table log_archive add column if not exists agent text;
+
+-- The AWS Quicksight dashboard has been removed.  It was an embedded Quicksight report reached from
+-- a "dashboard" entry in the modules menu, gated on group 12, and configured per organisation by
+-- these three columns.  Nothing reads them now, and group 12 has not been created on a new server
+-- for some time, so both go.  Unrelated to the fieldAnalysis dashboard, which is untouched.
+alter table organisation drop column if exists dashboard_region;
+alter table organisation drop column if exists dashboard_arn;
+alter table organisation drop column if exists dashboard_session_name;
+delete from user_group where g_id = 12;
+delete from groups where id = 12;

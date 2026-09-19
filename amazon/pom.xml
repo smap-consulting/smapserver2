@@ -78,10 +78,6 @@
 		</dependency>
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
-			<artifactId>quicksight</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>comprehend</artifactId>
 		</dependency>
 		<dependency>

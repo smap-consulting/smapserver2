@@ -84,7 +84,6 @@
 					WEB-INF/lib/poi-ooxml-lite-5.4.1.jar,
 					WEB-INF/lib/profiles-2.46.17.jar,
 					WEB-INF/lib/protocol-core-2.46.17.jar,
-					WEB-INF/lib/quicksight-2.46.17.jar,
 					WEB-INF/lib/reactive-streams-1.0.4.jar,
 					WEB-INF/lib/regions-2.46.17.jar,
 					WEB-INF/lib/rekognition-2.46.17.jar,
@@ -122,13 +121,6 @@
 	      	<groupId>smapserver</groupId>
 	      	<artifactId>sdDAL</artifactId>
 	      	<version>1.0.0</version>
-	      	<!-- Quicksight is only used by surveyKPI.  The jar is 14MB so keep it out of this war -->
-	      	<exclusions>
-	      		<exclusion>
-	      			<groupId>software.amazon.awssdk</groupId>
-	      			<artifactId>quicksight</artifactId>
-	      		</exclusion>
-	      	</exclusions>
       	</dependency>
 	</dependencies>
 </project>

@@ -177,8 +177,7 @@ public class PasswordManager {
 				+ "or ug.g_id = " + Authorise.ORG_ID + " "
 				+ "or ug.g_id = " + Authorise.ADMIN_ID + " "
 				+ "or ug.g_id = " + Authorise.ANALYST_ID + " "
-				+ "or ug.g_id = " + Authorise.VIEW_DATA_ID + " "
-				+ "or ug.g_id = " + Authorise.DASHBOARD_ID + ")";
+				+ "or ug.g_id = " + Authorise.VIEW_DATA_ID + ")";
 		PreparedStatement pstmt = null;
 		
 		try {

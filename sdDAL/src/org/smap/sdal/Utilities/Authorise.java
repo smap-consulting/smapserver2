@@ -49,7 +49,6 @@ public class Authorise {
 	public static String OWNER = "server owner";
 	public static String VIEW_OWN_DATA = "view own data";
 	public static String MANAGE_TASKS = "manage tasks";
-	public static String DASHBOARD = "dashboard";
 	public static String LINKS = "links";
 	public static String CONSOLE_ADMIN = "console admin";
 	public static String MCP_ACCESS = "mcp access";
@@ -66,7 +65,6 @@ public class Authorise {
 	public static final int OWNER_ID = 9;
 	public static final int VIEW_OWN_DATA_ID = 10;
 	public static final int MANAGE_TASKS_ID = 11;
-	public static final int DASHBOARD_ID = 12;
 	//public static final int LINKS_ID = 13;
 	public static final int CONSOLE_ADMIN_ID = 14;
 	public static final int MCP_ACCESS_ID = 15;
@@ -88,7 +86,6 @@ public class Authorise {
 		if(OWNER.equals(group)) return OWNER_ID;
 		if(VIEW_OWN_DATA.equals(group)) return VIEW_OWN_DATA_ID;
 		if(MANAGE_TASKS.equals(group)) return MANAGE_TASKS_ID;
-		if(DASHBOARD.equals(group)) return DASHBOARD_ID;
 		if(CONSOLE_ADMIN.equals(group)) return CONSOLE_ADMIN_ID;
 		if(MCP_ACCESS.equals(group)) return MCP_ACCESS_ID;
 		if(DPO.equals(group)) return DPO_ID;

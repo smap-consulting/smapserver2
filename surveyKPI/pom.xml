@@ -86,7 +86,6 @@
 					WEB-INF/lib/poi-ooxml-lite-5.4.1.jar,
 					WEB-INF/lib/profiles-2.46.17.jar,
 					WEB-INF/lib/protocol-core-2.46.17.jar,
-					WEB-INF/lib/quicksight-2.46.17.jar,
 					WEB-INF/lib/reactive-streams-1.0.4.jar,
 					WEB-INF/lib/regions-2.46.17.jar,
 					WEB-INF/lib/rekognition-2.46.17.jar,

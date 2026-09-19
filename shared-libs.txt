@@ -67,7 +67,6 @@ poi-ooxml-5.4.1.jar
 poi-ooxml-lite-5.4.1.jar
 profiles-2.46.17.jar
 protocol-core-2.46.17.jar
-quicksight-2.46.17.jar
 reactive-streams-1.0.4.jar
 regions-2.46.17.jar
 rekognition-2.46.17.jar

@@ -251,9 +251,6 @@ create TABLE organisation (
 	refresh_rate integer,
 	css text,
 	owner integer default 0,				-- User that owns this organisation
-	dashboard_region text,
-	dashboard_arn text,
-	dashboard_session_name text,
 	password_strength decimal default 0.0,
 	map_source text,							-- default map source for static maps
 	password_expiry integer default 0,			-- password expiry in months
@@ -715,7 +712,6 @@ insert into groups(id,name) values(8,'enterprise admin');
 insert into groups(id,name) values(9,'server owner');
 insert into groups(id,name) values(10,'view own data');
 insert into groups(id,name) values(11,'manage tasks');
---insert into groups(id,name) values(12,'dashboard');
 --insert into groups(id,name) values(13,'links');
 insert into groups(id,name) values(14,'console admin');
 insert into groups(id,name) values(15,'mcp access');
