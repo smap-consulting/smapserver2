@@ -208,6 +208,12 @@ public class TranslationManager {
 					}
 					
 					if(OrgCachedResource.isCached(m.fileName)) {
+						// The survey manifest may hold the name with or without its .csv
+						// suffix. Everything downstream - the url, the cached file path and
+						// the name published to the device - appends .csv itself, so strip
+						// it here or the file arrives as name.csv.csv and the form, which
+						// asks for name.csv, cannot find it.
+						m.fileName = OrgCachedResource.baseName(m.fileName);
 						m.type = OrgCachedResource.getType(m.fileName);
 						String urlBase = forDevice ? "/resource/" : "/surveyKPI/file/";
 						m.url = urlBase + m.fileName + ".csv/organisation";
