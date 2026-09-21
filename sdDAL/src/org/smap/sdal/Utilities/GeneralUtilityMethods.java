@@ -292,7 +292,7 @@ public class GeneralUtilityMethods {
 	 */
 	static public String getBasePath(HttpServletRequest request) {
 		String basePath = null;
-		if(request.getServerName().equals("localhost")) {
+		if(isLocalServer(request.getServerName())) {
 			File bp = new File("/smap");
 			if(bp.exists()) {
 				basePath = "/smap";
@@ -309,6 +309,23 @@ public class GeneralUtilityMethods {
 		}
 		ServerSettings.setBasePath(basePath);
 		return basePath;
+	}
+
+	/*
+	 * A dev server on this machine, whatever name the client used to reach it.
+	 * The Android emulator reaches the host as 10.0.2.2 rather than localhost,
+	 * so without this a phone submission falls through to the production
+	 * default of /smap and fails to create its upload directory.
+	 */
+	static public boolean isLocalServer(String serverName) {
+		if(serverName == null) {
+			return false;
+		}
+		String s = serverName.toLowerCase();
+		return s.equals("localhost")
+				|| s.equals("127.0.0.1")
+				|| s.equals("::1")
+				|| s.equals("10.0.2.2");		// Android emulator's alias for the host
 	}
 
 	/*
