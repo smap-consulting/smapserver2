@@ -22,6 +22,7 @@ import org.smap.sdal.model.AppearanceOptions;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.MySensitiveData;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.OrgAccessData;
 import org.smap.sdal.model.OtherOrgData;
 import org.smap.sdal.model.SensitiveData;
 import org.smap.sdal.model.SubscriptionStatus;
@@ -68,223 +69,153 @@ public class OrganisationManager {
 	}
 
 	/*
-	 * Update a new organisation
+	 * Update the settings that only an organisation administrator may change
+	 * The administrator of the organisation is emailed if access has been suspended or restored
 	 */
-	public void updateOrganisation(
+	public void updateOrganisationAccess(
 			Connection sd,
-			Organisation o,
+			int oId,
+			OrgAccessData a,
 			String userIdent,
-			String bannerFileName,
-			String mainFileName,
-			String requestUrl,
-			String basePath,
-			FileItem bannerLogoItem,
-			FileItem mainLogoItem,
-			String serverName,
-			String scheme
-			) throws SQLException, ApplicationException {
-		
+			String serverName) throws SQLException, ApplicationException {
+
 		String sql = "update organisation set "
-				+ "name = ?, "
-				+ "company_name = ?, "
-				+ "company_address = ?, "
-				+ "company_phone = ?, " 
-				+ "company_email = ?, " 
-				+ "allow_email = ?, "
-				+ "allow_facebook = ?, "
-				+ "allow_twitter = ?, "
-				+ "can_edit = ?, "
-				+ "email_task = ?, "
-				+ "admin_email = ?, "
-				+ "email_type = ?, "
-				+ "aws_region = ?, "
-				+ "smtp_host = ?, "
-				+ "email_domain = ?, "
-				+ "email_user = ?, "
-				+ "email_password = ?, "
-				+ "email_port = ?, "
-				+ "default_email_content = ?, "
-				+ "website = ?, "
-				+ "locale = ?, "
-				+ "timezone = ?, "
-				+ "server_description = ?, "
-				+ "changed_by = ?, "
 				+ "can_notify = ?, "
 				+ "can_use_api = ?, "
 				+ "can_submit = ?, "
-				+ "set_as_theme = ?, "
-				+ "navbar_color = ?, "
 				+ "can_sms = ?, "
-				+ "send_optin = ?, "
-				+ "enable_redact = ?, "
-				+ "limits = ?,"
-				+ "refresh_rate = ?,"
-				+ "password_strength = ?,"
-				+ "map_source = ?,"
-				+ "notification_webform = ?,"
+				+ "email_task = ?, "
+				+ "refresh_rate = ?, "
+				+ "limits = ?, "
+				+ "changed_by = ?, "
 				+ "changed_ts = now() "
-				+ "where "
-				+ "id = ?";
+				+ "where id = ?";
 
 		PreparedStatement pstmt = null;
 
 		try {
-
-			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 			// Get the current settings in case we need to notify the administrator of a change
-			Organisation originalOrg = GeneralUtilityMethods.getOrganisation(sd, o.id);
-			
+			Organisation originalOrg = GeneralUtilityMethods.getOrganisation(sd, oId);
+
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, HtmlSanitise.checkCleanName(o.name, localisation));
-			pstmt.setString(2, HtmlSanitise.checkCleanName(o.company_name, localisation));
-			pstmt.setString(3, HtmlSanitise.checkCleanName(o.company_address, localisation));
-			pstmt.setString(4, HtmlSanitise.checkCleanName(o.company_phone, localisation));
-			pstmt.setString(5, HtmlSanitise.checkCleanName(o.company_email, localisation));
-			pstmt.setBoolean(6, o.allow_email);
-			pstmt.setBoolean(7, o.allow_facebook);
-			pstmt.setBoolean(8, o.allow_twitter);
-			pstmt.setBoolean(9, o.can_edit);
-			pstmt.setBoolean(10, o.email_task);
-			pstmt.setString(11, HtmlSanitise.checkCleanName(o.admin_email, localisation));
-			pstmt.setString(12, o.email_type);
-			pstmt.setString(13, o.aws_region);
-			pstmt.setString(14, HtmlSanitise.checkCleanName(o.smtp_host, localisation));
-			pstmt.setString(15, HtmlSanitise.checkCleanName(o.email_domain, localisation));
-			pstmt.setString(16, HtmlSanitise.checkCleanName(o.email_user, localisation));
-			pstmt.setString(17, o.email_password);
-			pstmt.setInt(18, o.email_port);
-			pstmt.setString(19, sanitise.sanitiseHtml(o.default_email_content));
-			pstmt.setString(20, o.website);
-			pstmt.setString(21, HtmlSanitise.checkCleanName(o.locale, localisation));
-			pstmt.setString(22, HtmlSanitise.checkCleanName(o.timeZone, localisation));
-			pstmt.setString(23, HtmlSanitise.checkCleanName(o.server_description, localisation));
-			pstmt.setString(24, userIdent);
-			pstmt.setBoolean(25, o.can_notify);
-			pstmt.setBoolean(26, o.can_use_api);
-			pstmt.setBoolean(27, o.can_submit);
-			pstmt.setBoolean(28, o.appearance.set_as_theme);
-			pstmt.setString(29, HtmlSanitise.checkCleanName(o.appearance.navbar_color, localisation));
-			pstmt.setBoolean(30, o.can_sms);
-			pstmt.setBoolean(31, o.send_optin);
-			pstmt.setBoolean(32, o.enable_redact);
-			pstmt.setString(33, o.limits == null ? null : gson.toJson(o.limits));
-			pstmt.setInt(34, o.refresh_rate);
-			pstmt.setDouble(35, o.password_strength);
-			pstmt.setString(36, HtmlSanitise.checkCleanName(o.map_source, localisation));
-			pstmt.setBoolean(37, o.notification_webform);
-			pstmt.setInt(38, o.id);
-					
-			log.fine("Update organisation: " + pstmt.toString());
+			pstmt.setBoolean(1, a.can_notify);
+			pstmt.setBoolean(2, a.can_use_api);
+			pstmt.setBoolean(3, a.can_submit);
+			pstmt.setBoolean(4, a.can_sms);
+			pstmt.setBoolean(5, a.email_task);
+			pstmt.setInt(6, a.refresh_rate);
+			pstmt.setString(7, a.limits == null ? null : gson.toJson(a.limits));
+			pstmt.setString(8, userIdent);
+			pstmt.setInt(9, oId);
+
+			log.fine("Update organisation access: " + pstmt.toString());
 			pstmt.executeUpdate();
-	
-			// Save the banner logo, if it has been passed
-			if(bannerFileName != null) {
-				writeLogo(bannerFileName, bannerLogoItem, o.id, basePath, userIdent, requestUrl, "bannerLogo");
+
+			if(originalOrg != null) {
+				notifyAccessChange(sd, originalOrg, a, userIdent, serverName);
 			}
-			// Save the main logo, if it has been passed
-			if(mainFileName != null) {
-				writeLogo(mainFileName, mainLogoItem, o.id, basePath, userIdent, requestUrl, "mainLogo");
-			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+	}
+
+	/*
+	 * Notify the administrator if access permissions to the organisation have been changed
+	 */
+	private void notifyAccessChange(
+			Connection sd,
+			Organisation originalOrg,
+			OrgAccessData o,
+			String userIdent,
+			String serverName) throws SQLException, ApplicationException {
+
+		if(originalOrg.can_notify != o.can_notify 
+				|| originalOrg.can_use_api != o.can_use_api 
+				|| originalOrg.can_submit != o.can_submit
+				|| originalOrg.email_task != o.email_task
+				|| originalOrg.can_sms != o.can_sms) {
 			
-			/*
-			 * Notify the administrator if access permissions to the organisation have been changed
-			 */
-			if(originalOrg.can_notify != o.can_notify 
-					|| originalOrg.can_use_api != o.can_use_api 
-					|| originalOrg.can_submit != o.can_submit
-					|| originalOrg.email_task != o.email_task
-					|| originalOrg.can_sms != o.can_sms) {
-				
-				EmailManager em = new EmailManager(localisation);			
-				EmailServer emailServer = null;
-				SubscriptionStatus subStatus = null;
-				
-				if(originalOrg.admin_email != null) {
-					emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, userIdent, 0);
-					if(emailServer.smtpHost != null) {
+			EmailManager em = new EmailManager(localisation);			
+			EmailServer emailServer = null;
+			SubscriptionStatus subStatus = null;
+			
+			if(originalOrg.admin_email != null) {
+				emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, null, userIdent, 0);
+				if(emailServer.smtpHost != null) {
+					
+					PeopleManager pm = new PeopleManager(localisation);
+					subStatus = pm.getEmailKey(sd, originalOrg.id, originalOrg.getAdminEmail());
+					if(subStatus.unsubscribed) {
+						// Person has unsubscribed
+						String msg = localisation.getString("email_us");
+						msg = msg.replaceFirst("%s1", originalOrg.getAdminEmail());
+						log.fine(msg);
+					} else {
+						String subject = localisation.getString("email_org_change");
+						subject = subject.replaceAll("%s1", serverName);
+						subject = subject.replaceAll("%s2", originalOrg.name);
+						log.fine("Sending email confirmation: Header = " + subject);
 						
-						PeopleManager pm = new PeopleManager(localisation);
-						subStatus = pm.getEmailKey(sd, o.id, originalOrg.getAdminEmail());
-						if(subStatus.unsubscribed) {
-							// Person has unsubscribed
-							String msg = localisation.getString("email_us");
-							msg = msg.replaceFirst("%s1", originalOrg.getAdminEmail());
-							log.fine(msg);
-						} else {
-							String subject = localisation.getString("email_org_change");
-							subject = subject.replaceAll("%s1", serverName);
-							subject = subject.replaceAll("%s2", originalOrg.name);
-							log.fine("Sending email confirmation: Header = " + subject);
-							
-							String content = localisation.getString("org_change");
-							content = content.replaceAll("%s1", originalOrg.name);
-							StringBuilder contentBuilder = new StringBuilder(content);
-							if(originalOrg.can_notify != o.can_notify) {
-								contentBuilder.append("<br/>    ").append(o.can_notify ? localisation.getString("en_notify") : localisation.getString("susp_notify"));
-							}
-							if(originalOrg.can_use_api != o.can_use_api) {
-								contentBuilder.append("<br/>    ").append(o.can_use_api ? localisation.getString("en_api") : localisation.getString("susp_api"));
-							}
-							if(originalOrg.can_submit != o.can_submit) {
-								contentBuilder.append("<br/>    ").append(o.can_submit ? localisation.getString("en_submit") : localisation.getString("susp_submit"));
-							}
-							if(originalOrg.can_sms != o.can_sms) {
-								contentBuilder.append("<br/>    ").append(o.can_sms ? localisation.getString("en_sms") : localisation.getString("susp_sms"));
-							}
-							if(originalOrg.email_task != o.email_task) {
-								contentBuilder.append("<br/>    ").append(o.email_task ? localisation.getString("en_email_tasks") : localisation.getString("susp_email_tasks"));
-							}
-							
-							String sender = "";
-							// Catch and log exceptions
-							try {
-								em.sendEmailHtml(
-										null,
-										originalOrg.name,
-										null,
-										null,
-										originalOrg.getAdminEmail(),
-										"bcc",
-										subject,
-										contentBuilder.toString(),
-										null,
-										null,
-										emailServer,
-										serverName,
-										subStatus.emailKey,
-										localisation,
-										null,
-										null,
-										null,
-										GeneralUtilityMethods.getNextEmailId(sd, null),
-										null);
-							} catch(Exception e) {
-								lm.writeLogOrganisation(sd, o.id, userIdent, LogManager.ORGANISATION_UPDATE, e.getMessage(), 0);
-							}
+						String content = localisation.getString("org_change");
+						content = content.replaceAll("%s1", originalOrg.name);
+						StringBuilder contentBuilder = new StringBuilder(content);
+						if(originalOrg.can_notify != o.can_notify) {
+							contentBuilder.append("<br/>    ").append(o.can_notify ? localisation.getString("en_notify") : localisation.getString("susp_notify"));
+						}
+						if(originalOrg.can_use_api != o.can_use_api) {
+							contentBuilder.append("<br/>    ").append(o.can_use_api ? localisation.getString("en_api") : localisation.getString("susp_api"));
+						}
+						if(originalOrg.can_submit != o.can_submit) {
+							contentBuilder.append("<br/>    ").append(o.can_submit ? localisation.getString("en_submit") : localisation.getString("susp_submit"));
+						}
+						if(originalOrg.can_sms != o.can_sms) {
+							contentBuilder.append("<br/>    ").append(o.can_sms ? localisation.getString("en_sms") : localisation.getString("susp_sms"));
+						}
+						if(originalOrg.email_task != o.email_task) {
+							contentBuilder.append("<br/>    ").append(o.email_task ? localisation.getString("en_email_tasks") : localisation.getString("susp_email_tasks"));
+						}
+						
+						// Catch and log exceptions
+						try {
+							em.sendEmailHtml(
+									null,
+									originalOrg.name,
+									null,
+									null,
+									originalOrg.getAdminEmail(),
+									"bcc",
+									subject,
+									contentBuilder.toString(),
+									null,
+									null,
+									emailServer,
+									serverName,
+									subStatus.emailKey,
+									localisation,
+									null,
+									null,
+									null,
+									GeneralUtilityMethods.getNextEmailId(sd, null),
+									null);
+						} catch(Exception e) {
+							lm.writeLogOrganisation(sd, originalOrg.id, userIdent, LogManager.ORGANISATION_UPDATE, e.getMessage(), 0);
 						}
 					}
 				}
-				
 			}
 			
-		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
-			
 		}
-		
 	}
-	
+
 	/*
 	 * Change an organisation's descriptive details, and nothing else.
 	 *
-	 * updateOrganisation writes thirty seven columns out of one object, because the settings screen
-	 * shows all of them and submits all of them back.  Handing it a part filled object does not leave
-	 * the rest alone - it writes whatever the object happens to hold, and for a boolean nobody set
-	 * that is false.  Correcting a postal address through it would switch off submissions, the API,
-	 * SMS and notifications, blank the mail relay password, set the storage limits to nothing, and
-	 * report success.
+	 * Each group of organisation settings has its own update that writes only its own columns.  An
+	 * update that writes every column out of one object is dangerous: handing it a part filled object
+	 * writes whatever the object happens to hold, and for a boolean nobody set that is false.
 	 *
 	 * So this writes the named columns only.  Everything deciding what the organisation is allowed to
 	 * do, and every credential it holds, is out of reach here rather than merely left unmentioned.
@@ -648,18 +579,41 @@ public class OrganisationManager {
 	public void updateOtherOrgData( 
 			Connection sd, 
 			int oId,
-			OtherOrgData otherData) throws SQLException {
+			OtherOrgData otherData,
+			boolean setPasswordStrength,
+			String userIdent) throws SQLException, ApplicationException {
 		
 		String sql = "update organisation set "
-				+ "password_strength = ? "
+				+ "locale = ?, "
+				+ "timezone = ?, "
+				+ "map_source = ?, "
+				+ "can_edit = ?, "
+				+ "send_optin = ?, "
+				+ "enable_redact = ?, "
+				+ "notification_webform = ?, "
+				+ (setPasswordStrength ? "password_strength = ?, " : "")
+				+ "changed_by = ?, "
+				+ "changed_ts = now() "
 				+ "where id = ?";
 		PreparedStatement pstmt = null;
 		
 		try {
 			
+			int idx = 1;
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, otherData.password_strength);
-			pstmt.setInt(2, oId);
+			pstmt.setString(idx++, HtmlSanitise.checkCleanName(otherData.locale, localisation));
+			pstmt.setString(idx++, HtmlSanitise.checkCleanName(otherData.timeZone, localisation));
+			pstmt.setString(idx++, HtmlSanitise.checkCleanName(otherData.map_source, localisation));
+			pstmt.setBoolean(idx++, otherData.can_edit);
+			pstmt.setBoolean(idx++, otherData.send_optin);
+			pstmt.setBoolean(idx++, otherData.enable_redact);
+			pstmt.setBoolean(idx++, otherData.notification_webform);
+			if(setPasswordStrength) {
+				pstmt.setInt(idx++, otherData.password_strength);
+			}
+			pstmt.setString(idx++, userIdent);
+			pstmt.setInt(idx++, oId);
+			log.fine("Update other organisation data: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}

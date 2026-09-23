@@ -55,6 +55,7 @@ import org.smap.sdal.model.AppearanceOptions;
 import org.smap.sdal.model.DeviceSettings;
 import org.smap.sdal.model.EmailSettings;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.OrgAccessData;
 import org.smap.sdal.model.OtherOrgData;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.SensitiveData;
@@ -341,18 +342,27 @@ public class OrganisationList extends Application {
 
 					aAdminOrg.isOrganisationInEnterprise(sd, request.getRemoteUser(), o.id);
 					aAdminOrg.canUserUpdateOrganisation(sd, request.getRemoteUser(), o.id);
-					om.updateOrganisation(
+					
+					/*
+					 * Only the descriptive details are edited here.  Other settings are edited in the
+					 * settings page and are left as they are
+					 */
+					Organisation original = GeneralUtilityMethods.getOrganisation(sd, o.id);
+					if(original == null) {
+						throw new ApplicationException("Organisation not found: " + o.id);
+					}
+					om.updateOrganisationDetails(
 							sd, 
-							o, 
-							userIdent, 
-							null,
-							null,
-							requestUrl,
-							basePath,
-							null,
-							null,
-							request.getServerName(),
-							request.getScheme());	
+							o.id,
+							o.name,
+							o.company_name,
+							o.company_address,
+							o.company_phone,
+							o.company_email,
+							original.website,
+							original.locale,
+							original.timeZone,
+							userIdent);	
 				}
 			
 				response = Response.ok().build();
@@ -443,7 +453,7 @@ public class OrganisationList extends Application {
 		String connectionString = "surveyKPI-updateOtherData";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aSecurity.isAuthorised(sd, request, request.getRemoteUser());
+		aAdminOrg.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 
 		try {
@@ -451,15 +461,117 @@ public class OrganisationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			OtherOrgData otherData = new Gson().fromJson(other, OtherOrgData.class);	
+			if(otherData.timeZone != null && !otherData.timeZone.equals("UTC")
+					&& !GeneralUtilityMethods.isValidTimezone(sd, otherData.timeZone)) {
+				throw new ApplicationException("Invalid Timezone: " + otherData.timeZone);
+			}
+			
+			// Password strength is a security setting
+			boolean setPasswordStrength = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.SECURITY_ID);
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());		
 			OrganisationManager om = new OrganisationManager(localisation);
-			om.updateOtherOrgData(sd, oId, otherData);		
+			om.updateOtherOrgData(sd, oId, otherData, setPasswordStrength, request.getRemoteUser());		
 			
 			response = Response.ok().build();
 				
 		} catch (SQLException e) {
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);
+		} catch (ApplicationException e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Get the settings for the user's organisation that only an organisation administrator can change
+	 */
+	@GET
+	@Path("/access")
+	public Response getAccessSettings(@Context HttpServletRequest request) {
+		Response response = null;
+		
+		String connectionString = "surveyKPI-OrganisationList-getAccessSettings";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request, request.getRemoteUser());
+		// End Authorisation
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
+			Organisation o = GeneralUtilityMethods.getOrganisation(sd, oId);
+			if(o != null) {
+				OrgAccessData data = new OrgAccessData();
+				data.can_notify = o.can_notify;
+				data.can_use_api = o.can_use_api;
+				data.can_submit = o.can_submit;
+				data.can_sms = o.can_sms;
+				data.email_task = o.email_task;
+				data.refresh_rate = o.refresh_rate;
+				data.limits = o.limits;
+				
+				response = Response.ok(gson.toJson(data)).build();
+			} else {
+				response = Response.serverError().entity("{}").build();
+			}
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Update the settings for the user's organisation that only an organisation administrator can change
+	 */
+	@POST
+	@Path("/access")
+	public Response updateAccessSettings(@Context HttpServletRequest request, @FormParam("access") String access) { 
+			
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
+		Response response = null;	
+		
+		String connectionString = "surveyKPI-updateAccessSettings";
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request, request.getRemoteUser());
+		// End Authorisation
+
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			OrgAccessData accessData = new Gson().fromJson(access, OrgAccessData.class);	
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());		
+			OrganisationManager om = new OrganisationManager(localisation);
+			om.updateOrganisationAccess(sd, oId, accessData, request.getRemoteUser(), request.getServerName());		
+			
+			response = Response.ok().build();
+				
+		} catch (SQLException e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+		} catch (ApplicationException e) {
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
 			SDDataSource.closeConnection(connectionString, sd);
@@ -746,7 +858,8 @@ public class OrganisationList extends Application {
 		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
-		String sql = "select password_strength "
+		String sql = "select password_strength, locale, timezone, map_source, "
+				+ "can_edit, send_optin, enable_redact, notification_webform "
 				+ "from organisation "
 				+ "where "
 				+ "id = (select o_id from users where ident = ?)";	
@@ -761,7 +874,17 @@ public class OrganisationList extends Application {
 			
 			if(rs.next()) {
 				OtherOrgData data = new OtherOrgData();
-				data.password_strength = rs.getInt(1);
+				data.password_strength = rs.getInt("password_strength");
+				data.locale = rs.getString("locale");
+				if(data.locale == null) {
+					data.locale = "en";
+				}
+				data.timeZone = rs.getString("timezone");
+				data.map_source = rs.getString("map_source");
+				data.can_edit = rs.getBoolean("can_edit");
+				data.send_optin = rs.getBoolean("send_optin");
+				data.enable_redact = rs.getBoolean("enable_redact");
+				data.notification_webform = rs.getBoolean("notification_webform");
 				
 				response = Response.ok(gson.toJson(data)).build();
 			} else {
@@ -1638,6 +1761,7 @@ public class OrganisationList extends Application {
 			usage.put(LogManager.REKOGNITION, rm.getUsage(sd, oId, LogManager.REKOGNITION, month, year));
 			usage.put(LogManager.TRANSLATE, rm.getUsage(sd, oId, LogManager.TRANSLATE, month, year));
 			usage.put(LogManager.TRANSCRIBE, rm.getUsage(sd, oId, LogManager.TRANSCRIBE, month, year));
+			usage.put(LogManager.TRANSCRIBE_MEDICAL, rm.getUsage(sd, oId, LogManager.TRANSCRIBE_MEDICAL, month, year));
 			usage.put(LogManager.SENTIMENT, rm.getUsage(sd, oId, LogManager.SENTIMENT, month, year));
 			
 		} catch (Exception e) {
