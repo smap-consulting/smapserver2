@@ -324,6 +324,27 @@ public class OrganisationList extends Application {
 					// New organisation
 						
 					o.e_id = GeneralUtilityMethods.getEnterpriseId(sd, request, request.getRemoteUser());
+
+					/*
+					 * An administrator who is not an organisation administrator creates a personal organisation.
+					 * Its access settings are copied from their current organisation, not taken from the request,
+					 * otherwise creating an organisation would get around the restrictions on the current one
+					 */
+					if(!GeneralUtilityMethods.hasSecurityGroup(sd, userIdent, Authorise.ORG_ID)) {
+						int currentOrgId = GeneralUtilityMethods.getOrganisationId(sd, request, userIdent);
+						Organisation current = GeneralUtilityMethods.getOrganisation(sd, currentOrgId);
+						if(current == null) {
+							throw new ApplicationException("Organisation not found: " + currentOrgId);
+						}
+						o.can_notify = current.can_notify;
+						o.can_use_api = current.can_use_api;
+						o.can_submit = current.can_submit;
+						o.can_sms = current.can_sms;
+						o.email_task = current.email_task;
+						o.refresh_rate = current.refresh_rate;
+						o.limits = current.limits;
+					}
+
 					om.createOrganisation(
 							sd, 
 							o, 
