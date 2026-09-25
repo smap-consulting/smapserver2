@@ -11,12 +11,11 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.managers.ConversationManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.SmtpEmailServer;
-import com.vonage.client.VonageClient;
+import org.smap.sdal.managers.MessageSender;
 
 /*****************************************************************************
  * 
@@ -59,7 +58,7 @@ public class MessageProcessor {
 		String hostname;
 		String subscriberType;
 		long pid;
-		VonageClient vonageClient = null;
+		MessageSender messageSender = null;
 
 		public MessageLoop(String basePath, String queueName, String hostname, String subscriberType, long pid) {
 			this.basePath = basePath;
@@ -142,12 +141,11 @@ public class MessageProcessor {
 						pstmtHeartbeat.executeUpdate();
 
 						/*
-						 * Get a vonage client
+						 * Get a message sender
 						 */
 
-						if(vonageClient == null) {
-							ConversationManager convMgr = new ConversationManager(null, null);
-							vonageClient = convMgr.getVonageClient(dbc.sd);
+						if(messageSender == null) {
+							messageSender = MessageSender.getMessageSender(dbc.sd);
 						}
 
 						try {
@@ -160,7 +158,7 @@ public class MessageProcessor {
 									urlprefix,
 									attachmentPrefix,
 									hyperlinkPrefix,
-									vonageClient);
+									messageSender);
 						} catch (Exception e) {
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
@@ -194,7 +192,7 @@ public class MessageProcessor {
 			}
 
 			// Cleanup resources when loop exits
-			vonageClient = null;  // Release for GC
+			messageSender = null;  // Release for GC
 			SmtpEmailServer.closeAllConnections();
 			try {if (pstmtHeartbeat != null) { pstmtHeartbeat.close();}} catch (SQLException e) {}
 			try {if (dbc.sd != null) { dbc.sd.close();}} catch (SQLException e) {}

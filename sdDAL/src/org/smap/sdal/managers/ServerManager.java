@@ -129,6 +129,10 @@ public class ServerManager {
 				+ "maptiler_key,"
 				+ "vonage_application_id,"
 				+ "vonage_webhook_secret,"
+				+ "wa_access_token,"
+				+ "wa_app_secret,"
+				+ "wa_verify_token,"
+				+ "wa_api_version,"
 				+ "sms_url,"
 				+ "max_rate,"
 				+ "password_strength,"
@@ -173,6 +177,10 @@ public class ServerManager {
 				data.maptiler_key = rs.getString("maptiler_key");
 				data.vonage_application_id = rs.getString("vonage_application_id");
 				data.vonage_webhook_secret = rs.getString("vonage_webhook_secret");
+				data.wa_access_token = rs.getString("wa_access_token");
+				data.wa_app_secret = rs.getString("wa_app_secret");
+				data.wa_verify_token = rs.getString("wa_verify_token");
+				data.wa_api_version = rs.getString("wa_api_version");
 				data.sms_url = rs.getString("sms_url");
 				data.ratelimit = rs.getInt("max_rate");
 				data.password_strength = rs.getDouble("password_strength");

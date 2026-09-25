@@ -136,6 +136,10 @@ create TABLE server (
 	max_rate integer default 0,						-- Max API rate per minute, 0 means no limit
 	vonage_application_id text,
 	vonage_webhook_secret text,
+	wa_access_token text,							-- WhatsApp Cloud API token used to send
+	wa_app_secret text,								-- Meta app secret, checks inbound webhook signatures
+	wa_verify_token text,							-- Token Meta sends when it checks the webhook URL
+	wa_api_version text,							-- Graph API version e.g. v21.0
 	sec_mgr_del boolean default false,
 	api_max_records integer default 0,				-- Maximum number of records to return via API
 	mcp_enabled boolean default false,				-- MCP server off unless a server owner turns it on
@@ -2348,6 +2352,7 @@ CREATE TABLE IF NOT EXISTS sms_number (
     message_question text,		-- The question name in the survey that holds the message details
     mc_msg text,				-- Message to send if there is more than one case to update
     channel text,				-- sms or whatsapp
+    wa_phone_number_id text,	-- Meta's id for our number when connected directly to WhatsApp
     description text
 );
 ALTER TABLE sms_number OWNER TO ws;

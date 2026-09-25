@@ -40,7 +40,7 @@ public class ServerSettingsGetTool extends AbstractMcpTool {
 	public String getDescription() {
 		return "The server's operational settings: rate and record limits, the minimum password "
 				+ "entropy, how "
-				+ "long erased data is kept, and the MCP settings. Reports whether mail, SMS, maps "
+				+ "long erased data is kept, and the MCP settings. Reports whether mail, SMS, WhatsApp, maps "
 				+ "and SharePoint are configured, but never the keys or passwords themselves.";
 	}
 
@@ -91,6 +91,7 @@ public class ServerSettingsGetTool extends AbstractMcpTool {
 				|| (set(s.smtp_host) && set(s.email_domain)));
 		configured.put("emailType", s.email_type == null ? "" : s.email_type);
 		configured.put("sms", set(s.sms_url) || set(s.vonage_application_id));
+		configured.put("whatsapp", set(s.wa_access_token) || set(s.vonage_application_id));
 		configured.put("maps", set(s.mapbox_default) || set(s.google_key) || set(s.maptiler_key));
 		configured.put("turnstile", set(s.turnstile_site_key));
 		configured.put("sharepoint", set(s.sharepoint_url));

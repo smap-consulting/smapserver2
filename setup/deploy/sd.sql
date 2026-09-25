@@ -937,3 +937,13 @@ alter table organisation drop column if exists dashboard_arn;
 alter table organisation drop column if exists dashboard_session_name;
 delete from user_group where g_id = 12;
 delete from groups where id = 12;
+
+-- WhatsApp direct connection through the Meta WhatsApp Cloud API, no middleware provider.
+-- wa_app_secret checks the signature on inbound webhooks, wa_verify_token answers Meta's check
+-- of the webhook URL, wa_access_token and wa_api_version are used to send.
+alter table server add column if not exists wa_access_token text;
+alter table server add column if not exists wa_app_secret text;
+alter table server add column if not exists wa_verify_token text;
+alter table server add column if not exists wa_api_version text;
+-- Meta identifies our number by this id, not by the number itself
+alter table sms_number add column if not exists wa_phone_number_id text;

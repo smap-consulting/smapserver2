@@ -23,8 +23,6 @@ import org.smap.sdal.model.SubscriberEvent;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.vonage.client.VonageClient;
-import com.vonage.client.messages.MessageResponse;
 
 /*****************************************************************************
 
@@ -67,6 +65,7 @@ public class SMSManager {
 			+ "their_number_question,"
 			+ "message_question,"
 			+ "mc_msg,"
+			+ "wa_phone_number_id,"
 			+ "o_id "
 			+ "from sms_number ";
 	
@@ -197,6 +196,52 @@ public class SMSManager {
 		return smsNumber;
 	}
 
+	/*
+	 * Get our number from the id Meta uses for it when connected directly to WhatsApp
+	 */
+	public String getOurNumberForWhatsAppId(Connection sd, String phoneNumberId) throws SQLException {
+
+		String sql = "select our_number from sms_number where wa_phone_number_id = ?";
+		PreparedStatement pstmt = null;
+		String ourNumber = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, phoneNumberId);
+			log.fine("Get number for WhatsApp id: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				ourNumber = rs.getString(1);
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+		return ourNumber;
+	}
+
+	/*
+	 * Return true if a message has already been saved, messaging providers can send a message more than once
+	 */
+	public boolean messageExists(Connection sd, String ourNumber, String messageId) throws SQLException {
+
+		String sql = "select count(*) from upload_event where user_name = ? and instanceid = ?";
+		PreparedStatement pstmt = null;
+		boolean exists = false;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, ourNumber);
+			pstmt.setString(2, messageId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				exists = rs.getInt(1) > 0;
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+		return exists;
+	}
+
 	public SMSNumber getDetailsForSurvey(Connection sd, String surveyIdent) throws SQLException {
 		
 		StringBuilder sqlSelect = new StringBuilder(sqlGetNumber);
@@ -226,7 +271,7 @@ public class SMSManager {
 	 */
 	public void writeInboundMessageToResults(Connection sd, 
 			Connection cResults,
-			VonageClient vonageClient,
+			MessageSender messageSender,
 			SubscriberEvent se,
 			String instanceid,
 			ConversationItemDetails sms,
@@ -388,13 +433,16 @@ public class SMSManager {
 									/*
 									 * Send message
 									 */
-									ConversationManager conversationMgr = new ConversationManager(localisation, tz);
-									MessageResponse response = conversationMgr.sendMessage(vonageClient,
+									if(messageSender == null) {
+										throw new ApplicationException("Cannot send response message \"" +
+												response_msg.toString() + "\" to " + sms.theirNumber + ". Messaging has not been set up");
+									}
+									String messageId = messageSender.send(sd,
 											sms.channel,
 											sms.ourNumber,
 											sms.theirNumber,
 											response_msg.toString());
-									if(response.getMessageUuid() == null) {
+									if(messageId == null) {
 										throw new ApplicationException("Failed to send response message \"" +
 												response_msg.toString() + "\" to " + sms.theirNumber);
 									}
@@ -625,7 +673,7 @@ public class SMSManager {
 	}
 	
 	private SMSNumber getNumber(ResultSet rs) throws SQLException {
-		return new SMSNumber(rs.getString("element_identifier"),
+		SMSNumber n = new SMSNumber(rs.getString("element_identifier"),
 				rs.getString("our_number"),
 				rs.getString("survey_ident"),
 				rs.getString("their_number_question"),
@@ -633,6 +681,8 @@ public class SMSManager {
 				rs.getInt("o_id"),
 				rs.getString("channel"),
 				rs.getString("mc_msg"));
+		n.waPhoneNumberId = rs.getString("wa_phone_number_id");
+		return n;
 	}
 	
 	/*

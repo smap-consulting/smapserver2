@@ -49,8 +49,6 @@ import org.smap.sdal.model.TaskProperties;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.vonage.client.VonageClient;
-import com.vonage.client.messages.MessageResponse;
 
 /*****************************************************************************
 
@@ -1154,7 +1152,7 @@ public class NotificationManager {
 	 */
 	public void processSubmissionNotification(Connection sd, 
 			Connection cResults, 
-			VonageClient vonageClient,
+			MessageSender messageSender,
 			Organisation organisation,
 			String queueName,
 			String tz,
@@ -1777,7 +1775,7 @@ public class NotificationManager {
 					log.fine("+++++ conversation notification");
 					String toNumber = msg.emails.get(0);
 					
-					if(vonageClient != null) {
+					if(messageSender != null) {
 	
 						/*
 						 * Update the conversation
@@ -1801,21 +1799,27 @@ public class NotificationManager {
 						/*
 						 * Send message
 						 */
-						MessageResponse response = conversationMgr.sendMessage(vonageClient,
-								msg.msgChannel,
-								msg.ourNumber,
-								toNumber,
-								msgText);				
-			
-						status = response.getMessageUuid() == null ?  "error" : "success";
+						String sentId = null;
 						error_details = "";
+						try {
+							sentId = messageSender.send(sd,
+									msg.msgChannel,
+									msg.ourNumber,
+									toNumber,
+									msgText);
+						} catch (Exception e) {
+							log.log(Level.SEVERE, e.getMessage(), e);
+							error_details = e.getMessage();
+						}
+			
+						status = sentId == null ?  "error" : "success";
 						
 						if("success".equals(status)) {
 							notify_details = localisation.getString("msg_sms_sent");
 							notify_details = notify_details.replace("%s1", msg.content);
 							notify_details = notify_details.replace("%s2", msg.ourNumber);
 							notify_details = notify_details.replace("%s3", toNumber);
-							notify_details = notify_details.replace("%s4", response.getMessageUuid().toString());
+							notify_details = notify_details.replace("%s4", sentId);
 							log.fine(notify_details);
 						} else {
 							notify_details = localisation.getString("msg_sms_not_updated");
@@ -1825,14 +1829,14 @@ public class NotificationManager {
 						}
 					} else {
 						status = "error";
-						error_details = "Vonage client has not been configured";
+						error_details = "Messaging has not been set up";
 						
 						notify_details = localisation.getString("msg_sms_not_sent");
 						notify_details = notify_details.replace("%s1", msg.content != null ? msg.content : "");
 						notify_details = notify_details.replace("%s2", msg.ourNumber != null ? msg.ourNumber : "");
 						notify_details = notify_details.replace("%s3", toNumber != null ? toNumber : "");
 						
-						log.log(Level.SEVERE, "Vonage client has not been configured");
+						log.log(Level.SEVERE, "Messaging has not been set up");
 					}
 				} else if(msg.target.equals("sharepoint_list")) {
 

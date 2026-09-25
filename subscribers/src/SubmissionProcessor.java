@@ -22,7 +22,6 @@ import org.smap.sdal.legacy.MissingSurveyException;
 import org.smap.sdal.legacy.MissingTemplateException;
 import org.smap.sdal.legacy.SurveyInstance;
 import org.smap.sdal.legacy.SurveyTemplate;
-import org.smap.sdal.managers.ConversationManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SMSManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -38,7 +37,7 @@ import org.smap.subscribers.Subscriber;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.vonage.client.VonageClient;
+import org.smap.sdal.managers.MessageSender;
 
 /*****************************************************************************
  * 
@@ -77,7 +76,7 @@ public class SubmissionProcessor {
 		String hostname;
 		String subscriberType;
 		long pid;
-		VonageClient vonageClient = null;
+		MessageSender messageSender = null;
 
 		public SubmissionQueueLoop(String basePath, String queueName, boolean incRestore,
 				String hostname, String subscriberType, long pid) {
@@ -194,11 +193,10 @@ public class SubmissionProcessor {
 						pstmtHeartbeat.executeUpdate();
 
 						/*
-						 * Get a vonage client
+						 * Get a message sender
 						 */
-						if(vonageClient == null) {
-							ConversationManager convMgr = new ConversationManager(localisation, "UTC");
-							vonageClient = convMgr.getVonageClient(dbc.sd);
+						if(messageSender == null) {
+							messageSender = MessageSender.getMessageSender(dbc.sd);
 						}
 
 						/*
@@ -233,7 +231,7 @@ public class SubmissionProcessor {
 								try {
 									smsMgr.writeInboundMessageToResults(dbc.sd, 
 											dbc.results,
-											vonageClient,
+											messageSender,
 											se,
 											ue.getInstanceId(),
 											sms,
@@ -477,7 +475,7 @@ public class SubmissionProcessor {
 			try {if (pstmtHeartbeat != null) { pstmtHeartbeat.close();}} catch (SQLException e) {}
 
 			// Cleanup resources when loop exits
-			vonageClient = null;  // Release for GC
+			messageSender = null;  // Release for GC
 			try {if (dbc.sd != null) { dbc.sd.close();}} catch (SQLException e) {}
 			try {if (dbc.results != null) { dbc.results.close();}} catch (SQLException e) {}
 			log.info("---------- Submission Queue resources released");

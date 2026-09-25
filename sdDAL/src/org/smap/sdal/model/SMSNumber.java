@@ -11,6 +11,7 @@ public class SMSNumber {
 	public String theirNumberQuestion;
 	public String messageQuestion;
 	public String channel;
+	public String waPhoneNumberId;		// Meta's id for the number when WhatsApp is connected directly
 	
 	public int oId;
 	public int pId;

@@ -128,6 +128,7 @@ public class SMSNumbers extends Application {
 	public Response addNmber(@Context HttpServletRequest request,
 			@FormParam("ourNumber") String ourNumber,
 			@FormParam("channel") String channel,
+			@FormParam("waPhoneNumberId") String waPhoneNumberId,
 			@FormParam("oId") int oId,
 			@QueryParam("tz") String tz) { 
 		
@@ -149,20 +150,19 @@ public class SMSNumbers extends Application {
 			tz = "UTC";
 		}
 			
-		String sql = "insert into sms_number (element_identifier, time_modified, our_number, channel, o_id) "
-				+ "values (gen_random_uuid(), now(), ?, ?, ?)";
+		String sql = "insert into sms_number (element_identifier, time_modified, our_number, channel, o_id, wa_phone_number_id) "
+				+ "values (gen_random_uuid(), now(), ?, ?, ?, ?)";
 		PreparedStatement pstmt = null;
 		
 		
 		try {	
 			if(ourNumber != null) {
-				if(ourNumber.startsWith("+")) {
-					ourNumber = ourNumber.substring(1);
-				}
+				ourNumber = ourNumber.replaceAll("[^0-9]", "");	// Providers send digits only, so anything else stops it matching
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, ourNumber);
 				pstmt.setString(2, channel);
 				pstmt.setInt(3, oId);
+				pstmt.setString(4, blankToNull(waPhoneNumberId));
 				pstmt.executeUpdate();
 				response = Response.ok().build();
 			}
@@ -194,6 +194,9 @@ public class SMSNumbers extends Application {
 			@FormParam("theirNumberQuestion") String theirNumberQuestion,
 			@FormParam("messageQuestion") String messageQuestion,
 			@FormParam("mcMsg") String mcMsg,
+			@FormParam("waPhoneNumberId") String waPhoneNumberId,
+			@FormParam("newNumber") String newNumber,
+			@FormParam("channel") String channel,
 			@QueryParam("tz") String tz) throws SQLException { 
 		
 		// Check for Ajax and reject if not
@@ -224,7 +227,21 @@ public class SMSNumbers extends Application {
 			if(!isOwner) {   // Validate number
 				a.isValidNumber(sd, request.getRemoteUser(), ourNumber);
 			}
-			if(sIdent != null) {
+			
+			/*
+			 * The survey settings belong to the organisation the number is in
+			 * An owner editing a number in another organisation leaves them alone, moving a number clears them
+			 */
+			int numberOrg = getNumberOrg(sd, ourNumber);
+			boolean moved = isOwner && oId != numberOrg;
+			boolean keepSurvey = !moved && numberOrg != GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			if(moved) {
+				sIdent = null;
+				theirNumberQuestion = null;
+				messageQuestion = null;
+				mcMsg = null;
+			}
+			if(sIdent != null && !keepSurvey) {
 				a.surveyInUsersOrganisation(sd, request.getRemoteUser(), sIdent);  // Make it a super user request and ignore roles
 			}
 			
@@ -232,17 +249,48 @@ public class SMSNumbers extends Application {
 			 * Validation
 			 * 1. TODO validate that the question names are in the specified survey
 			 */
+			
+			/*
+			 * The number, channel and WhatsApp id are only changed by an owner and only if they were sent
+			 * so a client that does not know about them leaves them as they are
+			 */
+			if(isOwner && newNumber != null) {
+				newNumber = newNumber.replaceAll("[^0-9]", "");
+				if(newNumber.length() == 0 || newNumber.equals(ourNumber)) {
+					newNumber = null;
+				} else if(numberExists(sd, newNumber)) {
+					throw new Exception("The number " + newNumber + " is already in use");
+				}
+			}
+			if(isOwner && channel != null && !channel.equals("sms") && !channel.equals("whatsapp")) {
+				throw new Exception("Invalid channel: " + channel);
+			}
+			boolean setNumber = isOwner && newNumber != null;
+			boolean setChannel = isOwner && channel != null;
+			boolean setWaId = isOwner && waPhoneNumberId != null;
+			
 			/*
 			 * Construct the SQL
 			 */
 			StringBuilder sql = new StringBuilder("update sms_number ")
-					.append("set time_modified = now()")
-					.append(", survey_ident  = ? ")
+					.append("set time_modified = now()");
+			if(!keepSurvey) {
+				sql.append(", survey_ident  = ? ")
 					.append(", their_number_question  = ? ")
 					.append(", message_question  = ? ")
 					.append(", mc_msg  = ? ");
+			}
 			if(isOwner) {
 				sql.append(", o_id = ? ");
+			}
+			if(setWaId) {
+				sql.append(", wa_phone_number_id = ? ");
+			}
+			if(setChannel) {
+				sql.append(", channel = ? ");
+			}
+			if(setNumber) {
+				sql.append(", our_number = ? ");
 			}
 			sql.append("where our_number = ?");
 			
@@ -251,12 +299,23 @@ public class SMSNumbers extends Application {
 			 */
 			pstmt = sd.prepareStatement(sql.toString());
 			int idx = 1;
-			pstmt.setString(idx++, sIdent);
-			pstmt.setString(idx++, theirNumberQuestion);
-			pstmt.setString(idx++, messageQuestion);
-			pstmt.setString(idx++, mcMsg);
+			if(!keepSurvey) {
+				pstmt.setString(idx++, sIdent);
+				pstmt.setString(idx++, theirNumberQuestion);
+				pstmt.setString(idx++, messageQuestion);
+				pstmt.setString(idx++, mcMsg);
+			}
 			if(isOwner) {
 				pstmt.setInt(idx++, oId);
+			}
+			if(setWaId) {
+				pstmt.setString(idx++, blankToNull(waPhoneNumberId));
+			}
+			if(setChannel) {
+				pstmt.setString(idx++, channel);
+			}
+			if(setNumber) {
+				pstmt.setString(idx++, newNumber);
 			}
 			pstmt.setString(idx++, ourNumber);
 			log.info("update number: " + pstmt.toString());
@@ -329,5 +388,40 @@ public class SMSNumbers extends Application {
 		return response;
 
 	}
-}
 
+	private int getNumberOrg(Connection sd, String number) throws Exception {
+		String sql = "select o_id from sms_number where our_number = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, number);
+			ResultSet rs = pstmt.executeQuery();
+			if(!rs.next()) {
+				throw new Exception("Number not found: " + number);
+			}
+			return rs.getInt(1);
+		} finally {
+			if (pstmt != null) {try {pstmt.close();} catch (SQLException e) {}}
+		}
+	}
+
+	private boolean numberExists(Connection sd, String number) throws SQLException {
+		String sql = "select count(*) from sms_number where our_number = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, number);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() && rs.getInt(1) > 0;
+		} finally {
+			if (pstmt != null) {try {pstmt.close();} catch (SQLException e) {}}
+		}
+	}
+
+	/*
+	 * An empty id must be stored as null, so it never matches an inbound message
+	 */
+	private String blankToNull(String s) {
+		return (s == null || s.trim().length() == 0) ? null : s.trim();
+	}
+}

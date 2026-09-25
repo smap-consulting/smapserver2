@@ -1,6 +1,5 @@
 package org.smap.sdal.managers;
 
-import java.io.File;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,19 +11,11 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.model.ConversationItemDetails;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.vonage.client.VonageClient;
-import com.vonage.client.messages.MessageRequest;
-import com.vonage.client.messages.MessageResponse;
-import com.vonage.client.messages.MessagesClient;
-import com.vonage.client.messages.sms.SmsTextRequest;
-import com.vonage.client.messages.whatsapp.WhatsappTextRequest;
 
 /*****************************************************************************
 
@@ -167,93 +158,6 @@ public class ConversationManager {
 		}
 		
 		return prikey;
-	}
-	
-	/*
-	 * Send a message
-	 */
-	MessageResponse sendMessage(VonageClient vonageClient,
-			String channel,
-			String ourNumber,
-			String toNumber,
-			String msgText) {
-		
-		MessagesClient messagesClient = vonageClient.getMessagesClient(); // TODO check for null	
-		
-		if(channel != null && channel.equals("whatsapp")) {
-			
-			WhatsappTextRequest message = WhatsappTextRequest.builder()
-					.from(ourNumber)
-					.to(toNumber)		// TODO from number
-					.text(msgText)
-					.build();
-			
-			return messagesClient.sendMessage(message);
-		} else {
-		
-			MessageRequest message = SmsTextRequest.builder()
-					.from(ourNumber)
-					.to(toNumber)		// TODO from number
-					.text(msgText)
-					.build();
-		
-			return messagesClient.sendMessage(message);
-		}
-	}
-	
-	/*
-	 * Create a Vonage client object if the private key exists and application id is specified
-	 */
-	public VonageClient getVonageClient(Connection sd) throws ApplicationException, SQLException {
-		
-		VonageClient vonageClient = null;
-		String privateKeyFile = ServerSettings.getBasePath() + "_bin/resources/properties/vonage_private.key";
-		File vonagePrivateKey = new File(privateKeyFile);
-		String vonageApplicationId = getVonageApplicationId(sd);
-			
-		if(vonagePrivateKey.exists() && vonageApplicationId != null && vonageApplicationId.trim().length() > 0) {
-			log.fine("Getting vonage client with application Id: " + vonageApplicationId + " file at: " + privateKeyFile);
-			try {
-				vonageClient = VonageClient.builder()
-						.applicationId(vonageApplicationId)
-						.privateKeyPath(vonagePrivateKey.getAbsolutePath())
-						.build();
-				log.fine("Got vonage client");
-			} catch (Exception e) {
-				log.log(Level.SEVERE, e.getMessage(),e);
-				lm.writeLogOrganisation(sd, -1, null, LogManager.SMS, 
-							"Cannot create vonage client" + " " + e.getMessage(), 0);
-			}
-		} else {
-			String msg = "Cannot create vonage client. " 
-					+ (!vonagePrivateKey.exists() ? " vonage_private.key was not found." : "")
-					+ (vonageApplicationId == null ? " The vonage application Id was not found in settings." : "");
-			
-			if(vonageApplicationId != null && vonageApplicationId.trim().length() > 0) {
-				// Set organisation id to -1 as this is an issue not related to an organisation			
-				lm.writeLogOrganisation(sd, -1, null, LogManager.SMS, msg, 0);	
-				log.fine("Error setting up vonage client: " + msg);
-			}
-			
-		}
-		
-		return vonageClient;
-	}
-	
-	private String getVonageApplicationId(Connection sd) throws SQLException {
-		String id = null;
-		String sql = "select vonage_application_id from server";
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = sd.prepareStatement(sql);
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				id = rs.getString(1);
-			}
-		} finally {
-			if (pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
-		}
-		return id;
 	}
 	
 }

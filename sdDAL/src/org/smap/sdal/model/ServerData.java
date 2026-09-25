@@ -14,6 +14,10 @@ public class ServerData {
 	public String maptiler_key;
 	public String vonage_application_id;
 	public String vonage_webhook_secret;
+	public String wa_access_token;
+	public String wa_app_secret;
+	public String wa_verify_token;
+	public String wa_api_version;
 	public String sms_url;
 	public int ratelimit;
 	public double password_strength;
