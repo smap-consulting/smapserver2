@@ -141,7 +141,7 @@ public class SubscriberBatch {
 				+ "imei, orig_survey_ident, update_id, ident, instanceid, status, reason, location, "
 				+ "server_name, s_id, p_id, o_id, e_id, form_status, file_path, "
 				+ "temporary_user, survey_notes, location_trigger, assignment_id, restore, submission_type, "
-				+ "audit_file_path, agent "
+				+ "audit_file_path, agent, payload "
 				+ "from upload_event ue "
 				+ "where ue.status = 'success' "
 				+ "and ue.s_id is not null "
@@ -293,6 +293,7 @@ public class SubscriberBatch {
 							ue.setAssignmentId(rs.getInt("assignment_id"));
 							ue.setRestore(rs.getBoolean("restore"));
 							ue.setType(rs.getString("submission_type"));
+							ue.setPayload(rs.getString("payload"));		// The message for an SMS or WhatsApp event
 							ue.setAuditFilePath(rs.getString("audit_file_path"));
 
 							pstmtEnqueue.setInt(1, ue.getId());
