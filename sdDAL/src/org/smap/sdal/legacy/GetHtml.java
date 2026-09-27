@@ -342,11 +342,19 @@ public class GetHtml {
 			if (!q.inMeta && !q.name.equals("meta_groupEnd") && !q.isPreload() 
 					&& !q.type.equals("calculate")		// Calculates are processed separately from questions for webforms
 					&& !q.type.equals("server_calculate")
-					&& !q.type.equals("conversation")
 					&& !q.type.equals("chart")) {	// Charts not supported in webforms
 				
 				if(q.type.equals("pdf_field") && q.source == null) {
 					continue;
+				}
+				
+				/*
+				 * A conversation is shown read only, the conversation widget formats it as a chat
+				 */
+				if(q.type.equals("conversation")) {
+					q.readonly = true;
+					q.appearance = (q.appearance == null || q.appearance.trim().length() == 0) 
+							? "conversation" : q.appearance.trim() + " conversation";
 				}
 				
 				if (q.type.equals("end group")) {
@@ -1839,6 +1847,8 @@ public class GetHtml {
 			type = "number";
 		} else if (q.type.equals("trigger") || q.type.equals("acknowledge")) {
 			type = "radio";
+		} else if (q.type.equals("conversation")) {
+			type = "text";
 		} else {
 			log.fine("#### unknown type: " + q.type + " for question " + q.name);
 			type = "text";
@@ -1883,7 +1893,7 @@ public class GetHtml {
 			type = "geotrace";
 		} else if (q.type.equals(SmapQuestionTypes.PARENT_FORM) || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
 			type = "string";
-		} else if (q.type.equals("barcode")) {
+		} else if (q.type.equals("barcode") || q.type.equals("conversation")) {
 			type = "string";
 		} else {
 			type = q.type;

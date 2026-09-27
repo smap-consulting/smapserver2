@@ -559,7 +559,8 @@ public class ActionManager {
 				for (int j = 0; j < columnList.size(); j++) {
 					TableColumn xx = columnList.get(j);
 					if (xx.column_name.equals(u.name)) {
-						if (!xx.readonly) {
+						// A conversation is only changed by an inbound message or an outbound notification
+						if (!xx.readonly && !"conversation".equals(xx.type)) {
 							updateable = true;
 							tc = xx;
 						}

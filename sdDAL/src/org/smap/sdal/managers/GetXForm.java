@@ -1767,6 +1767,19 @@ public class GetXForm {
 	}
 
 	/*
+	 * Return true if the question's value is included in record data
+	 * Questions with no source are placeholders, sms sourced questions are left out except a conversation
+	 * in a webform, where it is shown read only
+	 */
+	private boolean includeInData(Question q) {
+		if(isWebForms && q.getType().equals("conversation")) {
+			return true;		// Whatever its source, which may be sms or not set
+		}
+		String source = q.getSource();
+		return source != null && !source.equals("sms");
+	}
+
+	/*
 	 * Get the instance data for an XForm
 	 */
 	public String getInstanceXml(int sId, String templateName, SurveyTemplate template, String key, String keyval,
@@ -2551,8 +2564,8 @@ public class GetXForm {
 				if (template.getSubForm(processForm, q) == null) {
 					// This question is not a place holder for a subform
 					// Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
-					// Also ignore sms sourced questions - for now at any rate
-					if (q.getSource() != null && !q.getSource().equals("sms")) { 
+					// Also ignore sms sourced questions, except a conversation in a webform which shows it read only
+					if (includeInData(q)) { 
 
 						String qType = q.getType();
 						if (qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace") || qType.equals("geocompound")) {
@@ -2749,7 +2762,7 @@ public class GetXForm {
 						index++;
 					}
 
-				} else if (qSource != null && !qSource.equals("sms")) {
+				} else if (includeInData(q)) {
 
 					String value = null;
 					if (q.isPublished() || isReference) { // Get the data from the table if this question has been published
@@ -2790,8 +2803,8 @@ public class GetXForm {
 					}
 					
 
-					// Ignore data not provided by user
-					if (!qSource.equals("user")) {
+					// Ignore data not provided by user, except a conversation shown read only in a webform
+					if (!"user".equals(qSource) && !(isWebForms && qType.equals("conversation"))) {
 						value = "";
 					}
 

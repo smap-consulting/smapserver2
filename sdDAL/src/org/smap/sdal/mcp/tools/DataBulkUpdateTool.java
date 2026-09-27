@@ -231,11 +231,16 @@ public class DataBulkUpdateTool extends AbstractMcpTool {
 		List<String> changed = new ArrayList<>();
 		List<String> unknown = new ArrayList<>();
 		List<String> notWritable = new ArrayList<>();
+		List<String> conversations = new ArrayList<>();
 		List<String> retained = new ArrayList<>();
 		for(Map.Entry<String, Object> e : ((Map<String, Object>) answersArg).entrySet()) {
 			TableColumn c = column(columns, e.getKey());
 			if(c == null) {
 				unknown.add(e.getKey());
+				continue;
+			}
+			if("conversation".equals(c.type)) {
+				conversations.add(e.getKey());
 				continue;
 			}
 			if(column(writable, e.getKey()) == null) {
@@ -267,6 +272,13 @@ public class DataBulkUpdateTool extends AbstractMcpTool {
 			return new MCPToolResult("This survey has no question called " + String.join(", ", unknown)
 					+ ". Read smap://survey/" + survey.getIdent() + "/definition to see the names.",
 					true);
+		}
+
+		if(!conversations.isEmpty()) {
+			return new MCPToolResult(String.join(", ", conversations)
+					+ (conversations.size() == 1 ? " is a conversation" : " are conversations")
+					+ ". A conversation only changes when a message is received or sent, never by "
+					+ "updating the record. Nothing was changed.", true);
 		}
 
 		if(!notWritable.isEmpty()) {
