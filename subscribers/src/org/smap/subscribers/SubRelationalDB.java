@@ -1696,9 +1696,9 @@ public class SubRelationalDB extends Subscriber {
 						/*
 						 * Copy the value from the old table if the policy is not replace (that is merge) and
 						 *  this is a question that is not in the submitting form (subColType will be null)
-						 *  or the question is of type Conversation (these are not submitted)
+						 * Always copy a conversation, whatever the policy, as submissions never change it
 						 */
-						if(( !replace && (subColType == null || "conversation".equals(subColType)))) {
+						if((!replace && subColType == null) || "conversation".equals(subColType)) {
 		
 							String sqlUpdateTarget = "update " + table 
 									+ " set " + col + " = (select " + col 
@@ -1717,8 +1717,9 @@ public class SubRelationalDB extends Subscriber {
 						
 						/*
 						 * Get the change value if this question is in the submitting form
+						 * A conversation was copied across above, a submission never changes it
 						 */
-						if(subColType != null) {
+						if(subColType != null && !"conversation".equals(subColType)) {
 							
 							String oldVal = null;
 							
@@ -2055,6 +2056,14 @@ public class SubRelationalDB extends Subscriber {
 			if(value == null || value.trim().length() == 0 || value.equals("deviceid not found")) {
 				value = device;			
 			}
+		}
+
+		/*
+		 * A conversation is only changed by an inbound message or an outbound notification, never by a submission
+		 * An update keeps the conversation of the record it replaces, see mergeRecords
+		 */
+		if(qType.equals("conversation")) {
+			return null;
 		}
 
 		if(phoneOnly) {
