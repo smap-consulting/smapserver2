@@ -844,8 +844,7 @@ public class GetXForm {
 				 * Ignore questions that should be hidden in the form
 				 */
 				String appearance = q.getAppearance(true, template.getQuestionPaths());
-				if(qType.equals("conversation") || 
-						(appearance != null && appearance.equals("hidden"))) {
+				if(appearance != null && appearance.equals("hidden")) {
 					continue;
 				}
 
@@ -961,6 +960,8 @@ public class GetXForm {
 			bindType = "odk:rank";
 		}  else if(bindType.equals("phone")) {
 			bindType = "string";
+		} else if(bindType.equals("conversation")) {
+			bindType = "string";
 		}
 		
 		if (!bindType.equals("begin group") && !bindType.equals("begin repeat") && !bindType.equals("geopolygon")
@@ -983,8 +984,8 @@ public class GetXForm {
 
 		if (!count) {
 			// Add read only
-			if (q.isReadOnly() || q.getType().equals("note")) {	
-				if(q.getReadOnlyExpression() == null) {
+			if (q.isReadOnly() || q.getType().equals("note") || q.getType().equals("conversation")) {	
+				if(q.getReadOnlyExpression() == null || q.getType().equals("conversation")) {
 					questionElement.setAttribute("readonly", "true()");
 				} else {
 					// ReadOnly expression
@@ -1192,7 +1193,8 @@ public class GetXForm {
 
 		String type = q.getType();
 		if (type.equals("string") || type.equals("int") || type.equals("dateTime") || type.equals("decimal")
-				|| type.equals("barcode") || type.equals("date") || type.equals("geopoint") || type.equals("time") || type.equals("note")) {
+				|| type.equals("barcode") || type.equals("date") || type.equals("geopoint") || type.equals("time") || type.equals("note")
+				|| type.equals("conversation")) {
 			questionElement = outputXML.createElement("input");
 		} else if (type.equals("select")) {
 			questionElement = outputXML.createElement("select");
@@ -1247,6 +1249,14 @@ public class GetXForm {
 				}
 			}
 			
+			if(type.equals("conversation")) {		// Shown read only by the conversation widget
+				if (!appearance.contains("conversation")) {
+					if (appearance.length() > 0) {
+						appearance += " ";
+					}
+					appearance += "conversation";
+				}
+			}
 			if(type.equals("phone")) {
 				if (!appearance.contains("numbers")) {
 					if (appearance.length() > 0) {
@@ -1769,10 +1779,10 @@ public class GetXForm {
 	/*
 	 * Return true if the question's value is included in record data
 	 * Questions with no source are placeholders, sms sourced questions are left out except a conversation
-	 * in a webform, where it is shown read only
+	 * which webforms and fieldTask show read only
 	 */
 	private boolean includeInData(Question q) {
-		if(isWebForms && q.getType().equals("conversation")) {
+		if(q.getType().equals("conversation")) {
 			return true;		// Whatever its source, which may be sms or not set
 		}
 		String source = q.getSource();
@@ -2803,8 +2813,8 @@ public class GetXForm {
 					}
 					
 
-					// Ignore data not provided by user, except a conversation shown read only in a webform
-					if (!"user".equals(qSource) && !(isWebForms && qType.equals("conversation"))) {
+					// Ignore data not provided by user, except a conversation which is shown read only
+					if (!"user".equals(qSource) && !qType.equals("conversation")) {
 						value = "";
 					}
 
