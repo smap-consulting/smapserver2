@@ -267,6 +267,61 @@ public class SMSManager {
 	}
 	
 	/*
+	 * Get the number linked to any survey in a bundle
+	 */
+	public SMSNumber getDetailsForBundle(Connection sd, String groupSurveyIdent) throws SQLException {
+
+		StringBuilder sqlSelect = new StringBuilder(sqlGetNumber);
+		PreparedStatement pstmt = null;
+		SMSNumber smsNumber = null;
+		sqlSelect.append("where survey_ident in (select ident from survey where group_survey_ident = ? and not deleted) ")
+			.append("order by our_number asc");
+		try {
+			pstmt = sd.prepareStatement(sqlSelect.toString());
+			pstmt.setString(1, groupSurveyIdent);
+			log.fine("Get SMS number for bundle: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				smsNumber = getNumber(rs);
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+		return smsNumber;
+	}
+
+	/*
+	 * Get the number linked to a survey, or failing that to another survey in its bundle
+	 */
+	public SMSNumber getLinkedNumber(Connection sd, String surveyIdent, int sId) throws SQLException {
+		SMSNumber smsNumber = getDetailsForSurvey(sd, surveyIdent);
+		if(smsNumber == null) {
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			if(groupSurveyIdent != null) {
+				smsNumber = getDetailsForBundle(sd, groupSurveyIdent);
+			}
+		}
+		return smsNumber;
+	}
+
+	/*
+	 * Get the column holding a case's conversation
+	 * A case has one conversation so this is the message question of the linked number, the same column
+	 * inbound messages are written to.  Surveys without a linked number use their conversation question
+	 */
+	public String getConversationColumn(Connection sd, String surveyIdent, int sId) throws SQLException {
+		SMSNumber smsNumber = getLinkedNumber(sd, surveyIdent, sId);
+		if(smsNumber != null && smsNumber.messageQuestion != null) {
+			int linkedSId = GeneralUtilityMethods.getSurveyId(sd, smsNumber.surveyIdent);
+			String col = GeneralUtilityMethods.getColumnName(sd, linkedSId, smsNumber.messageQuestion);
+			if(col != null) {
+				return col;
+			}
+		}
+		return GeneralUtilityMethods.getConversationColumn(sd, sId);
+	}
+
+	/*
 	 * Write a text conversation to the results table
 	 */
 	public void writeInboundMessageToResults(Connection sd, 
@@ -788,9 +843,9 @@ public class SMSManager {
 		
 		try {
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
-			String messageColumn = GeneralUtilityMethods.getConversationColumn(sd, sId);
-			int prikey = GeneralUtilityMethods.getPrikey(cResults, tableName, instanceid);
 			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			String messageColumn = getConversationColumn(sd, surveyIdent, sId);
+			int prikey = GeneralUtilityMethods.getPrikey(cResults, tableName, instanceid);
 			
 			/*
 			 * Delete the existing conversation item

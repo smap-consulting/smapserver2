@@ -62,6 +62,7 @@ import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.legacy.GetHtml;
 import org.smap.sdal.legacy.SurveyTemplate;
@@ -70,7 +71,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.PeopleManager;
-import org.smap.sdal.managers.SMSManager;
+import org.smap.sdal.managers.ConversationManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
@@ -80,7 +81,7 @@ import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.ManifestValue;
-import org.smap.sdal.model.SMSNumber;
+import org.smap.sdal.model.CaseConversation;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.SurveyData;
@@ -149,7 +150,7 @@ public class WebForm extends Application {
 	String gFormIdent = null;
 	boolean requiresTurnstile = false;
 	ArrayList<String> gNotificationTypes = new ArrayList<>();
-	ArrayList<SMSNumber> gOurNumbers = new ArrayList<>();
+	CaseConversation gConversation = null;			// Conversation of the case being edited
 	boolean gNotificationWebform = false;
 
 	/*
@@ -659,18 +660,12 @@ public class WebForm extends Application {
 					log.info("Could not get notification_webform: " + e.getMessage());
 				}
 
-				// Get notification types and SMS numbers for embedding in surveyData
+				// Get notification types for embedding in surveyData
 				try {
 					NotificationManager nm = new NotificationManager(localisation);
 					gNotificationTypes = nm.getNotificationTypes(sd, userIdent, "console");
 				} catch (Exception e) {
 					log.info("Could not get notification types: " + e.getMessage());
-				}
-				try {
-					SMSManager smsm = new SMSManager(localisation, tz);
-					gOurNumbers = smsm.getOurNumbers(sd, userIdent, true);
-				} catch (Exception e) {
-					log.info("Could not get SMS numbers: " + e.getMessage());
 				}
 
 				log.info("++++++ Action: " + action);
@@ -721,6 +716,26 @@ public class WebForm extends Application {
 				instanceStrToEditId = xForm.getInstanceId();
 				gRecordCounts = xForm.getRecordCounts();
 			} 
+
+			/*
+			 * A message can only be sent to the conversation that established the case
+			 */
+			if(gNotificationWebform && instanceStrToEditId != null) {
+				Connection sdConv = SDDataSource.getConnection(requester);
+				Connection cResultsConv = ResultsDataSource.getConnection(requester);
+				try {
+					ConversationManager convMgr = new ConversationManager(localisation, tz);
+					gConversation = convMgr.getCaseConversation(sdConv, cResultsConv, formIdent, instanceStrToEditId);
+					if(gConversation != null && !gNotificationTypes.contains("conversation")) {
+						gNotificationTypes.add("conversation");
+					}
+				} catch (Exception e) {
+					log.log(Level.SEVERE, "Could not get case conversation", e);
+				} finally {
+					SDDataSource.closeConnection(requester, sdConv);
+					ResultsDataSource.closeConnection(requester, cResultsConv);
+				}
+			}
 
 			if (mimeType.equals("json")) {
 				jr = new JsonResponse();
@@ -1044,7 +1059,7 @@ public class WebForm extends Application {
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		output.append("surveyData.notificationTypes=").append(gson.toJson(gNotificationTypes)).append(";\n");
-		output.append("surveyData.ourNumbers=").append(gson.toJson(gOurNumbers)).append(";\n");
+		output.append("surveyData.conversation=").append(gson.toJson(gConversation)).append(";\n");
 		output.append("surveyData.notificationWebform=").append(gNotificationWebform).append(";\n");
 
 		output.append("</script>\n");
@@ -1501,25 +1516,8 @@ public class WebForm extends Application {
 
 		output.append("<div class='conv_options' style='display:none;'>\n");
 		output.append("<div class='form-group'>\n");
-		output.append("<label class='lang' data-lang='n_their_nbr' for='msg_cur_nbr'>Their number</label>\n");
-		output.append("<select id='msg_cur_nbr' class='form-select'><option value='other'>...</option></select>\n");
-		output.append("</div>\n");
-		output.append("<div class='other_msg' style='display:none;'>\n");
-		output.append("<div class='form-group'>\n");
-		output.append("<label class='lang' data-lang='n_spec_nbr' for='msg_nbr_other'>Specify number</label>\n");
-		output.append("<input type='number' id='msg_nbr_other' class='form-control'>\n");
-		output.append("</div>\n");
-		output.append("</div>\n");
-		output.append("<div class='form-group'>\n");
-		output.append("<label class='lang' data-lang='c_channel' for='msg_channel'>Channel</label>\n");
-		output.append("<select id='msg_channel' class='form-select'>\n");
-		output.append("<option value='sms'>SMS</option>\n");
-		output.append("<option value='whatsapp'>WhatsApp</option>\n");
-		output.append("</select>\n");
-		output.append("</div>\n");
-		output.append("<div class='form-group'>\n");
-		output.append("<label class='lang' data-lang='n_our_nbr' for='msg_our_nbr'>Our number</label>\n");
-		output.append("<select id='msg_our_nbr' class='form-select'></select>\n");
+		output.append("<label class='lang' data-lang='n_their_nbr' for='msg_their_nbr'>Their number</label>\n");
+		output.append("<input type='text' id='msg_their_nbr' class='form-control' readonly>\n");
 		output.append("</div>\n");
 		output.append("<div class='form-group'>\n");
 		output.append("<label class='lang' data-lang='rev_text' for='conversation_text'>Message</label>\n");

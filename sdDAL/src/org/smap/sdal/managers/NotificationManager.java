@@ -32,6 +32,7 @@ import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.Action;
+import org.smap.sdal.model.CaseConversation;
 import org.smap.sdal.model.ConversationItemDetails;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Notification;
@@ -1773,15 +1774,31 @@ public class NotificationManager {
 
 				} else if(msg.target.equals("conversation")) {
 					log.fine("+++++ conversation notification");
-					String toNumber = msg.emails.get(0);
-					
-					if(messageSender != null) {
-	
+
+					/*
+					 * Only reply to the number that established the case, from the number linked to its survey
+					 * Numbers sent by the client are ignored
+					 */
+					ConversationManager conversationMgr = new ConversationManager(localisation, tz);
+					CaseConversation caseConv = conversationMgr.getCaseConversation(sd, cResults, msg.survey_ident, msg.instanceId);
+					String toNumber = null;
+					if(caseConv != null) {
+						toNumber = caseConv.theirNumber;
+						msg.ourNumber = caseConv.ourNumber;
+						msg.msgChannel = caseConv.channel;
+					}
+
+					if(caseConv == null) {
+						status = "error";
+						error_details = localisation.getString("msg_no_conv");
+						notify_details = error_details;
+						log.info("Conversation message for " + msg.instanceId + " not sent: the case has no conversation");
+					} else if(messageSender != null) {
+
 						/*
 						 * Update the conversation
 						 * Get the primary key in response to use as the case reference
 						 */
-						ConversationManager conversationMgr = new ConversationManager(localisation, tz);
 						int prikey = conversationMgr.writeConversationToResults(sd, 
 								cResults, 
 								msg.instanceId, 

@@ -47,8 +47,11 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.ConversationManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
+import org.smap.sdal.managers.RoleManager;
+import org.smap.sdal.model.CaseConversation;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.SubmissionMessage;
@@ -547,6 +550,62 @@ public class NotificationList extends Application {
 
 		return response;
 
+	}
+
+	/*
+	 * Get the conversation that established a case
+	 * Returns null if the case was not started by a message
+	 */
+	@Path("/conversation/{sIdent}/{instanceid}")
+	@GET
+	public Response getCaseConversation(
+			@Context HttpServletRequest request,
+			@PathParam("sIdent") String sIdent,
+			@PathParam("instanceid") String instanceId) { 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-Survey-get case conversation";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request, request.getRemoteUser());
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
+		// End Authorisation
+		
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
+		try {	
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			String tz = "UTC";
+			
+			// Record level security
+			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
+			RoleManager rm = new RoleManager(localisation);
+			if(!rm.canAccessRecord(sd, cResults, sIdent, tableName, instanceId, request.getRemoteUser(), tz)) {
+				throw new AuthorisationException();
+			}
+			
+			ConversationManager convMgr = new ConversationManager(localisation, tz);
+			CaseConversation conv = convMgr.getCaseConversation(sd, cResults, sIdent, instanceId);
+			response = Response.ok(gson.toJson(conv)).build();
+			
+		} catch (AuthorisationException e) {
+			log.info("Authorisation Exception");
+		    response = Response.serverError().entity("Not authorised").build();
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+		}
+
+		return response;
 	}
 
 }

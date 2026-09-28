@@ -12,7 +12,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.CaseConversation;
 import org.smap.sdal.model.ConversationItemDetails;
+import org.smap.sdal.model.SMSNumber;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -88,7 +90,7 @@ public class ConversationManager {
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, surveyIdent);
 			int sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
-			String messageColumn = GeneralUtilityMethods.getConversationColumn(sd, sId);	
+			String messageColumn = smsMgr.getConversationColumn(sd, surveyIdent, sId);
 			
 			if(tableName != null && messageColumn != null && sId > 0) {
 				log.fine("Update existing entry with instanceId: " + instanceid);
@@ -159,7 +161,62 @@ public class ConversationManager {
 		
 		return prikey;
 	}
-	
+
+	/*
+	 * Get the conversation established for a case by an inbound message
+	 * Returns null if the case's survey has no linked number or the case was not started by a message
+	 */
+	public CaseConversation getCaseConversation(Connection sd,
+			Connection cResults,
+			String surveyIdent,
+			String instanceid) throws SQLException {
+
+		CaseConversation conv = null;
+		PreparedStatement pstmt = null;
+
+		try {
+			int sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
+			if(sId <= 0 || instanceid == null) {
+				return null;
+			}
+
+			SMSManager smsMgr = new SMSManager(localisation, tz);
+			SMSNumber smsNumber = smsMgr.getLinkedNumber(sd, surveyIdent, sId);
+			if(smsNumber == null || smsNumber.theirNumberQuestion == null) {
+				return null;
+			}
+
+			int linkedSId = GeneralUtilityMethods.getSurveyId(sd, smsNumber.surveyIdent);
+			String theirNumberColumn = GeneralUtilityMethods.getColumnName(sd, linkedSId, smsNumber.theirNumberQuestion);
+			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, surveyIdent);
+			if(theirNumberColumn == null || tableName == null) {
+				return null;
+			}
+
+			StringBuilder sql = new StringBuilder("select ")
+					.append(theirNumberColumn)
+					.append(" from ")
+					.append(tableName)
+					.append(" where instanceid = ?");
+			pstmt = cResults.prepareStatement(sql.toString());
+			pstmt.setString(1, instanceid);
+			log.fine("Get case conversation number: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String theirNumber = rs.getString(1);
+				if(theirNumber != null && theirNumber.trim().length() > 0) {
+					String channel = smsNumber.channel == null ? ConversationItemDetails.SMS_CHANNEL : smsNumber.channel;
+					conv = new CaseConversation(theirNumber.trim(), smsNumber.ourNumber, channel);
+				}
+			}
+
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}}
+		}
+
+		return conv;
+	}
+
 }
 
 
