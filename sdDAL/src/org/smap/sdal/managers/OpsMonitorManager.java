@@ -1619,7 +1619,7 @@ public class OpsMonitorManager {
 		}
 
 		CaseManager cm = new CaseManager(localisation);
-		return cm.assignRecord(sd, cResults, localisation, table, instanceid, assignTo, type, caseSurvey, null, requestingUser);
+		return cm.assignRecord(sd, cResults, localisation, table, instanceid, assignTo, type, caseSurvey, null, requestingUser, true);
 	}
 
 	/*

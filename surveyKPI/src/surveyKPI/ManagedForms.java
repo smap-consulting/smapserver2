@@ -500,7 +500,10 @@ public class ManagedForms extends Application {
 				CaseManager cm = new CaseManager(localisation);
 				int count = cm.assignRecord(sd, cResults, localisation, tableName, instanceId, 
 						request.getRemoteUser(), "release", null, null, request.getRemoteUser());
-				if(count == 0) {
+				if(count == 0 && GeneralUtilityMethods.getAssignedUser(cResults, tableName, 
+						GeneralUtilityMethods.getThread(cResults, tableName, instanceId)) == null) {
+					response = Response.ok().build();		// Already released, eg auto released when the case was closed
+				} else if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				} else {
 					response = Response.ok().build();

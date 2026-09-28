@@ -466,6 +466,7 @@ public class CaseManager {
 	
 	/*
 	 * Method to assign a record to a user
+	 * A release only succeeds if the requesting user holds the record
 	 */
 	public int assignRecord(Connection sd, 
 			Connection cResults, 
@@ -477,6 +478,26 @@ public class CaseManager {
 			String surveyIdent,
 			String note,
 			String requestingUser
+			) throws SQLException {
+		return assignRecord(sd, cResults, localisation, tablename, instanceId, assignTo, type, surveyIdent,
+				note, requestingUser, false);
+	}
+	
+	/*
+	 * Method to assign a record to a user
+	 * Set anyHolder to release a record held by someone other than the requesting user (admin or auto release)
+	 */
+	public int assignRecord(Connection sd, 
+			Connection cResults, 
+			ResourceBundle localisation, 
+			String tablename, 
+			String instanceId, 
+			String assignTo, 
+			String type,					// lock || release || assign
+			String surveyIdent,
+			String note,
+			String requestingUser,
+			boolean anyHolder
 			) throws SQLException {
 
 		int count = 0;
@@ -495,6 +516,15 @@ public class CaseManager {
 		String thread = GeneralUtilityMethods.getThread(cResults, tablename, instanceId);
 		String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tablename, thread);
 		
+		if(type.equals("release") && assignedUser == null) {
+			log.fine("Release: record " + instanceId + " is not assigned");
+			return 0;		// Nothing to release, don't write a spurious event
+		}
+		if(type.equals("release") && !anyHolder && !assignedUser.equals(requestingUser)) {
+			log.fine("Release: record " + instanceId + " is held by " + assignedUser + " not " + requestingUser);
+			return 0;
+		}
+		
 		String caseSurvey = surveyIdent;
 		String details = null;
 		if(type.equals("lock")) {
@@ -504,7 +534,7 @@ public class CaseManager {
 		} else if(type.equals("release")) {
 			assignTo = null;
 			caseSurvey = null;
-			sql.append("and _assigned = ?");			// User can only release records that they are assigned to
+			sql.append("and _assigned = ?");			// Guard against the holder changing since it was read
 			details = localisation.getString("cm_release") + ": " + (note == null ? "" : note);
 		} else {
 			if(assignTo != null) {

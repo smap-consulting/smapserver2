@@ -147,7 +147,7 @@ public class CaseAssignTool extends AbstractMcpTool {
 
 		int count = new CaseManager(ctx.localisation).assignRecord(ctx.sd, ctx.cResults,
 				ctx.localisation, tableName, instanceId, assignee, action, survey.getIdent(),
-				stringArg(arguments, "note"), ctx.user);
+				stringArg(arguments, "note"), ctx.user, true);
 
 		if(count == 0) {
 			return new MCPToolResult("Nothing changed. The case may already be as you are asking "
