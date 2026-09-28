@@ -1587,9 +1587,11 @@ create TABLE message (
 	attempts integer default 0,		-- Times the message was put back on the queue after a problem
 	first_deferred timestamptz,		-- When it was first put back, so giving up can be a matter of time
 	retry_after timestamptz,		-- Not worth trying again before this, set by whoever deferred it
-	status_details text				-- Why, when the status is an error
+	status_details text,			-- Why, when the status is an error
+	ordering_key text				-- Messages sharing a key are sent in the order they were created
 );
 CREATE index msg_outbound ON message(outbound);
+create index message_ordering_key_idx on message(ordering_key, id) where processed_time is null and ordering_key is not null;
 CREATE index msg_processing_time ON message(processed_time);
 create index message_created_idx on message (created_time);
 ALTER TABLE message OWNER TO ws;
@@ -2327,7 +2329,8 @@ CREATE UNLOGGED TABLE IF NOT EXISTS message_queue (
     o_id integer,
     topic text,	
     description text,
-    data text
+    data text,
+    ordering_key text
 );
 ALTER TABLE message_queue OWNER TO ws;
 CREATE INDEX message_queue_time_inserted_idx ON message_queue(time_inserted);

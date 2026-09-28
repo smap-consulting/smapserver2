@@ -179,7 +179,25 @@ public class MessagingManager {
 	 * Create a new message
 	 */
 	public void createMessage(Connection sd, int oId, String topic, String msg, String data) throws SQLException {
-		
+		createMessage(sd, oId, topic, msg, data, null);
+	}
+
+	/*
+	 * Replies to a case's conversation must arrive, and be added to the conversation, in the order
+	 * they were written, so they are keyed by the case.  Other messages are unordered
+	 */
+	public static String getOrderingKey(String target, String instanceId) {
+		if("conversation".equals(target) && instanceId != null) {
+			return "conv:" + instanceId;
+		}
+		return null;
+	}
+	
+	/*
+	 * Messages with the same ordering key are sent in the order they were created
+	 */
+	public void createMessage(Connection sd, int oId, String topic, String msg, String data, String orderingKey) throws SQLException {
+
 		/*
 		 * Backstop for callers that pass a topic in a variable.  Nothing consumes a device
 		 * topic on a server that cannot send device notifications, so do not write the row.
@@ -189,8 +207,8 @@ public class MessagingManager {
 		}
 
 		String sqlMsg = "insert into message" 
-				+ "(o_id, topic, description, data, outbound, created_time) "
-				+ "values(?, ?, ?, ?, 'true', now())";
+				+ "(o_id, topic, description, data, outbound, created_time, ordering_key) "
+				+ "values(?, ?, ?, ?, 'true', now(), ?)";
 		PreparedStatement pstmtMsg = null;
 		
 		try {
@@ -199,6 +217,7 @@ public class MessagingManager {
 			pstmtMsg.setString(2, topic);
 			pstmtMsg.setString(3, msg);
 			pstmtMsg.setString(4, data);
+			pstmtMsg.setString(5, orderingKey);
 			log.fine("Add message: " + pstmtMsg.toString());
 			pstmtMsg.executeUpdate();
 		} finally {

@@ -189,7 +189,8 @@ public class SubscriberBatch {
 				+ "o_id, "
 				+ "topic, "
 				+ "description, "
-				+ "data "
+				+ "data, "
+				+ "ordering_key "
 				+ "from message "
 				+ "where outbound "
 				+ "and not queued "
@@ -203,8 +204,8 @@ public class SubscriberBatch {
 		PreparedStatement pstmtGetMessages = null;
 
 		String sqlEnqueueMessages = "insert into message_queue(element_identifier, time_inserted, "
-				+ "m_id, o_id, topic, description, data) "
-				+ "values(gen_random_uuid(), current_timestamp, ?, ?, ?, ?, ?)";
+				+ "m_id, o_id, topic, description, data, ordering_key) "
+				+ "values(gen_random_uuid(), current_timestamp, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtEnqueueMessages = null;
 
 		String sqlMessageQueueDone = "update message "
@@ -366,6 +367,7 @@ public class SubscriberBatch {
 							pstmtEnqueueMessages.setString(3, rs.getString("topic"));
 							pstmtEnqueueMessages.setString(4, rs.getString("description"));
 							pstmtEnqueueMessages.setString(5, rs.getString("data"));
+							pstmtEnqueueMessages.setString(6, rs.getString("ordering_key"));
 
 							log.fine("Enqueue message: " + mId);
 

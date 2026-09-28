@@ -345,7 +345,8 @@ public class SubRelationalDB extends Subscriber {
 					}
 					log.fine("Notification attachments result: extraFilePaths=" + subMsg.extraFilePaths + " extraAttachmentUrls=" + subMsg.extraAttachmentUrls);
 				}
-				mm.createMessage(sd, survey.surveyData.o_id, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
+				mm.createMessage(sd, survey.surveyData.o_id, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg),
+						MessagingManager.getOrderingKey(wn.target, instance.getUuid()));
 				log.info("Queued webform notification: target=" + wn.target);
 			}
 		} catch (Exception e) {

@@ -144,13 +144,23 @@ public class MessagingManagerApply {
 				+ "queued = false "
 				+ "where id = ? ";
 
-		// dequeue
+		/*
+		 * dequeue
+		 * Messages enqueued together share a time_inserted, so the message id breaks the tie
+		 * A message with an ordering key waits until the earlier messages with that key are
+		 * finished, otherwise parallel workers can send them out of order
+		 */
 		String sql = "delete "
 				+ "from message_queue q "
 				+ "where q.element_identifier = "
 				+ "(select q_inner.element_identifier "
 				+ "from message_queue q_inner "
-				+ "order by q_inner.time_inserted ASC "
+				+ "where q_inner.ordering_key is null "
+				+ "or not exists (select 1 from message m "
+					+ "where m.ordering_key = q_inner.ordering_key "
+					+ "and m.id < q_inner.m_id "
+					+ "and m.processed_time is null) "
+				+ "order by q_inner.time_inserted ASC, q_inner.m_id ASC "
 				+ "for update skip locked "
 				+ "limit 1) "
 				+ "returning q.m_id, q.o_id, q.topic, q.description, q.data";

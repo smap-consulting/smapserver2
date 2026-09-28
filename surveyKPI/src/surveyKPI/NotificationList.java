@@ -525,7 +525,8 @@ public class NotificationList extends Application {
 					nd.msgChannel,
 					new Timestamp(new java.util.Date().getTime()));
 			MessagingManager mm = new MessagingManager(localisation);
-			mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
+			mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg),
+					MessagingManager.getOrderingKey(n.target, n.instanceId));
 			
 			response = Response.ok().build();
 			

@@ -947,3 +947,10 @@ alter table server add column if not exists wa_verify_token text;
 alter table server add column if not exists wa_api_version text;
 -- Meta identifies our number by this id, not by the number itself
 alter table sms_number add column if not exists wa_phone_number_id text;
+
+-- Messages that must go out in the order they were created, such as the replies to a case's
+-- conversation, share an ordering key.  Message workers run in parallel, so a worker will not take
+-- a message while an earlier one with the same key is unfinished.  Null for everything else.
+alter table message add column if not exists ordering_key text;
+alter table message_queue add column if not exists ordering_key text;
+create index if not exists message_ordering_key_idx on message(ordering_key, id) where processed_time is null and ordering_key is not null;
