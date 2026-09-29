@@ -157,6 +157,9 @@ public class DataSubmitTool extends AbstractMcpTool {
 		for(Map.Entry<String, Object> e : ((Map<String, Object>) answersArg).entrySet()) {
 			String question = questionFor(columns, e.getKey());
 			if(question == null) {
+				question = McpData.unpublishedQuestion(ctx, survey, e.getKey());	// No column until this submission creates it
+			}
+			if(question == null) {
 				unknown.add(e.getKey());
 			} else if(e.getValue() != null) {
 				values.put(question, text(e.getValue()));

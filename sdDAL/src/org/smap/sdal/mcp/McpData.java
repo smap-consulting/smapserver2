@@ -7,11 +7,15 @@ import java.util.Map;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.DataAggregateManager;
+import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.MySensitiveData;
+import org.smap.sdal.model.Question;
+import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
@@ -303,6 +307,78 @@ public class McpData {
 			tc.selectDisplayNames = false;
 		}
 		return cols;
+	}
+
+	/*
+	 * A main form question that has no results column yet, as this caller may answer it.
+	 *
+	 * columns() lists the columns that already exist, and a column only exists once a submission has
+	 * created it.  So a survey nobody has submitted to, or a question added since the last
+	 * submission, is missing from it although the form asks it, and a submission answering it is
+	 * applied without trouble: the subscriber creates the column, as it does for a phone.  This finds
+	 * such a question in the survey definition instead, applying the same restrictions columns()
+	 * applies - the role column filter and the sensitive data setting - so it never offers a caller
+	 * a question they could not otherwise reach.
+	 *
+	 * Returns the question name, or null.
+	 */
+	public static String unpublishedQuestion(McpToolContext ctx, Survey survey, String name) throws Exception {
+
+		if(name == null) {
+			return null;
+		}
+		String wanted = name.trim();
+
+		Survey s = questions(ctx, survey.getId());
+		if(s == null) {
+			return null;
+		}
+		Question match = null;
+		for(Form f : s.surveyData.forms) {
+			if(f.parentform != 0) {
+				continue;
+			}
+			for(Question q : f.questions) {
+				if(q.soft_deleted || q.published || q.type == null
+						|| q.type.startsWith("begin") || q.type.startsWith("end")) {
+					continue;
+				}
+				if(wanted.equalsIgnoreCase(q.name) || wanted.equalsIgnoreCase(q.columnName)) {
+					match = q;
+					break;
+				}
+			}
+		}
+		if(match == null) {
+			return null;
+		}
+
+		// Role column filter, as getColumnsInForm applies it
+		if(!ctx.superUser) {
+			ArrayList<RoleColumnFilter> rcfArray = new RoleManager(ctx.localisation)
+					.getSurveyColumnFilter(ctx.sd, survey.getIdent(), ctx.user);
+			if(rcfArray.size() > 0) {
+				boolean allowed = false;
+				for(RoleColumnFilter rcf : rcfArray) {
+					if(match.name.equals(rcf.name)) {
+						allowed = true;
+						break;
+					}
+				}
+				if(!allowed) {
+					return null;
+				}
+			}
+		}
+
+		// Sensitive data, as getColumnsInForm applies it
+		MySensitiveData msd = new OrganisationManager(ctx.localisation).getMySensitiveData(ctx.sd, ctx.user);
+		if(msd.signature && "image".equals(match.type)
+				&& match.appearance != null && match.appearance.contains("signature")) {
+			return null;
+		}
+
+		return match.name;
 	}
 
 	/*
