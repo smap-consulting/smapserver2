@@ -169,8 +169,16 @@ public class TableDataManager {
 			} else {
 				sqlGetData.append(table_name);
 			}
+			/*
+			 * With no sort column the records come back in primary key order, in the direction asked
+			 * for, and start is where that order begins.  So going newest first, start is the highest
+			 * key wanted rather than the lowest; zero still means from the beginning
+			 */
+			boolean keyDescending = sort == null && !mgmt && "desc".equalsIgnoreCase(dirn);
 			if (specificPrikey) {
 				sqlGetData.append(" where ").append(table_name).append(".prikey = ? ");
+			} else if (keyDescending && start > 0) {
+				sqlGetData.append(" where ").append(table_name).append(".prikey <= ? ");
 			} else {
 				sqlGetData.append(" where ").append(table_name).append(".prikey >= ? ");
 			}
@@ -308,6 +316,8 @@ public class TableDataManager {
 				// Set default sort order
 				if (mgmt) {
 					sqlGetDataOrder.append(" order by ").append(table_name).append(".prikey desc limit 10000");
+				} else if (keyDescending) {
+					sqlGetDataOrder.append(" order by ").append(table_name).append(".prikey desc;");
 				} else {
 					sqlGetDataOrder.append(" order by ").append(table_name).append(".prikey asc;");
 				}

@@ -70,7 +70,8 @@ public class DataQueryTool extends AbstractMcpTool {
 				"sort", property("string",
 						"Optional. The question name to sort on. Defaults to submission order, "
 						+ "which is the only order that can be paged."),
-				"direction", property("string", "Optional. asc or desc. Default asc."),
+				"direction", property("string", "Optional. asc or desc, for the sort or, with no sort, "
+						+ "for submission order - desc gives the newest first. Default asc."),
 				"limit", property("integer",
 						"Optional. Maximum records to return. Default " + DEFAULT_LIMIT + "."),
 				"cursor", property("integer",
@@ -206,7 +207,8 @@ public class DataQueryTool extends AbstractMcpTool {
 		 * skip records.
 		 */
 		if(read.more && r.sort == null && read.lastKey != null) {
-			structured.put("next_cursor", read.lastKey + 1);
+			// Newest first, the next page starts below the last key returned
+			structured.put("next_cursor", "desc".equals(r.direction) ? read.lastKey - 1 : read.lastKey + 1);
 		} else if(read.more) {
 			structured.put("truncated", Boolean.TRUE);
 		}
