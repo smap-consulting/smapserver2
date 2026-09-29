@@ -146,7 +146,7 @@ public class NotificationCreateTool extends AbstractMcpTool {
 		ArrayList<String> emails = new ArrayList<>();
 		List<String> bad = new ArrayList<>();
 		for(Object o : (List<Object>) toArg) {
-			String address = o == null ? "" : o.toString().trim();
+			String address = o == null ? "" : text(o).trim();
 			if(address.isEmpty()) {
 				continue;
 			}

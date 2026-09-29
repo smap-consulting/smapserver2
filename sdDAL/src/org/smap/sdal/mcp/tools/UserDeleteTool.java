@@ -208,7 +208,7 @@ public class UserDeleteTool extends AbstractMcpTool {
 			String claimed = null;
 			if(ackArg instanceof Map) {
 				Object u = ((Map<?, ?>) ackArg).get("user");
-				claimed = u == null ? null : u.toString().trim();
+				claimed = u == null ? null : text(u).trim();
 			}
 			if(claimed == null || !claimed.equalsIgnoreCase(found.ident)) {
 				return new MCPToolResult(what

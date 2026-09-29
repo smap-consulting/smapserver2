@@ -239,7 +239,7 @@ public class SurveyDeleteQuestionTool extends AbstractMcpTool {
 				String claimed = null;
 				if(ackArg instanceof Map) {
 					Object v = ((Map<?, ?>) ackArg).get("question");
-					claimed = v == null ? null : v.toString().trim();
+					claimed = v == null ? null : text(v).trim();
 				}
 				if(claimed == null || !claimed.equalsIgnoreCase(name)) {
 					return new MCPToolResult(what

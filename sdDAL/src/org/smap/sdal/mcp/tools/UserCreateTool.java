@@ -171,7 +171,7 @@ public class UserCreateTool extends AbstractMcpTool {
 				if(o == null) {
 					continue;
 				}
-				String g = o.toString().trim();
+				String g = text(o).trim();
 				if(g.isEmpty()) {
 					continue;
 				}
@@ -210,7 +210,7 @@ public class UserCreateTool extends AbstractMcpTool {
 				if(o == null) {
 					continue;
 				}
-				String p = o.toString().trim();
+				String p = text(o).trim();
 				if(p.isEmpty()) {
 					continue;
 				}

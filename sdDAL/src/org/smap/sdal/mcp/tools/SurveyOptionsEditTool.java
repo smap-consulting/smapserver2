@@ -166,8 +166,8 @@ public class SurveyOptionsEditTool extends AbstractMcpTool {
 						true);
 			}
 			Map<String, Object> c = (Map<String, Object>) o;
-			String value = c.get("value") == null ? null : c.get("value").toString().trim();
-			String label = c.get("label") == null ? null : c.get("label").toString().trim();
+			String value = c.get("value") == null ? null : text(c.get("value")).trim();
+			String label = c.get("label") == null ? null : text(c.get("label")).trim();
 			if(value == null || value.isEmpty()) {
 				return new MCPToolResult("Every choice needs a value - what is stored when it is "
 						+ "picked.", true);
@@ -207,7 +207,7 @@ public class SurveyOptionsEditTool extends AbstractMcpTool {
 			if(o == null) {
 				continue;
 			}
-			String value = o.toString().trim();
+			String value = text(o).trim();
 			if(value.isEmpty()) {
 				continue;
 			}

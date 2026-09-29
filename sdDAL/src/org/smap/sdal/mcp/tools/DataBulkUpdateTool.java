@@ -258,7 +258,7 @@ public class DataBulkUpdateTool extends AbstractMcpTool {
 				retained.add(name);
 				continue;
 			}
-			String value = e.getValue().toString();
+			String value = text(e.getValue());
 
 			Map<String, Object> update = new LinkedHashMap<>();
 			update.put("name", name);

@@ -134,7 +134,26 @@ public abstract class AbstractMcpTool implements McpTool {
 	}
 
 	protected static String stringArg(Map<String, Object> args, String name) {
-		Object v = args.get(name);
-		return v == null ? null : v.toString();
+		return text(args.get(name));
+	}
+
+	/*
+	 * The text of an argument as the client meant it.  JSON numbers arrive as Double through Gson,
+	 * so 85 would otherwise read as "85.0", which an integer question rejects when the submission
+	 * is applied, and a large number as "1.0E7".  Numbers are written without trailing zeros and
+	 * never in exponent form
+	 */
+	public static String text(Object v) {
+		if(v == null) {
+			return null;
+		}
+		if(v instanceof Number) {
+			try {
+				return new java.math.BigDecimal(v.toString()).stripTrailingZeros().toPlainString();
+			} catch (NumberFormatException e) {
+				return v.toString();		// NaN or Infinity, which JSON cannot carry anyway
+			}
+		}
+		return v.toString();
 	}
 }

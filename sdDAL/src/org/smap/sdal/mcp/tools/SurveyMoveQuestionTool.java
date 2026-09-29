@@ -125,7 +125,7 @@ public class SurveyMoveQuestionTool extends AbstractMcpTool {
 		String afterName = stringArg(arguments, "after");
 		Object intoArg = arguments.get("into");
 		boolean intoGiven = intoArg != null;
-		String intoName = intoGiven ? intoArg.toString().trim() : null;
+		String intoName = intoGiven ? text(intoArg).trim() : null;
 
 		if((afterName == null || afterName.trim().isEmpty()) && !intoGiven) {
 			return new MCPToolResult("Give after, to put it in a particular place, or into, to put "

@@ -375,8 +375,7 @@ public class McpData {
 	}
 
 	private static String arg(java.util.Map<String, Object> args, String name) {
-		Object v = args.get(name);
-		return v == null ? null : v.toString();
+		return AbstractMcpTool.text(args.get(name));
 	}
 
 	private static java.sql.Date date(String value) {

@@ -133,7 +133,7 @@ public class UserSetProjectsTool extends AbstractMcpTool {
 			if(o == null) {
 				continue;
 			}
-			String name = o.toString().trim();
+			String name = text(o).trim();
 			if(name.isEmpty()) {
 				continue;
 			}

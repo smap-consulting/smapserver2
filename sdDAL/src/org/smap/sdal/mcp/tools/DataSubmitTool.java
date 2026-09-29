@@ -159,7 +159,7 @@ public class DataSubmitTool extends AbstractMcpTool {
 			if(question == null) {
 				unknown.add(e.getKey());
 			} else if(e.getValue() != null) {
-				values.put(question, e.getValue().toString());
+				values.put(question, text(e.getValue()));
 			}
 			/*
 			 * A null answer is left out of the document entirely rather than written as empty.

@@ -198,7 +198,7 @@ public class TaskGroupDeleteTool extends AbstractMcpTool {
 			String claimed = null;
 			if(ackArg instanceof Map) {
 				Object v = ((Map<?, ?>) ackArg).get("task_group");
-				claimed = v == null ? null : v.toString().trim();
+				claimed = v == null ? null : text(v).trim();
 			}
 			if(claimed == null || !claimed.equalsIgnoreCase(name)) {
 				return new MCPToolResult(what

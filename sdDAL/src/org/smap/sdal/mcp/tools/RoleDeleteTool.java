@@ -178,7 +178,7 @@ public class RoleDeleteTool extends AbstractMcpTool {
 			String claimed = null;
 			if(ackArg instanceof Map) {
 				Object r = ((Map<?, ?>) ackArg).get("role");
-				claimed = r == null ? null : r.toString().trim();
+				claimed = r == null ? null : text(r).trim();
 			}
 			if(claimed == null || !claimed.equalsIgnoreCase(name)) {
 				return new MCPToolResult(what
