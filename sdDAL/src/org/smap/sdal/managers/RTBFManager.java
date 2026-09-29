@@ -72,18 +72,18 @@ public class RTBFManager {
 		StringBuilder json = new StringBuilder("[");
 		boolean firstEntry = true;
 
+		/*
+		 * Every survey in the caller's organisation.  Only a data protection officer can reach this, and
+		 * a request about a person has to find everything held about them, so it is not limited to the
+		 * projects the officer belongs to or the roles they hold.  Each search is logged.
+		 */
 		StringBuilder sqlSurveys = new StringBuilder(
 				"select s.s_id, s.display_name, p.name as project_name "
 				+ "from survey s "
-				+ "join user_project up on s.p_id = up.p_id "
-				+ "join users u on u.id = up.u_id "
-				+ "join project p on p.id = up.p_id and p.o_id = u.o_id "
-				+ "where u.ident = ? "
+				+ "join project p on p.id = s.p_id "
+				+ "where p.o_id = (select o_id from users where ident = ?) "
 				+ "and s.deleted = 'false' "
 				+ "and s.blocked = 'false' ");
-		if (!superUser) {
-			sqlSurveys.append(GeneralUtilityMethods.getSurveyRBAC());
-		}
 		sqlSurveys.append("order by p.name, s.display_name");
 
 		// Only top-level forms — child rows are cascaded automatically during redact
@@ -91,7 +91,7 @@ public class RTBFManager {
 				+ "where s_id = ? and parentform = 0 order by f_id";
 
 		String sqlPiiCols = "select column_name, qname from question "
-				+ "where f_id = ? and pii is not null "
+				+ "where f_id = ? and pii is not null and pii != '' "
 				+ "and soft_deleted = 'false' and column_name is not null";
 
 		PreparedStatement pstmtSurveys = null;
@@ -105,9 +105,6 @@ public class RTBFManager {
 
 			int idx = 1;
 			pstmtSurveys.setString(idx++, user);
-			if (!superUser) {
-				pstmtSurveys.setString(idx++, user);
-			}
 
 			ResultSet rsSurveys = pstmtSurveys.executeQuery();
 			while (rsSurveys.next()) {
@@ -235,20 +232,19 @@ public class RTBFManager {
 			byTable.computeIfAbsent(tbl, k -> new ArrayList<>()).add(pk);
 		}
 
-		// Look up form info by table name, checking user access
+		// Look up form info by table name, checking the form is in the data protection officer's organisation
 		String sqlFormInfo =
 				"select f.f_id, f.s_id, f.parentform from form f "
 				+ "join survey s on s.s_id = f.s_id "
-				+ "join user_project up on up.p_id = s.p_id "
-				+ "join users u on u.id = up.u_id "
-				+ "where f.table_name = ? and u.ident = ? "
+				+ "join project p on p.id = s.p_id "
+				+ "where f.table_name = ? and p.o_id = (select o_id from users where ident = ?) "
 				+ "and s.deleted = 'false' limit 1";
 
 		String sqlAllForms = "select f_id, table_name, parentform from form "
 				+ "where s_id = ? order by parentform, f_id";
 
 		String sqlPiiCols = "select column_name from question "
-				+ "where f_id = ? and pii is not null "
+				+ "where f_id = ? and pii is not null and pii != '' "
 				+ "and soft_deleted = 'false' and column_name is not null";
 
 		PreparedStatement pstmtFormInfo = null;

@@ -30,6 +30,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -72,8 +73,7 @@ public class RightToBeForgotten extends Application {
 
 	public RightToBeForgotten() {
 		ArrayList<String> authorisations = new ArrayList<>();
-		authorisations.add(Authorise.ANALYST);
-		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.DPO);		// Data protection requests are for data protection officers only
 		a = new Authorise(authorisations, null);
 	}
 
@@ -118,6 +118,8 @@ public class RightToBeForgotten extends Application {
 
 			return Response.ok(json).build();
 
+		} catch (AuthorisationException e) {
+			throw e;		// Refused access is a 403, not a server error
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "RTBF search failed", e);
 			return Response.status(Status.INTERNAL_SERVER_ERROR)
@@ -172,6 +174,8 @@ public class RightToBeForgotten extends Application {
 
 			return Response.ok("{\"affected\":" + affected + "}").build();
 
+		} catch (AuthorisationException e) {
+			throw e;		// Refused access is a 403, not a server error
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "RTBF redact failed", e);
 			return Response.status(Status.INTERNAL_SERVER_ERROR)

@@ -28,6 +28,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -68,8 +69,7 @@ public class DataSubjectAccess extends Application {
 
 	public DataSubjectAccess() {
 		ArrayList<String> authorisations = new ArrayList<>();
-		authorisations.add(Authorise.ANALYST);
-		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.DPO);		// Data protection requests are for data protection officers only
 		a = new Authorise(authorisations, null);
 	}
 
@@ -123,6 +123,8 @@ public class DataSubjectAccess extends Application {
 
 			responseVal = Response.ok("").build();
 
+		} catch (AuthorisationException e) {
+			throw e;		// Refused access is a 403, not a server error
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "DSAR export failed", e);
 			response.setHeader("Content-type", "text/html; charset=UTF-8");

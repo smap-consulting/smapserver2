@@ -58,7 +58,7 @@ public class DsarFindTool extends AbstractMcpTool {
 
 	@Override
 	public List<String> getRequiredGroups() {
-		return groups(Authorise.DPO, Authorise.OWNER);
+		return groups(Authorise.DPO);
 	}
 
 	@Override
@@ -108,9 +108,8 @@ public class DsarFindTool extends AbstractMcpTool {
 				note.toString(), 0);
 
 		/*
-		 * superUser false: answered from what this person can see, which is the rule everywhere else
-		 * here.  A data protection officer who cannot reach a survey does not get a fuller answer
-		 * from an agent than from the console.
+		 * The same answer as the console: every survey in the data protection officer's organisation,
+		 * whatever projects they belong to.
 		 */
 		DSARManager dm = new DSARManager();
 		List<DSARManager.Target> targets =

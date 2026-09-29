@@ -136,18 +136,18 @@ public class DSARManager {
 			String fieldName,
 			boolean superUser) throws Exception {
 
+		/*
+		 * Every survey in the caller's organisation.  Only a data protection officer can reach this, and
+		 * a request about a person has to find everything held about them, so it is not limited to the
+		 * projects the officer belongs to or the roles they hold.  Each search is logged.
+		 */
 		StringBuilder sqlSurveys = new StringBuilder(
 				"select s.s_id, s.display_name, p.name as project_name "
 				+ "from survey s "
-				+ "join user_project up on s.p_id = up.p_id "
-				+ "join users u on u.id = up.u_id "
-				+ "join project p on p.id = up.p_id and p.o_id = u.o_id "
-				+ "where u.ident = ? "
+				+ "join project p on p.id = s.p_id "
+				+ "where p.o_id = (select o_id from users where ident = ?) "
 				+ "and s.deleted = 'false' "
 				+ "and s.blocked = 'false' ");
-		if (!superUser) {
-			sqlSurveys.append(GeneralUtilityMethods.getSurveyRBAC());
-		}
 		sqlSurveys.append("order by p.name, s.display_name");
 
 		String sqlForms = "select f_id, name, table_name "
@@ -157,7 +157,7 @@ public class DSARManager {
 		String sqlPiiCols = "select column_name, qname "
 				+ "from question "
 				+ "where f_id = ? "
-				+ "and pii is not null "
+				+ "and pii is not null and pii != '' "
 				+ "and soft_deleted = 'false' "
 				+ "and column_name is not null";
 
@@ -172,11 +172,7 @@ public class DSARManager {
 			pstmtForms   = sd.prepareStatement(sqlForms);
 			pstmtPiiCols = sd.prepareStatement(sqlPiiCols);
 
-			int idx = 1;
-			pstmtSurveys.setString(idx++, user);
-			if (!superUser) {
-				pstmtSurveys.setString(idx++, user);
-			}
+			pstmtSurveys.setString(1, user);
 
 			ResultSet rsSurveys = pstmtSurveys.executeQuery();
 			while (rsSurveys.next()) {
