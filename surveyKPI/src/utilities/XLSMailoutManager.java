@@ -229,7 +229,6 @@ public class XLSMailoutManager {
 	public ArrayList<MailoutPerson> getXLSMailoutList(String type, InputStream inputStream, ResourceBundle localisation, String tz) throws Exception {
 
 		Sheet sheet = null;
-		Sheet settingsSheet = null;
 		Row row = null;
 		int lastRowNum = 0;
 		ArrayList<MailoutPerson> mailouts = new ArrayList<MailoutPerson> ();
@@ -241,30 +240,6 @@ public class XLSMailoutManager {
 			wb = new HSSFWorkbook(inputStream);
 		} else {
 			wb = new XSSFWorkbook(inputStream);
-		}
-
-		/*
-		 * Get the task sheet settings
-		 */
-		settingsSheet = wb.getSheet("settings");
-		if(settingsSheet.getPhysicalNumberOfRows() > 0) {
-			int lastSettingsRow = settingsSheet.getLastRowNum();
-			for(int j = 0; j <= lastSettingsRow; j++) {
-				row = settingsSheet.getRow(j);
-
-				if(row != null) {         	
-					int lastCellNum = row.getLastCellNum();
-					if(lastCellNum > 0) {
-						Cell c = row.getCell(0);
-						String k = c.getStringCellValue();
-						if(k != null && k.trim().toLowerCase().equals("time zone:")) {
-							c = row.getCell(1);
-							tz = c.getStringCellValue();
-							break;
-						}
-					}
-				}
-			}
 		}
 
 		sheet = wb.getSheet("mailouts");
