@@ -624,6 +624,7 @@ public class DataEntryPoints {
 			response.setContentType("text/plain");
 			response.setStatus(429);
 			response.getWriter().append(ae.getMessage());
+			response.flushBuffer();		// Commit the 429 before the resource method returns Response.ok()
 			log.info(ae.getMessage());
 			
 		} catch (Exception e) {

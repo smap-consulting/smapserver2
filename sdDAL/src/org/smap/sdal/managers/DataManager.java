@@ -1083,6 +1083,7 @@ public class DataManager {
 			response.setContentType("text/plain");
 			response.setStatus(429);
 			response.getWriter().append(ae.getMessage());
+			response.flushBuffer();		// Commit the 429 before the resource method returns Response.ok()
 			log.fine(ae.getMessage());
 		} catch (Exception e) {
 			try {cResults.setAutoCommit(true);} catch(Exception ex) {};
