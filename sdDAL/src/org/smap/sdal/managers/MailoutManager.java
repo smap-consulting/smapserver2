@@ -328,6 +328,7 @@ public class MailoutManager {
 		
 		MailoutPersonTotals totals = new MailoutPersonTotals();
 		
+		totals.total = getTotal(sd, mailoutId, "");
 		totals.complete = getTotal(sd, mailoutId, " and status = 'complete' ");
 		totals.error = getTotal(sd, mailoutId, " and status = 'error' ");
 		totals.unsent = getTotal(sd, mailoutId, " and status = 'new' ");
