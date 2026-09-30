@@ -328,7 +328,23 @@ public class SharedResources extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		orgLevelDelete.isAuthorised(sd, request, request.getRemoteUser());	
+		if(sId > 0) {
+			// The file is deleted from this survey's folder so the user must have access to the survey
+			boolean superUser = false;
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+			} catch (Exception e) {
+			}
+			orgLevelDelete.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		}
 		// End Authorisation		
+		
+		// The name is joined to a folder path so it must name a file in that folder
+		if(name == null || name.length() == 0 || name.equals(".") || name.equals("..")
+				|| name.indexOf('/') >= 0 || name.indexOf('\\') >= 0) {
+			SDDataSource.closeConnection(connectionString, sd);
+			return Response.status(Response.Status.BAD_REQUEST).build();
+		}
 		
 		try {
 			// Get the users locale
