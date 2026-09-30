@@ -167,6 +167,11 @@ public class Regions extends Application {
 			// Clean the name so that it is suitable as a table name
 			String tableName = "r_" + o_id + "_" + region.name;
 			tableName = tableName.toLowerCase().replace(" ", "");
+			if(!isValidRegionTable(tableName)) {
+				// The name becomes a table name in the sql so only allow letters, digits and underscores
+				return Response.status(Response.Status.BAD_REQUEST)
+						.entity("Region names can only contain letters, numbers, spaces and underscores").build();
+			}
 			
 			connection = ResultsDataSource.getConnection("surveyKPI-Regions");
 			connection.setAutoCommit(false);
@@ -265,6 +270,13 @@ public class Regions extends Application {
 	}
 	
 	/*
+	 * A region table is named r_{organisation id}_{name} and the name is used directly in sql
+	 */
+	private boolean isValidRegionTable(String tableName) {
+		return tableName != null && tableName.length() <= 63 && tableName.matches("r_[0-9]+_[a-z0-9_]+");
+	}
+	
+	/*
 	 * Delete a region
 	 */
 	@DELETE
@@ -307,13 +319,15 @@ public class Regions extends Application {
 			}
 			pstmt.close();
 			
-			// Get the table name
+			// Get the table name, only for a region in the user's organisation
 			sql = "SELECT r.table_name " +
 					" FROM regions r " +  
-					" WHERE r.region_name = ?;";				
+					" WHERE r.region_name = ? " +
+					" AND r.o_id = ?;";				
 			
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setString(1, region);
+			pstmt.setInt(2, o_id);
 			resultSet = pstmt.executeQuery();
 			
 			String tableName = null;
@@ -321,6 +335,10 @@ public class Regions extends Application {
 				tableName = resultSet.getString(1);
 			}
 			pstmt.close();
+			
+			if(tableName == null || !isValidRegionTable(tableName)) {
+				return Response.status(Response.Status.NOT_FOUND).build();
+			}
 			
 			// delete the tables entry in the geometry table
 			sql = "delete from regions r " +
