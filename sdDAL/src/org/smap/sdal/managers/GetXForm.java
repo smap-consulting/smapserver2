@@ -2475,7 +2475,6 @@ public class GetXForm {
 						if(escValue.startsWith("attachments/")) {
 							escValue = "app/" + item.value;
 						}
-						escValue = escValue.replace("'", "\\\'");
 					}
 
 					if(!item.isStartPreload) {		// Don't add start time as this needs to be reset when editing the form instance

@@ -964,17 +964,17 @@ public class WebForm extends Application {
 		output.append("window.smapConfig = {};");
 		if (serverData.google_key != null) {
 			output.append("window.smapConfig.googleApiKey='");
-			output.append(serverData.google_key);
+			output.append(jsString(serverData.google_key));
 			output.append("';");
 		}
 		// add user ID
-		output.append("window.smapConfig.username='").append(user).append("';");
+		output.append("window.smapConfig.username='").append(jsString(user)).append("';");
 		
 		output.append("window.smapConfig.myWork=" + (myWork ? "true" : "false") + ";");
 		if(requiresTurnstile) {
 			output.append("window.smapConfig.requiresTurnstile=true;");
-			output.append("window.smapConfig.turnstileSiteKey='").append(serverData.turnstile_site_key).append("';");
-			output.append("window.smapConfig.formIdent='").append(gFormIdent).append("';");
+			output.append("window.smapConfig.turnstileSiteKey='").append(jsString(serverData.turnstile_site_key)).append("';");
+			output.append("window.smapConfig.formIdent='").append(jsString(gFormIdent)).append("';");
 			output.append(getTurnstileJs());
 		}
 		output.append("</script>");
@@ -999,16 +999,16 @@ public class WebForm extends Application {
 		output.append("settings = {};\n");
 
 		output.append("surveyData = {};\n");
-		output.append("surveyData.surveyIdent='").append(gFormIdent).append("';\n");
+		output.append("surveyData.surveyIdent='").append(jsString(gFormIdent)).append("';\n");
 		// Data model
 		output.append("surveyData.modelStr=\"");
-		output.append(getModelStr(request));
+		output.append(jsString(getModelStr(request)));
 		output.append("\";\n");
 
 		// Instance Data
 		if (instanceXML != null) {
 			output.append("surveyData.instanceStrToEdit='");
-			output.append(instanceXML.replace("\n", "").replace("\r", ""));
+			output.append(jsString(instanceXML.replace("\n", "").replace("\r", "")));
 			output.append("';\n");
 		}
 
@@ -1018,7 +1018,7 @@ public class WebForm extends Application {
 			output.append("surveyData.instanceStrToEditId = undefined;\n");
 		} else {
 			output.append("surveyData.instanceStrToEditId='");
-			output.append(dataToEditId);
+			output.append(jsString(dataToEditId));
 			output.append("';\n");
 		}
 
@@ -1044,7 +1044,7 @@ public class WebForm extends Application {
 			output.append("surveyData.key = undefined;\n");
 		} else {
 			output.append("surveyData.key='");
-			output.append(accessKey);
+			output.append(jsString(accessKey));
 			output.append("';\n");
 		}
 		
@@ -1057,13 +1057,41 @@ public class WebForm extends Application {
 
 		output.append("surveyData.showFormIndex=").append(showFormIndex).append(";\n");
 
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		// Html escaping left on so that text such as a conversation message cannot close the script element
+		Gson gson = new Gson();
 		output.append("surveyData.notificationTypes=").append(gson.toJson(gNotificationTypes)).append(";\n");
 		output.append("surveyData.conversation=").append(gson.toJson(gConversation)).append(";\n");
 		output.append("surveyData.notificationWebform=").append(gNotificationWebform).append(";\n");
 
 		output.append("</script>\n");
 		return output;
+	}
+
+	/*
+	 * Escape a value for use inside a quoted javascript string in the page
+	 * Covers both quote characters and the characters that could end the script element
+	 */
+	static String jsString(String s) {
+		if(s == null) {
+			return "null";		// As appending a null has always written it
+		}
+		StringBuilder b = new StringBuilder(s.length() + 16);
+		for(int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			switch(c) {
+			case '\\': b.append("\\\\"); break;
+			case '\'': b.append("\\'"); break;
+			case '"': b.append("\\\""); break;
+			case '<': b.append("\\u003c"); break;
+			case '>': b.append("\\u003e"); break;
+			case '\n': b.append("\\n"); break;
+			case '\r': b.append("\\r"); break;
+			case '\u2028': b.append("\\u2028"); break;
+			case '\u2029': b.append("\\u2029"); break;
+			default: b.append(c);
+			}
+		}
+		return b.toString();
 	}
 
 	/*
