@@ -372,6 +372,7 @@ public class MailoutApi extends Application {
 				a.mailoutPersonId = mailoutPersonId;
 				a.email = mailoutPerson.email;
 				a.name = mo.name;
+				a.campaignName = mo.name;
 				a.anonymousCampaign = mo.anonymous;
 				
 				if(mailoutPerson.initialData != null) {

@@ -954,3 +954,10 @@ alter table sms_number add column if not exists wa_phone_number_id text;
 alter table message add column if not exists ordering_key text;
 alter table message_queue add column if not exists ordering_key text;
 create index if not exists message_ordering_key_idx on message(ordering_key, id) where processed_time is null and ordering_key is not null;
+
+-- Submissions made from a campaign link, counted per recipient.  Previously the count was every
+-- submission in the organisation under the recipient's email address.  Existing rows get 1 if the
+-- recipient has submitted, which undercounts campaigns that allow multiple submissions.
+alter table mailout_people add column if not exists submissions integer;
+update mailout_people set submissions = case when status = 'complete' then 1 else 0 end where submissions is null;
+alter table mailout_people alter column submissions set default 0;

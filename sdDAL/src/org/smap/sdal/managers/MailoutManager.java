@@ -252,11 +252,7 @@ public class MailoutManager {
 		ArrayList<MailoutPerson> mpList = new ArrayList<> ();
 		
 		String sql = "select mp.id, p.name, p.email, mp.status, mp.status_details, "
-				+ "mp.initial_data, mp.link, "
-				+ "(select  count(*) from upload_event ue "
-					+ "where ue.o_id = ? "
-					+ "and ue.user_name = p.email "
-					+ "and ue.db_status = 'success' ) as submissions "
+				+ "mp.initial_data, mp.link, mp.submissions "
 				+ "from mailout_people mp, people p "
 				+ "where p.id = mp.p_id "
 				+ "and mp.m_id = ? "
@@ -277,8 +273,7 @@ public class MailoutManager {
 
 		try {
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			pstmt.setInt(2, mailoutId);
+			pstmt.setInt(1, mailoutId);
 			log.fine("Get mailout people: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -853,6 +848,30 @@ public class MailoutManager {
 		} finally {
 			//
 			
+		}
+	}
+	
+	/*
+	 * Record a submission made from a mailout person's link
+	 */
+	public void recordSubmission(Connection sd, int mpId) throws SQLException {
+		
+		String sql = "update mailout_people "
+				+ "set status = ?,"
+				+ "status_details = null, "
+				+ "status_updated = now(), "
+				+ "submissions = coalesce(submissions, 0) + 1 "
+				+ "where id = ? ";
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, STATUS_COMPLETE);
+			pstmt.setInt(2, mpId);
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
 	}
 	

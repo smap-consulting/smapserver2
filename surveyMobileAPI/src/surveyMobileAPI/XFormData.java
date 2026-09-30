@@ -453,8 +453,7 @@ public class XFormData {
 				}
 				if(action.mailoutPersonId > 0) {
 					MailoutManager mm = new MailoutManager(localisation);
-					mm.setMailoutStatus(sd, action.mailoutPersonId, 
-							MailoutManager.STATUS_COMPLETE, null);
+					mm.recordSubmission(sd, action.mailoutPersonId);
 				}
 			}
 			

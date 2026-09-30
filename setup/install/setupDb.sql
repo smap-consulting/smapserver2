@@ -1900,7 +1900,8 @@ create TABLE mailout_people (
 	link text,
 	user_ident text,
 	processed TIMESTAMP WITH TIME ZONE,	-- Time converted into a message
-	status_updated TIMESTAMP WITH TIME ZONE	
+	status_updated TIMESTAMP WITH TIME ZONE,
+	submissions integer default 0		-- Submissions made from this person's campaign link
 	);
 CREATE UNIQUE INDEX idx_mailout_people ON mailout_people(p_id, m_id);
 ALTER TABLE mailout_people OWNER TO ws;
