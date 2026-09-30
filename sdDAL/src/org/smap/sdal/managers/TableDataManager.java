@@ -310,8 +310,7 @@ public class TableDataManager {
 				// User has requested a specific sort order
 				sqlGetDataOrder.append(" order by ");
 				sqlGetDataOrder.append(getSortColumn(columns, sort, table_name));
-				sqlGetDataOrder.append(" ");
-				sqlGetDataOrder.append(dirn);
+				sqlGetDataOrder.append("desc".equalsIgnoreCase(dirn) ? " desc" : " asc");	// Never pass the request value into the sql
 			} else {
 				// Set default sort order
 				if (mgmt) {

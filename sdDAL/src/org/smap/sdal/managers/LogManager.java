@@ -353,6 +353,29 @@ public class LogManager {
 	}
 	
 	/*
+	 * The column to sort the log on, from the names in the API documentation or the column names
+	 * Anything else sorts on id
+	 */
+	private String getLogSortColumn(String sort) {
+		if(sort != null) {
+			switch(sort) {
+			case "log_time": return "l.log_time";
+			case "sId":
+			case "s_id": return "l.s_id";
+			case "sName":
+			case "display_name": return "s.display_name";
+			case "userIdent":
+			case "user_ident": return "l.user_ident";
+			case "event": return "l.event";
+			case "note": return "l.note";
+			case "server": return "l.server";
+			case "agent": return "l.agent";
+			}
+		}
+		return "l.id";
+	}
+	
+	/*
 	 * Get the log entries
 	 */
 	public ArrayList<LogItemDt> getLogEntries(
@@ -369,6 +392,10 @@ public class LogManager {
 		ArrayList<LogItemDt> items = new ArrayList<> ();
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
+		
+		// Never pass the request values into the sql
+		dirn = "asc".equalsIgnoreCase(dirn) ? "asc" : "desc";
+		String sortColumn = getLogSortColumn(sort);
 		
 		try {
 
@@ -390,7 +417,7 @@ public class LogManager {
 				sql.append("and l.o_id = ? ");
 			}
 			
-			sql.append("order by l.").append(sort).append(" ").append(dirn);
+			sql.append("order by ").append(sortColumn).append(" ").append(dirn);
 			
 			pstmt = sd.prepareStatement(sql.toString());
 			int paramCount = 1;
