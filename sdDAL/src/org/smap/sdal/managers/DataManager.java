@@ -20,6 +20,7 @@ import jakarta.ws.rs.core.Response.Status;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -388,6 +389,7 @@ public class DataManager {
 			if(pstmt != null) {
 				log.fine("Data Manager Getting instance data: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
+				HashMap<Integer, String> surveyNames = new HashMap<> ();
 				
 				while(rs.next()) {
 					JSONObject data = new JSONObject();
@@ -406,6 +408,15 @@ public class DataManager {
 							if(includeMeta) {
 								data.put(name, prikey);
 							}
+						} else if (c.column_name != null && c.column_name.equals(SmapServerMeta.SURVEY_ID_NAME)) {
+							// Convert survey id into survey name
+							int surveyId = rs.getInt(i + 1);
+							String surveyName = surveyNames.get(surveyId);
+							if(surveyName == null) {
+								surveyName = GeneralUtilityMethods.getSurveyName(sd, surveyId);
+								surveyNames.put(surveyId, surveyName);
+							}
+							data.put(name, surveyName);
 						} else if (c.type.equals("geopoint")) {
 							// Add Geometry (assume one geometry type per table)
 							//instance.geometry = parser.parse(rs.getString(i + 1)).getAsJsonObject();
