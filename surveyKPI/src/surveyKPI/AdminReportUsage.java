@@ -1,16 +1,5 @@
 package surveyKPI;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Application;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.Response;
-import org.smap.sdal.Utilities.Authorise;
-import org.smap.sdal.managers.LogManager;
 
 
 /*

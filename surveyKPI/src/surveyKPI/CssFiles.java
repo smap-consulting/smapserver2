@@ -40,7 +40,6 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CssManager;
 import org.smap.sdal.managers.DocumentUploadManager;
 import org.smap.sdal.managers.LogManager;

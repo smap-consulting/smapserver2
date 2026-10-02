@@ -1,6 +1,5 @@
 package surveyKPI;
 
-import java.util.ArrayList;
 
 import jakarta.mail.internet.InternetAddress;
 

@@ -1,7 +1,6 @@
 package model;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Option;

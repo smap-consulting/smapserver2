@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Logger;
 
-import surveyKPI.PasswordReset;
 
 /*
 This file is part of SMAP.

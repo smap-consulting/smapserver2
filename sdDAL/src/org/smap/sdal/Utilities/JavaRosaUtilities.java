@@ -1,7 +1,6 @@
 package org.smap.sdal.Utilities;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileWriter;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;

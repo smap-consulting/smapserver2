@@ -58,7 +58,6 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.BlockedException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;

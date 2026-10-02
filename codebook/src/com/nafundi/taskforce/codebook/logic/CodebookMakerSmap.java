@@ -16,7 +16,6 @@ package com.nafundi.taskforce.codebook.logic;
 
 import com.googlecode.jatl.Html;
 import com.lowagie.text.DocumentException;
-import com.lowagie.text.pdf.BaseFont;
 import org.w3c.dom.Document;
 import org.w3c.tidy.Tidy;
 import org.xhtmlrenderer.pdf.ITextRenderer;

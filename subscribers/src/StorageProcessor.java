@@ -6,7 +6,6 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.StorageManager;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.subscribers.Subscriber;

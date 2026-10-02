@@ -1,6 +1,5 @@
 package model;
 
-import java.util.Date;
 
 /*
 This file is part of SMAP.
