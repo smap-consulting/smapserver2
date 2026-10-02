@@ -1184,9 +1184,6 @@ public class ExchangeManager {
 		String threadCreated = null;
 		boolean writeRecord = true;
 		
-		//LinkageManager linkMgr = new LinkageManager(localisation); Disabled
-		//ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
-		
 		eh.pstmtInsert.setString(index++, importSource);
 		eh.pstmtInsert.setTimestamp(index++, importTime);
 		if(form.parent == 0) {	
@@ -1341,8 +1338,6 @@ public class ExchangeManager {
 					}
 					eh.pstmtInsert.setString(index++, value);
 					
-					// linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);  disabled
-					
 				} else if(col.type.equals("int")) {
 					int iVal = 0;
 					if(notEmpty(value)) {
@@ -1433,8 +1428,6 @@ public class ExchangeManager {
 						value = null;
 					}
 					eh.pstmtInsert.setString(index++, value);
-					
-					// linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);  Disabled
 				}
 				
 			}
@@ -1450,15 +1443,6 @@ public class ExchangeManager {
 			if(rs.next()) {
 				form.keyMap.put(prikey, rs.getString(1));		// mapping between the in-sheet prikey and the value added to the database
 			}
-			
-			/*
-			 * Write linkage items, fingerprints etc
-			 * Disabled
-			if(linkageItems.size() > 0) {
-				log.info("----- Applying " + linkageItems.size() + " linkage items");
-				linkMgr.writeItems(sd, oId, user, instanceId, linkageItems);
-			}
-			*/
 			count++;
 		}
 		

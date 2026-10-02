@@ -1187,9 +1187,6 @@ public class SubRelationalDB extends Subscriber {
 					dmv.case_closed = new Timestamp(new java.util.Date().getTime());
 					log.fine("ccccccccccc: case marked closed.  Status question: " + statusQuestion + "Final status: " + finalStatus);
 				}
-				
-				// Add to linkage items
-				//linkMgr.addDataitemToList(linkageItems, value, col.getAppearance(), col.getParameters(), sIdent, colName);  Disable
 			}
 
 		}

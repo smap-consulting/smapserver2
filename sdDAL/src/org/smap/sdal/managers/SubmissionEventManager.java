@@ -240,17 +240,6 @@ public class SubmissionEventManager {
 						attachmentPrefix
 						);
 				
-				/*
-				 * Apply any Linkage items
-				 * Disable linkage due to accuracy issues
-				if(linkageItems.size() > 0) {
-					log.fine("----- Applying " + linkageItems.size() + " linkage items");
-					LinkageManager linkMgr = new LinkageManager(localisation);
-					linkMgr.writeItems(sd, oId, submittingUser, instanceId, linkageItems);
-				} else {
-					//log.fine("----- No linkage items to apply");
-				}
-				*/
 				
 			}
 

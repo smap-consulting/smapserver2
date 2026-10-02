@@ -54,7 +54,6 @@ public abstract class Subscriber {
 	private int duplicatePolicy = DUPLICATE_DROP;
 	
 	protected ArrayList<MediaChange> mediaChanges = new ArrayList<> ();
-	//protected ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
 	
 	Subscriber() {
 		

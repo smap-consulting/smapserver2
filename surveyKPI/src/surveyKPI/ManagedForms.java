@@ -1210,58 +1210,6 @@ public class ManagedForms extends Application {
 		return response;
 	}
 	
-	/*
-	 * Get data connected to the passed in record
-	 * Disabled due to issues with the accuracy of fingerprint matching
-	@GET
-	@Path("/connected/{sId}/{fId}/{prikey}")
-	@Produces("application/json")
-	public Response getLinks(@Context HttpServletRequest request,
-			@PathParam("sId") int sId,
-			@PathParam("fId") int fId,
-			@PathParam("prikey") int prikey) { 
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-ManagedForms-getLinks");
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
-		} catch (Exception e) {
-		}
-		a.isAuthorised(sd, request, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
-		// End Authorisation
-
-		Response response = null;
-		
-		Connection cResults = ResultsDataSource.getConnection("surveyKPI-ManagedForms-getLinks");
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			LinkageManager linkMgr = new LinkageManager(localisation);
-			ArrayList<Link> links = linkMgr.getSurveyLinks(sd, cResults, sId, fId, prikey);
-			response = Response.ok(gson.toJson(links)).build();
-		
-				
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "SQL Error", e);
-		    response = Response.serverError().entity(e.getMessage()).build();			
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Error", e);
-		    response = Response.serverError().entity(e.getMessage()).build();
-		} finally {
-			
-			SDDataSource.closeConnection("surveyKPI-ManagedForms-getLinks", sd);
-			ResultsDataSource.closeConnection("surveyKPI-ManagedForms-getLinks", cResults);
-		}
-
-
-		return response;
-	}
-	*/
-
 	
 	/*
 	 * Get the filterable data associated with a column in a results table

@@ -35,7 +35,6 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SharedResourceManager;
 
 import java.io.IOException;
-import java.sql.*;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
