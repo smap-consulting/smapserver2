@@ -273,7 +273,6 @@ public class EventList extends Application {
 			@QueryParam("hide_success") boolean hideSuccess,
 			@QueryParam("hide_not_loaded") boolean hideNotLoaded,
 			@QueryParam("hide_upload_errors") boolean hideUploadErrors,
-			@QueryParam("is_forward") boolean is_forward,
 			@QueryParam("ignore_old_issues") boolean ignoreOld,
 			@QueryParam("start_key") int start_key,
 			@QueryParam("rec_limit") int rec_limit) {
@@ -823,7 +822,6 @@ public class EventList extends Application {
 	
 	private class StatusTotal {
 		String key;
-		String dest;
 		int success = 0;
 		int errors = 0;
 		int duplicates = 0;
@@ -994,7 +992,6 @@ public class EventList extends Application {
 			@QueryParam("hide_not_loaded") boolean hideNotLoaded,
 			@QueryParam("hide_upload_errors") boolean hideUploadErrors,
 			@QueryParam("groupby") String groupby,
-			@QueryParam("is_forward") boolean is_forward,
 			@QueryParam("ignore_old_issues") boolean ignoreOld) {
 		
 		String user = request.getRemoteUser();
@@ -1025,7 +1022,7 @@ public class EventList extends Application {
 			// One pass over the upload events counts every status.  The success total always
 			// covers all records, the others honour ignore_old_issues.
 			addStatusTotals(hideSuccess, hideErrors, hideDuplicates, hideMerged, hideNotLoaded, hideUploadErrors,
-					sName, surveyIdent, projectId, user, sd, groupby, sList, is_forward, oId, ignoreOld);
+					sName, surveyIdent, projectId, user, sd, groupby, sList, oId, ignoreOld);
 			
 			
 			ArrayList<String> totals = new ArrayList<String> ();
@@ -1053,7 +1050,6 @@ public class EventList extends Application {
 				// Add the properties
 				JSONObject jp = new JSONObject();
 				jp.put("key", st.key);
-				jp.put("dest", st.dest);
 				if(!hideSuccess) {
 					jp.put("success", st.success);
 				}
@@ -1116,7 +1112,6 @@ public class EventList extends Application {
 			Connection sd,
 			String groupby,
 			HashMap<String,StatusTotal> sList,
-			boolean isForward,
 			int oId,
 			boolean ignoreOld) throws SQLException {
 
@@ -1171,10 +1166,7 @@ public class EventList extends Application {
 					.append("and p.o_id = ? ");
 			}
 
-			String selectDest = isForward ? ", se.dest" : "";
-			String groupOrder = isForward ? aggregate + ", se.dest" : aggregate;
-
-			String sql = "select " + aggregate + " as tkey" + selectDest + counts.toString() + " "
+			String sql = "select " + aggregate + " as tkey" + counts.toString() + " "
 					+ "from upload_event ue "
 					+ "inner join user_project up "
 					+ "on ue.p_id = up.p_id "
@@ -1183,8 +1175,8 @@ public class EventList extends Application {
 					+ "inner join project p "
 					+ "on up.p_id = p.id "
 					+ where.toString()
-					+ "group by " + groupOrder
-					+ " order by " + groupOrder + " " + order;
+					+ "group by " + aggregate
+					+ " order by " + aggregate + " " + order;
 
 			pstmt = sd.prepareStatement(sql);
 			int argIdx = 1;
@@ -1206,11 +1198,6 @@ public class EventList extends Application {
 			ResultSet resultSet = pstmt.executeQuery();
 			while (resultSet.next()) {
 				String key = resultSet.getString("tkey");
-				String dest = "";
-				if(isForward) {
-					dest = resultSet.getString("dest");
-				}
-
 				if(allSurveys) {
 					// Convert survey ident to display name.  Cached because there is one lookup
 					// per group and an organisation can have a lot of surveys.
@@ -1226,12 +1213,11 @@ public class EventList extends Application {
 					key = nm;
 				}
 
-				StatusTotal st = sList.get(key + dest);
+				StatusTotal st = sList.get(key);
 				if(st == null) {
 					st = new StatusTotal();
-					sList.put(key + dest, st);
+					sList.put(key, st);
 					st.key = key;
-					st.dest = dest;
 				}
 
 				if(!hideSuccess) {
