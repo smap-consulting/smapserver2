@@ -37,6 +37,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
+import org.smap.sdal.managers.UploadEventManager;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Organisation;
 
@@ -222,25 +223,13 @@ public class EventList extends Application {
 		
 		a.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, superUser);
 	
-		String sql1 = "update upload_event "
-				+ "set results_db_applied = 'false',"
-				+ "db_status = null,"
-				+ "db_reason = null "
-				+ "where db_status = 'error' "
-				+ "and db_reason not like 'Duplicate survey:%' "
-				+ "and ident = ? ";
-		PreparedStatement pstmt = null;
-		
 		try {			
 
 			sd.setAutoCommit(false);
 			
 			// Update the flag that indicates if the record has been applied (performance related flag)
-			pstmt = sd.prepareStatement(sql1);
-			pstmt.setString(1, surveyIdent);
-			log.info("Restore: " + pstmt.toString());
-			int count1 = pstmt.executeUpdate();
-			log.info("Number of records: " + count1);
+			List<Integer> queued = UploadEventManager.retryFailed(sd, surveyIdent, null);
+			log.info("Restore: " + surveyIdent + " number of records: " + queued.size());
 			
 			sd.commit();
 			
@@ -253,7 +242,6 @@ public class EventList extends Application {
 			 
 		} finally {
 			sd.setAutoCommit(true);
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 		

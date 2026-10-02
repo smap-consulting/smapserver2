@@ -80,6 +80,8 @@ import org.smap.sdal.mcp.tools.UserSetRolesTool;
 import org.smap.sdal.mcp.tools.UserUpdateTool;
 import org.smap.sdal.mcp.tools.ReferenceFilterListTool;
 import org.smap.sdal.mcp.tools.ReferenceFilterSetTool;
+import org.smap.sdal.mcp.tools.SubmissionEventsTool;
+import org.smap.sdal.mcp.tools.SubmissionRetryTool;
 import org.smap.sdal.mcp.tools.SurveyCreateTool;
 import org.smap.sdal.mcp.tools.SurveyDeleteTool;
 import org.smap.sdal.mcp.tools.SurveyUndeleteTool;
@@ -195,6 +197,8 @@ public class MCP extends Application {
 		registry.register(new TokenRevokeTool());
 		registry.register(new SurveyListTool());
 		registry.register(new SurveySubmissionCountTool());
+		registry.register(new SubmissionEventsTool());
+		registry.register(new SubmissionRetryTool());
 		registry.register(new SurveyEffectsTool());
 		registry.register(new SurveyGetTool());
 		registry.register(new SurveyQuestionsTool());

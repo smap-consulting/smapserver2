@@ -81,6 +81,8 @@ may do.
 | `organisation_update` | admin | admin, org admin, owner | done |
 | `survey_list` | read | analyst, admin, view data, manage | done |
 | `survey_submission_counts` | read | analyst, admin, view data | done |
+| `submission_events` | read | analyst, admin | done |
+| `submission_retry` | write | analyst, admin | done |
 | `data_query` | read | analyst, admin, view data | done |
 | `data_get_record` | read | analyst, admin, view data | done |
 | `data_count` | read | analyst, admin, view data | done |
@@ -170,7 +172,7 @@ not done.
 | Tasks and assignments | `task_group_list`, `task_group_create`, `task_list`, `task_create`, `task_action` | read and write |
 | Cases and workflow | `case_settings`, `case_settings_set`, `case_assign`, `workflow_list` | read and write |
 | Notifications and messaging | `notification_list`, `notification_create`, `notification_enable`, `notification_delete`, `mailout_list` | read and write, but nothing sends |
-| Reporting and monitoring | `event_list`, `ops_status`, `usage_report` | read only |
+| Reporting and monitoring | `event_list`, `ops_status`, `usage_report`, `submission_events`, `submission_retry` | read, and retrying failed submissions |
 | Users, roles and access | `user_list`, `user_update`, `group_list`, `token_list`, `token_revoke`, `two_factor_reset` | details and AI access; granting security groups is not offered |
 | The organisation itself | `organisation_get`, `organisation_update` | contact details, locale and time zone; what it is allowed to do is read only |
 | Server administration | — | not started |

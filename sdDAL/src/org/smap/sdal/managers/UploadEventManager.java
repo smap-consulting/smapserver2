@@ -19,9 +19,13 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.smap.sdal.managers;
 
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import org.smap.sdal.model.UploadEvent;
 
 public class UploadEventManager {
@@ -120,6 +124,46 @@ public class UploadEventManager {
 	/*
 	 * Close prepared statements
 	 */
+	/*
+	 * Queue failed submissions for a survey to be applied again.
+	 *
+	 * Clearing results_db_applied and the subscriber's status is all it takes: the batch processor
+	 * picks up anything not yet applied.  Duplicates are left alone because applying them again
+	 * would only fail again.  An error with no reason is retried too - "not like" is never true of
+	 * a null, so writing the condition without the null check skipped those silently.
+	 *
+	 * ueIds narrows it to particular uploads; null or empty means every failed upload of the
+	 * survey.  Returns the uploads that were queued.
+	 */
+	public static List<Integer> retryFailed(Connection sd, String surveyIdent, List<Integer> ueIds)
+			throws SQLException {
+
+		boolean some = ueIds != null && !ueIds.isEmpty();
+		String sql = "update upload_event "
+				+ "set results_db_applied = 'false', "
+				+ "db_status = null, "
+				+ "db_reason = null "
+				+ "where db_status = 'error' "
+				+ "and (db_reason is null or db_reason not like 'Duplicate survey:%') "
+				+ "and ident = ? "
+				+ (some ? "and ue_id = any(?) " : "")
+				+ "returning ue_id";
+
+		List<Integer> queued = new ArrayList<>();
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setString(1, surveyIdent);
+			if(some) {
+				Array ids = sd.createArrayOf("integer", ueIds.toArray());
+				pstmt.setArray(2, ids);
+			}
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				queued.add(rs.getInt(1));
+			}
+		}
+		return queued;
+	}
+
 	public void close() {
 		try {if(pstmtInsert != null) {pstmtInsert.close();}} catch(Exception e) {};
 	}
