@@ -20,10 +20,13 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.FormParam;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
@@ -65,6 +68,24 @@ public class Register extends Application {
 		String website;
 	}
 	
+	/*
+	 * Whether anyone may register on this server, so the console shows the register menu
+	 * and page only where a registration would be accepted.  The same check as register().
+	 * No authentication, the console asks before anyone has logged in.
+	 */
+	@GET
+	@Path("/enabled")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response isEnabled() {
+		Connection sd = SDDataSource.getConnection("surveyKPI-Register-enabled");
+		try {
+			boolean enabled = GeneralUtilityMethods.isSelfRegistrationEnabled(sd);
+			return Response.ok("{\"enabled\":" + enabled + "}").build();
+		} finally {
+			SDDataSource.closeConnection("surveyKPI-Register-enabled", sd);
+		}
+	}
+
 	/*
 	 * Register a new organisation
 	 */
