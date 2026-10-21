@@ -80,15 +80,22 @@ public class Register extends Application {
 		} 
 		
 		Response response = null;
-		
-		GeneralUtilityMethods.assertSelfRegistrationServer(request.getServerName());
-		
-		RegistrationDetails rd = new Gson().fromJson(registrationDetails, RegistrationDetails.class);
-		
-		log.info("Registering a new user: " + rd.email + " : " + rd.admin_name);
-		
+
 		Connection sd = SDDataSource.getConnection("surveyKPI-Register");
-		
+		if(!GeneralUtilityMethods.isSelfRegistrationEnabled(sd)) {
+			log.info("Registration refused, self registration is not enabled on this server");
+			SDDataSource.closeConnection("surveyKPI-Register", sd);
+			throw new AuthorisationException();
+		}
+
+		RegistrationDetails rd = new Gson().fromJson(registrationDetails, RegistrationDetails.class);
+		if(rd == null || rd.email == null) {
+			SDDataSource.closeConnection("surveyKPI-Register", sd);
+			return Response.status(Status.BAD_REQUEST).build();
+		}
+
+		log.info("Registering a new user: " + rd.email + " : " + rd.admin_name);
+
 		PreparedStatement pstmt = null;
 		String newUserIdent = null;
 		try {

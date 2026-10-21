@@ -961,3 +961,8 @@ create index if not exists message_ordering_key_idx on message(ordering_key, id)
 alter table mailout_people add column if not exists submissions integer;
 update mailout_people set submissions = case when status = 'complete' then 1 else 0 end where submissions is null;
 alter table mailout_people alter column submissions set default 0;
+
+-- Whether anyone may register a new organisation on this server.  This used to be decided by the
+-- host name the request arrived with, which is whatever the client puts in the Host header.  Off
+-- unless a server owner turns it on.
+alter table server add column if not exists self_registration boolean default false;
