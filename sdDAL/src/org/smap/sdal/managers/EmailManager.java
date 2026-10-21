@@ -1,18 +1,14 @@
 package org.smap.sdal.managers;
 
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import com.google.gson.JsonObject;
 
 import jakarta.mail.internet.InternetAddress;
 import org.smap.sdal.Utilities.ApplicationException;
@@ -301,14 +297,11 @@ public class EmailManager {
 							if(rc != null) {
 								String senderName = GeneralUtilityMethods.getUserNameFromIdent(sd, user);
 								if(senderName == null || senderName.trim().isEmpty()) senderName = (user != null) ? user : "";
-								JsonObject payload = new JsonObject();
-								payload.addProperty("ii", msg.instanceId);
-								payload.addProperty("si", msg.survey_ident);
-								payload.addProperty("mi", messageId);
-								String encoded = Base64.getUrlEncoder().withoutPadding()
-										.encodeToString(payload.toString().getBytes(StandardCharsets.UTF_8));
+								// A random token, not the record's ids, see ReplyTokenManager
+								ReplyTokenManager rtm = new ReplyTokenManager();
+								String token = rtm.create(sd, organisation.id, msg.instanceId, msg.survey_ident, messageId);
 								replyTo = "\"" + senderName.replace("\"", "'") + "\" <reply+"
-										+ encoded + "@" + rc[1] + ">";
+										+ token + "@" + rc[1] + ">";
 							}
 						} catch(Exception e) {
 							log.log(Level.WARNING, "Failed to generate reply-to address", e);

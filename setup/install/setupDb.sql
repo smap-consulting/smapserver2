@@ -468,6 +468,21 @@ CREATE UNIQUE INDEX idx_api_token_hash ON api_token(token_hash);
 CREATE INDEX idx_api_token_u_scope ON api_token(u_id, scope) WHERE revoked IS NULL;
 ALTER TABLE api_token OWNER TO ws;
 
+-- The token in the reply+ address of a notification email, standing for the record a reply
+-- belongs to.  Random, so a reply cannot be addressed to a record by anyone not sent the email.
+-- Only the sha256 is stored.
+DROP TABLE IF EXISTS reply_token CASCADE;
+CREATE TABLE reply_token (
+	token_hash text CONSTRAINT pk_reply_token PRIMARY KEY,	-- sha256 of the token, hex
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	instanceid text,
+	survey_ident text,
+	message_id integer,
+	created timestamp with time zone DEFAULT now()
+	);
+CREATE INDEX idx_reply_token_created ON reply_token(created);
+ALTER TABLE reply_token OWNER TO ws;
+
 -- OAuth 2.1 authorization server, used by MCP clients
 --
 -- A client is anonymous at registration time, so oauth_client carries no organisation.  The

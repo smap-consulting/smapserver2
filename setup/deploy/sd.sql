@@ -966,3 +966,17 @@ alter table mailout_people alter column submissions set default 0;
 -- host name the request arrived with, which is whatever the client puts in the Host header.  Off
 -- unless a server owner turns it on.
 alter table server add column if not exists self_registration boolean default false;
+
+-- The token in the reply+ address of a notification email, standing for the record a reply
+-- belongs to.  The address used to carry the record's ids in plain base64, so anyone who knew
+-- them could add a reply to any record.  Only the sha256 is stored.
+create table if not exists reply_token (
+	token_hash text constraint pk_reply_token primary key,	-- sha256 of the token, hex
+	o_id integer references organisation(id) on delete cascade,
+	instanceid text,
+	survey_ident text,
+	message_id integer,
+	created timestamp with time zone default now()
+);
+alter table reply_token owner to ws;
+create index if not exists idx_reply_token_created on reply_token(created);
