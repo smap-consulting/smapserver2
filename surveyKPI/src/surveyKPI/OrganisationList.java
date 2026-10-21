@@ -1098,7 +1098,7 @@ public class OrganisationList extends Application {
 			pstmt.setString(6, HtmlSanitise.checkCleanName(e.email_user, localisation));
 			pstmt.setString(7, e.email_password);
 			pstmt.setInt(8, e.email_port);
-			pstmt.setString(9, sanitise.sanitiseHtml(e.default_email_content));
+			pstmt.setString(9, sanitise.cleanText(e.default_email_content));
 			pstmt.setString(10, HtmlSanitise.checkCleanName(e.server_description, localisation));
 			pstmt.setString(11, request.getRemoteUser());
 			pstmt.setInt(12, oId);

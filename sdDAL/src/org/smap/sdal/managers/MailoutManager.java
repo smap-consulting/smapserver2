@@ -139,8 +139,8 @@ public class MailoutManager {
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setString(1,  mailout.survey_ident);
 			pstmt.setString(2, HtmlSanitise.checkCleanName(mailout.name, localisation));
-			pstmt.setString(3, sanitise.sanitiseHtml(mailout.subject));
-			pstmt.setString(4, sanitise.sanitiseHtml(mailout.content));
+			pstmt.setString(3, sanitise.cleanText(mailout.subject));
+			pstmt.setString(4, sanitise.cleanText(mailout.content));
 			pstmt.setBoolean(5, mailout.multiple_submit);
 			pstmt.setBoolean(6, mailout.anonymous);
 			log.fine("Add mailout: " + pstmt.toString());
@@ -186,8 +186,8 @@ public class MailoutManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  mailout.survey_ident);
 			pstmt.setString(2, HtmlSanitise.checkCleanName(mailout.name, localisation));
-			pstmt.setString(3, sanitise.sanitiseHtml(mailout.subject));
-			pstmt.setString(4, sanitise.sanitiseHtml(mailout.content));
+			pstmt.setString(3, sanitise.cleanText(mailout.subject));
+			pstmt.setString(4, sanitise.cleanText(mailout.content));
 			pstmt.setBoolean(5, mailout.multiple_submit);
 			pstmt.setBoolean(6, mailout.anonymous);
 			pstmt.setInt(7, mailout.id);

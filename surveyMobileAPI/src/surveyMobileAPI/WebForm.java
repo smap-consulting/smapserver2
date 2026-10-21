@@ -58,7 +58,6 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.BlockedException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -106,7 +105,6 @@ public class WebForm extends Application {
 	private static Logger log = Logger.getLogger(WebForm.class.getName());
 	LogManager lm = new LogManager();		// Application log
 
-	private HtmlSanitise sanitise = new HtmlSanitise();
 	
 	public WebForm() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
@@ -876,7 +874,7 @@ public class WebForm extends Application {
 
 		// head
 		output.append("<head>\n");
-		output.append("<title>" + sanitise.sanitiseHtml(survey.getDisplayName()) + "</title>");
+		output.append("<title>" + GeneralUtilityMethods.esc(survey.getDisplayName()) + "</title>");
 		
 		output.append("<link rel='stylesheet' href='/css/bootstrap.v5.3.8.min.css' />\n");
 		if (surveyClass != null && surveyClass.trim().contains("theme-grid")) {

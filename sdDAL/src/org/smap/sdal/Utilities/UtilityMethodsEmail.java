@@ -944,7 +944,7 @@ public class UtilityMethodsEmail {
 			if(l.text != null ) {
 				pstmt.setString(3, textId + ":label");
 				pstmt.setString(4, "none");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.text));
+				pstmt.setString(5, sanitise.cleanText(l.text));
 				pstmt.executeUpdate();
 			}
 
@@ -952,7 +952,7 @@ public class UtilityMethodsEmail {
 			if(l.hint != null) {
 				pstmt.setString(3, textId + ":hint");
 				pstmt.setString(4, "none");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.hint));
+				pstmt.setString(5, sanitise.cleanText(l.hint));
 				pstmt.executeUpdate();
 			}
 			
@@ -960,7 +960,7 @@ public class UtilityMethodsEmail {
 			if(l.guidance_hint != null) {
 				pstmt.setString(3, textId + ":guidance_hint");
 				pstmt.setString(4, "guidance");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.guidance_hint));
+				pstmt.setString(5, sanitise.cleanText(l.guidance_hint));
 				pstmt.executeUpdate();
 			}
 			
@@ -968,7 +968,7 @@ public class UtilityMethodsEmail {
 			if(l.constraint_msg != null) {
 				pstmt.setString(3, textId + ":constraint");
 				pstmt.setString(4, "constraint_msg");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.constraint_msg));
+				pstmt.setString(5, sanitise.cleanText(l.constraint_msg));
 				pstmt.executeUpdate();
 			}
 			
@@ -976,7 +976,7 @@ public class UtilityMethodsEmail {
 			if(l.required_msg != null) {
 				pstmt.setString(3, textId + ":required");
 				pstmt.setString(4, "required_msg");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.required_msg));
+				pstmt.setString(5, sanitise.cleanText(l.required_msg));
 				pstmt.executeUpdate();
 			}
 
@@ -984,7 +984,7 @@ public class UtilityMethodsEmail {
 			if(l.image != null) {
 				pstmt.setString(3, textId + ":label");
 				pstmt.setString(4, "image");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.image));
+				pstmt.setString(5, sanitise.cleanText(l.image));
 				pstmt.executeUpdate();
 			}
 			
@@ -992,7 +992,7 @@ public class UtilityMethodsEmail {
 			if(l.bigImage != null) {
 				pstmt.setString(3, textId + ":label");
 				pstmt.setString(4, "big-image");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.bigImage));
+				pstmt.setString(5, sanitise.cleanText(l.bigImage));
 				pstmt.executeUpdate();
 			}
 
@@ -1000,7 +1000,7 @@ public class UtilityMethodsEmail {
 			if(l.video != null) {
 				pstmt.setString(3, textId + ":label");
 				pstmt.setString(4, "video");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.video));
+				pstmt.setString(5, sanitise.cleanText(l.video));
 				pstmt.executeUpdate();
 			}
 
@@ -1008,7 +1008,7 @@ public class UtilityMethodsEmail {
 			if(l.audio != null) {
 				pstmt.setString(3, textId + ":label");
 				pstmt.setString(4, "audio");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.audio));
+				pstmt.setString(5, sanitise.cleanText(l.audio));
 				pstmt.executeUpdate();
 			}
 

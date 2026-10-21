@@ -377,8 +377,7 @@ public class MessagingManager {
 					.append("<a href=\"").append(scheme).append("://").append(server)
 					.append("/app/subscriptions.html?subscribe=yes&token=")
 					.append(emailKey)
-					.append("\" style=\"display:inline-block;padding:10px 20px;background-color:#337ab7;")
-					.append("color:#ffffff;text-decoration:none;border-radius:4px;\">")
+					.append("\" style=\"").append(EmailManager.LINK_BUTTON_STYLE).append("\">")
 					.append(localisation.getString("optin"))
 					.append("</a></p>");
 				

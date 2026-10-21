@@ -586,8 +586,8 @@ public class UserManager {
 				.append(serverName)
 				.append("/app/resetForgottonPassword.html?token=")
 				.append(uuid)
-				.append("\">")
-				.append("<button type='button' style='margin:auto;style:block'>").append(localisation.getString("c_s_p")).append("</button>")
+				.append("\" style=\"").append(EmailManager.LINK_BUTTON_STYLE).append("\">")
+				.append(localisation.getString("c_s_p"))
 				.append("</a>");
 				customTokens.put("${set_password_url}", passwordUrl.toString());
 				

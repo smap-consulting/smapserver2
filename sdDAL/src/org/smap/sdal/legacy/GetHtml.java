@@ -181,7 +181,7 @@ public class GetHtml {
 		bodyElement = outputDoc.createElement("h3");
 		bodyElement.setAttribute("id", "form-title");
 		bodyElement.setAttribute("dir", "auto");
-		bodyElement.setTextContent(sanitise.sanitiseHtml(survey.getDisplayName()));
+		bodyElement.setTextContent(sanitise.cleanText(survey.getDisplayName()));
 		parent.appendChild(bodyElement);
 
 		// Languages
@@ -256,7 +256,7 @@ public class GetHtml {
 			if(rtl) {
 				bodyElement.setAttribute("data-dir", "rtl");
 			}
-			bodyElement.setTextContent(sanitise.sanitiseHtml(GeneralUtilityMethods.getLanguageName(lang.name)));
+			bodyElement.setTextContent(sanitise.cleanText(GeneralUtilityMethods.getLanguageName(lang.name)));
 			parent.appendChild(bodyElement);
 
 			// Save the index of the default language
@@ -1460,7 +1460,7 @@ public class GetHtml {
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
 					}
-					bodyElement.setTextContent(sanitise.sanitiseHtml(label));
+					bodyElement.setTextContent(sanitise.cleanText(label));
 					
 					if(labelElement != null) {
 						addMedia(labelElement, o.labels.get(idx), lang, o.text_id);
@@ -1532,7 +1532,7 @@ public class GetHtml {
 					} catch (Exception e) {
 						log.log(Level.SEVERE, e.getMessage(), e);
 					}
-					optionElement.setTextContent(sanitise.sanitiseHtml(label));
+					optionElement.setTextContent(sanitise.cleanText(label));
 					idx++;
 				}
 			}
@@ -1618,7 +1618,7 @@ public class GetHtml {
 				new LogManager().writeLog(sd, survey.surveyData.id, userIdent, LogManager.ERROR,
 						"Survey: " + survey.surveyData.displayName + ". Question label for '" + q.name + "' contains an unresolved ${} reference: " + e.getMessage(), 0, null);
 			}
-			bodyElement.setTextContent(sanitise.sanitiseHtml(label));
+			bodyElement.setTextContent(sanitise.cleanText(label));
 			parent.appendChild(bodyElement);
 
 			addMedia(parent, q.labels.get(idx), lang, q.text_id);
@@ -1638,7 +1638,7 @@ public class GetHtml {
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
-				bodyElement.setTextContent(sanitise.sanitiseHtml(hint));
+				bodyElement.setTextContent(sanitise.cleanText(hint));
 				parent.appendChild(bodyElement);
 			}
 			
@@ -1659,7 +1659,7 @@ public class GetHtml {
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
-				bodyElement.setTextContent(sanitise.sanitiseHtml(guidance));
+				bodyElement.setTextContent(sanitise.cleanText(guidance));
 				summaryElement.setTextContent(localisation.getString("wf_md"));
 				bodyElement.appendChild(summaryElement);
 				parent.appendChild(bodyElement);
@@ -1726,7 +1726,7 @@ public class GetHtml {
 				}
 			}
 			bodyElement.setAttribute("class", theClass);
-			bodyElement.setTextContent(sanitise.sanitiseHtml(msg));
+			bodyElement.setTextContent(sanitise.cleanText(msg));
 			parent.appendChild(bodyElement);
 			added = true;
 		}
@@ -1752,7 +1752,7 @@ public class GetHtml {
 		// No lang set when null/empty — applies to all languages, stays active permanently.
 		bodyElement.setAttribute("data-i18n", "constraint.required");
 		if (msg != null && msg.trim().length() > 0) {
-			bodyElement.setTextContent(sanitise.sanitiseHtml(msg));
+			bodyElement.setTextContent(sanitise.cleanText(msg));
 		} else {
 			bodyElement.setTextContent(localisation.getString("wf_reqd"));
 		}
@@ -1772,7 +1772,7 @@ public class GetHtml {
 			bodyElement.setAttribute("lang", getLangId(lang));
 			bodyElement.setAttribute("class", (GeneralUtilityMethods.isSameLanguage(lang.name, survey.surveyData.def_lang) ? " active" : ""));
 			bodyElement.setAttribute("src", "jr://images/" + image);
-			bodyElement.setAttribute("alt", (label.text != null && !label.text.trim().isEmpty()) ? sanitise.sanitiseHtml(label.text) : "");
+			bodyElement.setAttribute("alt", (label.text != null && !label.text.trim().isEmpty()) ? sanitise.cleanText(label.text) : "");
 			bodyElement.setAttribute("data-itext-id", textId);
 
 			parent.appendChild(bodyElement);
@@ -2076,7 +2076,7 @@ public class GetHtml {
 				bodyElement.setAttribute("value", o.value);
 				String label = UtilityMethods.convertAllxlsNames(o.labels.get(languageIndex).text, true, paths, form.id,
 						true, o.value, false);
-				bodyElement.setTextContent(sanitise.sanitiseHtml(label));
+				bodyElement.setTextContent(sanitise.cleanText(label));
 			}
 		}
 
@@ -2095,7 +2095,7 @@ public class GetHtml {
 					bodyElement.setAttribute("lang", getLangId(lang));
 					bodyElement.setAttribute("data-option-value", o.value);
 					String label = UtilityMethods.convertAllxlsNames(o.labels.get(idx).text, true, paths, form.id, true, o.value, false);
-					bodyElement.setTextContent(sanitise.sanitiseHtml(label));
+					bodyElement.setTextContent(sanitise.cleanText(label));
 	
 					idx++;
 				}

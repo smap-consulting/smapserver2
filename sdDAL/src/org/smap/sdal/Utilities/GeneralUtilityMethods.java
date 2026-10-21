@@ -3495,7 +3495,7 @@ public class GeneralUtilityMethods {
 						// 4. Insert this translation value
 						pstmtInsertMedia.setString(2, type);
 						pstmtInsertMedia.setString(3, text_id);
-						pstmtInsertMedia.setString(4, sanitise.sanitiseHtml(value));
+						pstmtInsertMedia.setString(4, sanitise.cleanText(value));
 						pstmtInsertMedia.setString(5, languageName);
 
 						log.fine("SQL insert media: " + pstmtInsertMedia.toString());

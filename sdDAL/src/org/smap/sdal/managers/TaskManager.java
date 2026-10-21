@@ -3724,11 +3724,9 @@ public class TaskManager {
 								content.append("<p>")
 									.append(taskMsg)
 									.append("</p>")
-									.append(" <p><a href=\"").append(docURL)
-									.append("\">")
-									.append("<button type='button' style='margin:auto;style:block'>")
+									.append(" <p style=\"text-align:center;\"><a href=\"").append(docURL)
+									.append("\" style=\"").append(EmailManager.LINK_BUTTON_STYLE).append("\">")
 									.append(localisation.getString("ar_survey"))
-									.append("</button>")
 									.append("</a></p>");
 							}
 

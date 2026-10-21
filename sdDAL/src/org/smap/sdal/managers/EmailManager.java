@@ -55,6 +55,13 @@ public class EmailManager {
 	private HtmlSanitise sanitise = new HtmlSanitise();
 
 	/*
+	 * Style for a link shown as a button.  A button element inside a link is not valid HTML,
+	 * email clients handle it inconsistently and the sanitiser removes it.
+	 */
+	public static final String LINK_BUTTON_STYLE = "display:inline-block;padding:10px 20px;background-color:#337ab7;"
+			+ "color:#ffffff;text-decoration:none;border-radius:4px;";
+
+	/*
 	 * Largest total attachment we will put on an email.  Relays reject anything bigger, and
 	 * they reject it only after the whole thing has been pushed at them, which holds a
 	 * connection for minutes and counts against the day's sending allowance for a message
@@ -495,76 +502,61 @@ public class EmailManager {
 		/* 
 		 * Create the content
 		 */
-		StringBuilder content = new StringBuilder(template);
+		/*
+		 * Sanitise the HTML
+		 * Everything users can write: the template, the footer and the token values.  Each part
+		 * on its own and before our own text is added, so the sanitiser closes any tag left open
+		 * in it and an unclosed hidden element cannot swallow the rest of the email, such as the
+		 * unsubscribe link.
+		 */
+		String contentString = sanitise.sanitiseHtml(replaceTokens(template, tokens));
 		if(adminEmail != null) {
-			content.append("</p>")
-				.append("<p>")
-				.append(localisation.getString("email_dnr"))
-				.append("</p>");
+			contentString += "<p>" + localisation.getString("email_dnr") + "</p>";
 		}
 		if(orgFooter != null) {
-			content.append(" ").append(orgFooter);
+			contentString += " " + sanitise.sanitiseHtml(replaceTokens(orgFooter, tokens));
 		}
 		
-		// Add source
+		// Add source, the names are text
 		StringBuilder source = new StringBuilder();
 		source.append("<p>").append(localisation.getString("c_sent_from")).append("</p>");
 		
 		if(tgName != null) {
 			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("t_tg"))
-					.append(": ").append(tgName).append("</p>");
+					.append(": ").append(GeneralUtilityMethods.esc(tgName)).append("</p>");
 		}
 		if(notificationName != null) {
 			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("c_notify"))
-					.append(": ").append(notificationName).append("</p>");
+					.append(": ").append(GeneralUtilityMethods.esc(notificationName)).append("</p>");
 		}
 		if(projectName != null) {
 			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("ar_project"))
-					.append(": ").append(projectName).append("</p>");
+					.append(": ").append(GeneralUtilityMethods.esc(projectName)).append("</p>");
 		}
 		if(orgName != null) {
 			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("bill_org"))
-					.append(": ").append(orgName).append("</p>");
+					.append(": ").append(GeneralUtilityMethods.esc(orgName)).append("</p>");
 		}
 		
 		source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("c_server"))
-					.append(": ").append(serverName).append("</p>");
-		content.append(source.toString());
+					.append(": ").append(GeneralUtilityMethods.esc(serverName)).append("</p>");
+		contentString += source.toString();
 		
 		// Add unsubscribe
-		StringBuilder unsubscribe = new StringBuilder();
 		if(emailKey != null) {
+			StringBuilder unsubscribe = new StringBuilder();
 			unsubscribe.append("<br/><p style=\"color:blue;text-align:center;\">")
 					.append("<a href=\"https://")
-					.append(serverName)
+					.append(GeneralUtilityMethods.esc(serverName))
 					.append("/app/subscriptions.html?token=")
-					.append(emailKey)
+					.append(GeneralUtilityMethods.esc(emailKey))
 					.append("\">")
 					.append(localisation.getString("c_unsubscribe"))
 					.append("</a>")
 					.append("</p>");		
 					
-			content.append(unsubscribe.toString());
+			contentString += unsubscribe.toString();
 		} 
-		
-		/*
-		 * Perform custom token replacements
-		 */
-		String contentString = content.toString();
-		if(tokens != null) {
-			for(String token : tokens.keySet()) {
-				String val = tokens.get(token);
-				if(val == null) {
-					val = "";
-				}
-				contentString = contentString.replace(token, val);
-			}
-		}
-		
-		/*
-		 * Sanitise the HTML
-		 */
-		sanitise.sanitiseHtml(contentString);
 		
 		/*
 		 * Send the email
@@ -575,6 +567,23 @@ public class EmailManager {
 						filePaths,
 						filenames,
 						replyTo);
+	}
+	
+	/*
+	 * Perform custom token replacements
+	 */
+	private String replaceTokens(String in, HashMap<String, String> tokens) {
+		String out = in;
+		if(out != null && tokens != null) {
+			for(String token : tokens.keySet()) {
+				String val = tokens.get(token);
+				if(val == null) {
+					val = "";
+				}
+				out = out.replace(token, val);
+			}
+		}
+		return out;
 	}
 	
 	boolean alertEmailSent(Connection sd, int oId, String type) throws SQLException {
