@@ -1218,14 +1218,27 @@ public class NotificationManager {
 			if(organisation.can_notify) {
 
 				/*
-				 * Add details from the survey to the subject and email content
+				 * A copy of the message as it was configured, before the details below are filled
+				 * in.  An email waiting for its recipient to opt in is saved from this and filled
+				 * in again when it is sent.  Saving the filled in message would send the plain text
+				 * content, with its unescaped answers, as the body of the email.
 				 */
+				SubmissionMessage templateMsg = new SubmissionMessage(msg);
+				
+				/*
+				 * Add details from the survey to the subject and content
+				 * The subject, and the content for sms and conversations, are plain text.  Email
+				 * gets its own copy of the content, which is HTML, with the answers escaped
+				 */
+				String htmlContent = sm.fillStringTemplate(survey, msg.content, true);
 				msg.subject = sm.fillStringTemplate(survey, msg.subject);
 				msg.content = sm.fillStringTemplate(survey, msg.content);
 				TextManager tm = new TextManager(localisation, organisation.timeZone);
 				ArrayList<String> text = new ArrayList<> ();
 				text.add(msg.subject);
 				text.add(msg.content);
+				text.add(htmlContent);
+				boolean[] html = {false, false, true};
 				try {
 					tm.createTextOutput(sd,
 							cResults,
@@ -1234,7 +1247,8 @@ public class NotificationManager {
 							msg.user,
 							survey,
 							"none",
-							organisation.id);
+							organisation.id,
+							html);
 					// Update text with oversight data if it exists
 					if(updateSurvey != null) {
 						tm.createTextOutput(sd,
@@ -1244,7 +1258,8 @@ public class NotificationManager {
 								msg.user,
 								updateSurvey,
 								"none",
-								organisation.id);
+								organisation.id,
+								html);
 					}
 				} catch(Exception e) {
 					String note = localisation.getString("msg_err_notification_text");
@@ -1257,6 +1272,7 @@ public class NotificationManager {
 				}
 				msg.subject = text.get(0);
 				msg.content = text.get(1);
+				htmlContent = text.get(2);
 
 				if(msg.attach != null && !msg.attach.equals("none")) {
 
@@ -1369,7 +1385,7 @@ public class NotificationManager {
 							docURL = "/app/myWork/webForm/" + msg.survey_ident +
 									"?datakey=instanceid&datakeyvalue=" + msg.instanceId;
 							logContent = docURL;
-							msg.content = (msg.content == null ? "" : msg.content)
+							htmlContent = (htmlContent == null ? "" : htmlContent)
 									+ "<p>" + localisation.getString("email_att_lg") + "</p>";
 						}
 
@@ -1412,9 +1428,9 @@ public class NotificationManager {
 								logContent, docURL, survey.surveyData.displayName, unsubscribedList,
 								attachPath, filename, messageId, createPending, topic, msg.user, serverName,
 								survey.surveyData.displayName, survey.surveyData.projectName, msg.subject, msg.from, 
-								msg.content, 
+								htmlContent, 
 								caseReference,
-								msg.scheme, msg);
+								msg.scheme, templateMsg);
 										
 						notify_details = resp.notify_details;
 						status = resp.status;
@@ -1671,7 +1687,7 @@ public class NotificationManager {
 					em.sendEmails(sd, cResults, log, emails, organisation, surveyId, logContent, docURL, survey.surveyData.displayName, unsubscribedList,
 							filePath, filename, messageId, createPending, topic, msg.user, serverName,
 							survey.surveyData.displayName, survey.surveyData.projectName,
-							msg.subject, msg.from, msg.content, null, msg.scheme, msg);		// reference is null therefore cannot reply
+							msg.subject, msg.from, htmlContent, null, msg.scheme, templateMsg);		// reference is null therefore cannot reply
 					
 				} else if(msg.target.equals("reference")) {   // Give one or more users read only access to a record
 
@@ -2229,6 +2245,13 @@ public class NotificationManager {
 
 			if(organisation.can_notify) {
 
+				/*
+				 * The message as configured, saved if the email has to wait for an opt in, see
+				 * processSubmissionNotification.  The subject and the sms content are plain text, email
+				 * gets its own HTML copy of the content with the values escaped
+				 */
+				SubmissionMessage templateMsg = new SubmissionMessage(msg);
+				String htmlContent = tm.fillStringTaskTemplate(task, msg, msg.content, serverName, true);
 				msg.subject = tm.fillStringTaskTemplate(task, msg, msg.subject, serverName);
 				msg.content = tm.fillStringTaskTemplate(task, msg, msg.content, serverName);
 
@@ -2263,8 +2286,8 @@ public class NotificationManager {
 								from = msg.from;
 							}
 							StringBuilder content = null;
-							if(msg.content != null && msg.content.trim().length() > 0) {
-								content = new StringBuilder(msg.content);
+							if(htmlContent != null && htmlContent.trim().length() > 0) {
+								content = new StringBuilder(htmlContent);
 							} else {
 								content = new StringBuilder(organisation.default_email_content);
 							}
@@ -2314,7 +2337,7 @@ public class NotificationManager {
 											 * User needs to opt in before email can be sent
 											 * Move message to pending messages and send opt in message if needed
 											 */ 
-											mm.saveToPending(sd, organisation.id, ia.getAddress(), topic, msg,
+											mm.saveToPending(sd, organisation.id, ia.getAddress(), topic, templateMsg,
 													null,
 													null,
 													subStatus.optedInSent,

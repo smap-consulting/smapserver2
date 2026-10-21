@@ -250,13 +250,13 @@ public class EmailManager {
 				if(docURL != null) {
 					String url = scheme + "://" + serverName + docURL;
 					if(content.toString().contains("${url}")) {					
-						content = new StringBuilder(content.toString().replaceAll("\\$\\{url\\}", url));
+						content = new StringBuilder(content.toString().replace("${url}", url));
 					} else {
 						content.append("<p style=\"color:blue;text-align:center;\">")
 						.append("<a href=\"")
 						.append(url)
 						.append("\">")
-						.append(surveyName)
+						.append(GeneralUtilityMethods.htmlText(surveyName))
 						.append("</a>")
 						.append("</p>");
 					}

@@ -412,7 +412,7 @@ public class ManagedForms extends Application {
 					
 					String server = request.getServerName();				
 					String content = localisation.getString("mf_ca2");
-					content = content.replaceAll("%s1", surveyName);
+					content = content.replace("%s1", GeneralUtilityMethods.htmlText(surveyName));
 					
 					EmailManager em = new EmailManager(localisation);
 					String emails = em.getAssignedUserEmails(sd, cResults, sId, instanceId);

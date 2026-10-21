@@ -262,6 +262,18 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * Text, such as an answer from a submission, placed in HTML
+	 * Escaped so it shows as written rather than as markup, with its line breaks kept
+	 */
+	static public String htmlText(String in) {
+		if(in == null) {
+			return "";
+		}
+		return esc(in).replace("\"", "&quot;").replace("'", "&#39;")
+				.replace("\r\n", "\n").replace("\n", "<br/>");
+	}
+
+	/*
 	 * Escape characters reserved for HTML
 	 */
 	static public String esc(String in) {

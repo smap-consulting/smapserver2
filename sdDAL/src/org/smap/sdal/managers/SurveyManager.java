@@ -3685,22 +3685,37 @@ public class SurveyManager {
 	}
 
 	public String fillStringTemplate(Survey s, String in) {
+		return fillStringTemplate(s, in, false);
+	}
+
+	/*
+	 * html: the result is HTML, such as the body of an email, so escape the values.  Several
+	 * come from the submission.  Not for a subject or an sms, which are plain text.
+	 */
+	public String fillStringTemplate(Survey s, String in, boolean html) {
 		String out = in;
 
 		if(out != null && s != null) {
 			InstanceMeta im = s.getInstanceMeta();
-			out = out.replaceAll("\\$\\{instancename\\}", im.instancename);
-			out = out.replaceAll("\\$\\{surveyname\\}", im.surveyname);
-			out = out.replaceAll("\\$\\{hrk\\}", im.hrk);
-			out = out.replaceAll("\\$\\{username\\}", im.username);
-			out = out.replaceAll("\\$\\{device\\}", im.device);
-			out = out.replaceAll("\\$\\{assigned\\}", im.assigned);
+			out = out.replace("${instancename}", templateValue(im.instancename, html));
+			out = out.replace("${surveyname}", templateValue(im.surveyname, html));
+			out = out.replace("${hrk}", templateValue(im.hrk, html));
+			out = out.replace("${username}", templateValue(im.username, html));
+			out = out.replace("${device}", templateValue(im.device, html));
+			out = out.replace("${assigned}", templateValue(im.assigned, html));
 		} else {
 			log.fine("Could not fill template details for: " + out + " : " + ((s == null) ? "survey is null" : "survey not null" ));
 		}
 
 
 		return out;
+	}
+	
+	private String templateValue(String value, boolean html) {
+		if(value == null) {
+			return "";
+		}
+		return html ? GeneralUtilityMethods.htmlText(value) : value;
 	}
 	
 	/*
