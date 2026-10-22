@@ -225,9 +225,10 @@ public class UtilityMethodsEmail {
 
 		/*
 		 * Get the table name and column name containing the text data
-		 * Do a case insensitive check
+		 * Do a case insensitive check.  Not ilike, which treats _ and % in the address as
+		 * wildcards, so "b_b@x.com" matched "bob@x.com"
 		 */
-		String sql = "select ident from users where email ilike ?";
+		String sql = "select ident from users where lower(email) = lower(?)";
 
 		pstmt = connectionSD.prepareStatement(sql);	
 		pstmt.setString(1, email);
@@ -238,6 +239,28 @@ public class UtilityMethodsEmail {
 		}
 
 		return idents;
+	}
+
+	/*
+	 * The address stored on the account an email address matches, for sending to.  The match
+	 * ignores case, so this can differ in case from the address that was entered.  Null if
+	 * no account has the address.
+	 */
+	static public String getStoredEmail(Connection sd, String email) throws SQLException {
+		String stored = null;
+		String sql = "select email from users where lower(email) = lower(?) limit 1";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, email);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				stored = rs.getString(1);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		return stored;
 	}
 
 	/*
@@ -289,7 +312,7 @@ public class UtilityMethodsEmail {
 				+ "from organisation o, users u "
 				+ "where u.o_id = o.id ";
 		String sqlUser = " and u.ident = ?;";
-		String sqlEmail = " and u.email ilike ?;";
+		String sqlEmail = " and lower(u.email) = lower(?);";
 		String sql = null;
 
 		if(user == null) {
@@ -369,7 +392,7 @@ public class UtilityMethodsEmail {
 				+ "o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
 				" from organisation o, users u " +
 				" where u.o_id = o.id " +
-				" and u.email ilike ?";
+				" and lower(u.email) = lower(?)";
 
 		String sqlServer = "select email_type, aws_region, "
 				+ "smtp_host, email_domain, email_user, email_password, email_port " +
@@ -500,12 +523,13 @@ public class UtilityMethodsEmail {
 
 		/*
 		 * Update the users table by adding the UUID and expiry time
-		 * Do a case insensitive test against email
+		 * Do a case insensitive test against email.  Not ilike, its wildcards let a reset for
+		 * one address put the token on other people's accounts
 		 */
 		String sql = "update users set "
 				+ "one_time_password = ?,"
 				+ "one_time_password_expiry = timestamp 'now' + interval '" + interval + "' "
-				+ "where email ilike ?";
+				+ "where lower(email) = lower(?)";
 
 		pstmt = connectionSD.prepareStatement(sql);	
 		pstmt.setString(1, uuid);
@@ -521,42 +545,6 @@ public class UtilityMethodsEmail {
 	}
 	
 	/*
-	 * Check to see if a password has been sent within the last 'interval'
-	 * The interval for password reset is 1 hour, however if the expiry time was set by account creation it will be 48 hours.
-	 * Hence allow a resend if the expiry time is greater than 1 hour
-	 * This means there is an anomoly where resend will not be allowed between 50 and 60 minutes before an account registration expires
-	 * This is a security measure to prevent spamming
-	 * 
-	 * Returns the number of minutes since an email has been sent
-	 */
-	public static int hasOnetimePasswordBeenSent(
-			Connection connectionSD, 
-			PreparedStatement pstmt, 
-			String email, 
-			String interval) throws SQLException {
-
-		int seconds = 0;
-		interval = interval.replace("'", "''");	// Escape apostrophes
-
-		String sql = "select EXTRACT(EPOCH FROM (now() - one_time_password_sent)) from users "
-				+ "where one_time_password_sent > (timestamp 'now' - interval '" + interval + "') "
-				+ "and email ilike ?";
-
-		pstmt = connectionSD.prepareStatement(sql);	
-		pstmt.setString(1, email);
-		log.fine("SQL checking for already sent email: " + pstmt.toString());
-		ResultSet rs = pstmt.executeQuery();
-		if(rs.next()) {
-			seconds = rs.getInt(1);
-			if(seconds < 60) {
-				seconds  = 60;  // Set the elapsed time to a minimym of 1 minute		
-			}
-		}
-
-		return seconds / 60;
-	}
-	
-	/*
 	 * Record in the database that a one time password email has been sent
 	 */
 	public static void reportOnetimePasswordSent(
@@ -565,7 +553,7 @@ public class UtilityMethodsEmail {
 
 		String sql = "update users "
 				+ "set one_time_password_sent = now() "
-				+ "where email ilike ?";
+				+ "where lower(email) = lower(?)";
 
 		PreparedStatement pstmt = null;
 		try {

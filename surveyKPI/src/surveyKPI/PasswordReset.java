@@ -49,6 +49,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -63,6 +64,33 @@ public class PasswordReset extends Application {
 			Logger.getLogger(PasswordReset.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
+
+	/*
+	 * When a reset was last asked for, by address entered in lower case
+	 */
+	private static final ConcurrentHashMap<String, Long> lastRequest = new ConcurrentHashMap<>();
+	private static final long REQUEST_INTERVAL_MS = 10 * 60 * 1000L;
+
+	/*
+	 * Minutes until another reset can be asked for at this address, 0 if one can be now, in
+	 * which case this request is recorded
+	 */
+	private static int minutesToWait(String email) {
+		long now = System.currentTimeMillis();
+		String key = email.trim().toLowerCase();
+
+		// Forget requests that no longer limit anything, so the map stays small
+		if(lastRequest.size() > 1000) {
+			lastRequest.values().removeIf(t -> now - t >= REQUEST_INTERVAL_MS);
+		}
+
+		Long previous = lastRequest.get(key);
+		if(previous != null && now - previous < REQUEST_INTERVAL_MS) {
+			return (int) Math.max(1, (REQUEST_INTERVAL_MS - (now - previous) + 59999) / 60000);
+		}
+		lastRequest.put(key, now);
+		return 0;
+	}
 
 	/*
 	 * Send an email with a link for a one time logon
@@ -96,14 +124,16 @@ public class PasswordReset extends Application {
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 				/*
-				 * Check to see if there is a one time password has been sent within the last 10 mins
+				 * Allow one request every 10 minutes for each address entered, whether or not an
+				 * account has it.  This used to be checked against the account, so being asked to
+				 * wait told anyone that the address had one.
 				 */
-				int minutesSinceSent = UtilityMethodsEmail.hasOnetimePasswordBeenSent(sd, pstmt, email, "600 seconds");
-				if(minutesSinceSent > 0) {
+				int minutesToWait = minutesToWait(email);
+				if(minutesToWait > 0) {
 					// Potential spam
 					log.info("warning: email: " + email + " multiple password reset requests");
 					String msg = localisation.getString("email_pas");
-					msg = msg.replaceAll("%s1", String.valueOf(10 - minutesSinceSent));
+					msg = msg.replace("%s1", String.valueOf(minutesToWait));
 					throw new ApplicationException(msg);
 				}
 
@@ -124,6 +154,13 @@ public class PasswordReset extends Application {
 						msg = msg.replaceFirst("%s1", email);
 						throw new ApplicationException(msg);
 					}
+					
+					/*
+					 * Send to the address on the account, not the one entered.  They match apart
+					 * from case, sending to what was entered is what let a lookalike address
+					 * receive another account's reset when the match used wildcards
+					 */
+					String sendTo = UtilityMethodsEmail.getStoredEmail(sd, email);
 
 					if(emailServer != null) {
 
@@ -184,7 +221,7 @@ public class PasswordReset extends Application {
 								null,		// organisation name
 								null,
 								null,
-								email,
+								sendTo,
 								"bcc",
 								subject,
 								content.toString(),
@@ -337,6 +374,15 @@ public class PasswordReset extends Application {
 				}
 
 			} else {
+				/*
+				 * The link works once.  The token was left in place, so the link could set the
+				 * password again until it expired, an hour for a reset and two days for a new user.
+				 */
+				sql = "update users set one_time_password = null, one_time_password_expiry = null where one_time_password = ?";
+				pstmtDel = sd.prepareStatement(sql);
+				pstmtDel.setString(1, pd.onetime);
+				pstmtDel.executeUpdate();
+
 				response = Response.status(Status.OK).entity("").build();
 			}
 
