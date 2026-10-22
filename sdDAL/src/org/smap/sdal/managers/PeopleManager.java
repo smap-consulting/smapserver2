@@ -1,11 +1,13 @@
 package org.smap.sdal.managers;
 
+import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -39,6 +41,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  * Assume emails are case insensitive
  */
 public class PeopleManager {
+
+	private static final SecureRandom random = new SecureRandom();
 	
 	private static Logger log =
 			 Logger.getLogger(PeopleManager.class.getName());
@@ -270,29 +274,56 @@ public class PeopleManager {
 	public String subscribeStep2(Connection sd, 
 			String key) throws SQLException, ApplicationException {
 		
+		/*
+		 * A subscribe token from an opt in or re-subscribe email.  Used once, and only for
+		 * SUBSCRIBE_DAYS.  This is the only way back for an address that has unsubscribed.
+		 */
 		String sql = "update people "
 				+ "set unsubscribed = false,"
 				+ "opted_in = true, "
+				+ "when_subscribed = now(), "
+				+ "subscribe_token = null, "
+				+ "subscribe_token_expiry = null "
+				+ "where subscribe_token = ? "
+				+ "and subscribe_token_expiry > now() "
+				+ "returning o_id, email";
+		
+		/*
+		 * The address's unsubscribe key, which opt in emails sent before subscribe tokens used.
+		 * It is in every email sent to the address, so anyone with an old or forwarded one has it,
+		 * and it must not undo an unsubscribe.  It can still confirm an address that has not.
+		 */
+		String sqlKey = "update people "
+				+ "set opted_in = true, "
 				+ "when_subscribed = now() "
-				+ "where uuid = ? ";
+				+ "where uuid = ? "
+				+ "and not unsubscribed "
+				+ "returning o_id, email";
 		PreparedStatement pstmt = null;
 		
 		try {
 			
 			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, key);			
-			int count = pstmt.executeUpdate();
-			if(count == 0) {
-				throw new ApplicationException(localisation.getString("c_error"));
+			pstmt.setString(1, ApiTokenManager.hash(key));			
+			ResultSet rs = pstmt.executeQuery();
+			if(!rs.next()) {
+				try {pstmt.close();} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sqlKey);
+				pstmt.setString(1, key);
+				rs = pstmt.executeQuery();
+				if(!rs.next()) {
+					throw new ApplicationException(localisation.getString("subs_link_invalid"));
+				}
 			}
+			int oId = rs.getInt(1);
+			String email = rs.getString(2);
 
 			/*
 			 * Log the event
 			 */
-			People person = getPersonFromSubscriberKey(sd,key);
 			String note = localisation.getString("optin_subscribed");
-			note = note.replace("%s1", person.email);
-			lm.writeLogOrganisation(sd, person.oId, person.email, LogManager.OPTIN, note, 0);
+			note = note.replace("%s1", email);
+			lm.writeLogOrganisation(sd, oId, email, LogManager.OPTIN, note, 0);
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -300,6 +331,38 @@ public class PeopleManager {
 		
 		return key;
 
+	}
+	
+	// How long the link in an opt in or re-subscribe email works for
+	public static final int SUBSCRIBE_DAYS = 30;
+	
+	/*
+	 * A single use token for the link in an opt in or re-subscribe email to an address.  Only its
+	 * sha256 is kept, and a new one replaces the last.  Null if the address is not a contact of
+	 * the organisation.
+	 */
+	public String createSubscribeToken(Connection sd, int oId, String email) throws SQLException {
+		
+		byte[] bytes = new byte[16];
+		random.nextBytes(bytes);
+		String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+		
+		String sql = "update people "
+				+ "set subscribe_token = ?, "
+				+ "subscribe_token_expiry = now() + interval '" + SUBSCRIBE_DAYS + " days' "
+				+ "where o_id = ? "
+				+ "and email = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, ApiTokenManager.hash(token));
+			pstmt.setInt(2, oId);
+			pstmt.setString(3, email == null ? null : email.trim().toLowerCase());
+			int count = pstmt.executeUpdate();
+			return count > 0 ? token : null;
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
 	}
 	
 	/*

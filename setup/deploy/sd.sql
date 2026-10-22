@@ -980,3 +980,10 @@ create table if not exists reply_token (
 );
 alter table reply_token owner to ws;
 create index if not exists idx_reply_token_created on reply_token(created);
+
+-- The token in an opt in or re-subscribe link.  These used the address's unsubscribe key, which is
+-- in every email sent to it, so anyone with an old or forwarded email could subscribe someone again
+-- after they had unsubscribed.  Single use and lapses after 30 days.  Only the sha256 is stored.
+alter table people add column if not exists subscribe_token text;
+alter table people add column if not exists subscribe_token_expiry timestamp with time zone;
+create index if not exists idx_people_subscribe_token on people(subscribe_token);

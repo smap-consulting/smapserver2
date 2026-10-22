@@ -1875,9 +1875,12 @@ create TABLE people (
 	uuid text,								-- Uniquely identify this person
 	when_unsubscribed TIMESTAMP WITH TIME ZONE,
 	when_subscribed TIMESTAMP WITH TIME ZONE,
-	when_requested_subscribe TIMESTAMP WITH TIME ZONE		-- prevent spamming
+	when_requested_subscribe TIMESTAMP WITH TIME ZONE,		-- prevent spamming
+	subscribe_token text,					-- sha256 of the single use token in an opt in or re-subscribe link
+	subscribe_token_expiry TIMESTAMP WITH TIME ZONE
 	);
 create unique index idx_people on people(o_id, email);
+create index if not exists idx_people_subscribe_token on people(subscribe_token);
 create index if not exists opted_in_people_idx on people(opted_in);
 create index if not exists unsub_people_idx on people(unsubscribed);
 ALTER TABLE people OWNER TO ws;

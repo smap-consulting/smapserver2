@@ -370,13 +370,22 @@ public class MessagingManager {
 				}
 
 				/*
+				 * The link has its own single use token.  The key is for unsubscribing, it is in
+				 * every email to the address, and must not be able to subscribe it again.
+				 */
+				String subscribeToken = new PeopleManager(localisation).createSubscribeToken(sd, oId, email);
+				if(subscribeToken == null) {
+					subscribeToken = emailKey;		// Not a contact, the key can still confirm it
+				}
+
+				/*
 				 * A link styled as a button.  A button element inside a link is not valid HTML
 				 * and email clients handle it inconsistently
 				 */
 				content.append("<p style=\"text-align:center;\">")
 					.append("<a href=\"").append(scheme).append("://").append(server)
 					.append("/app/subscriptions.html?subscribe=yes&token=")
-					.append(emailKey)
+					.append(subscribeToken)
 					.append("\" style=\"").append(EmailManager.LINK_BUTTON_STYLE).append("\">")
 					.append(localisation.getString("optin"))
 					.append("</a></p>");

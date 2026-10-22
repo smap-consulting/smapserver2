@@ -168,6 +168,7 @@ public class Subscriptions extends Application {
 					continue;
 				}
 				Organisation o = GeneralUtilityMethods.getOrganisation(sd, u.oId);
+				String subscribeToken = pm.createSubscribeToken(sd, u.oId, email);
 				
 				String msg = localisation.getString("c_opt_in_content");
 				msg = msg.replace("%s1", GeneralUtilityMethods.htmlText(u.orgName));
@@ -179,7 +180,7 @@ public class Subscriptions extends Application {
 						.append("<a href=\"")
 						.append(request.getScheme()).append("://").append(request.getServerName())
 						.append("/app/subscriptions.html?subscribe=yes&token=")
-						.append(u.key)
+						.append(subscribeToken)
 						.append("\" style=\"").append(EmailManager.LINK_BUTTON_STYLE).append("\">")
 						.append(localisation.getString("c_s"))
 						.append("</a></p>");
