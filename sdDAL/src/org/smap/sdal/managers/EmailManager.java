@@ -321,13 +321,15 @@ public class EmailManager {
 					for(InternetAddress ia : emailArray) {
 						SubscriptionStatus subStatus = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());
 						/*
-						 * If this email address is unsubscribed and we care if they are unsubscribed,
-						 * which is shown by the unsubscribed list not being null, then we just record that they
-						 * are unsubscribed
+						 * Never email an address that has unsubscribed.  The list, when the caller
+						 * passes one, only records who was skipped.  A caller without one used to send
+						 * regardless, so case assignment emails ignored the unsubscribe.
 						 */
-						if(subStatus.unsubscribed && unsubscribedList != null) {
+						if(subStatus.unsubscribed) {
 							log.fine("#########: Email " + ia.getAddress() + " User has unsubscribed");
-							unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
+							if(unsubscribedList != null) {
+								unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
+							}
 						} else {
 							log.fine("#########: Email " + ia.getAddress() + " Opted in: " + subStatus.optedIn + "org:  " + !organisation.send_optin);
 							if(subStatus.optedIn || !organisation.send_optin) {

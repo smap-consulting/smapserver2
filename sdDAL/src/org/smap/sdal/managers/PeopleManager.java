@@ -419,6 +419,24 @@ public class PeopleManager {
 				+ "name = ? "
 				+ "where id = ?";
 		
+		/*
+		 * A new address is a new person.  Their consent belongs to the old address, so start
+		 * again: not opted in, no opt in sent, and a new key.  Otherwise a contact could be
+		 * opted in at one address and then moved to another that never agreed.
+		 */
+		String sqlNewAddress = "update people "
+				+ "set email = ?,"
+				+ "name = ?,"
+				+ "opted_in = false,"
+				+ "opted_in_sent = null,"
+				+ "opted_in_count = 0,"
+				+ "opted_in_status = null,"
+				+ "opted_in_status_msg = null,"
+				+ "when_subscribed = null,"
+				+ "when_requested_subscribe = null,"
+				+ "uuid = ? "
+				+ "where id = ?";
+		
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -426,16 +444,64 @@ public class PeopleManager {
 			if(email != null) {
 				email = email.toLowerCase();
 			}
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1,  HtmlSanitise.checkCleanName(email, localisation));
-			pstmt.setString(2, HtmlSanitise.checkCleanName(person.name, localisation));	
-			pstmt.setInt(3, person.id);
+			email = HtmlSanitise.checkCleanName(email, localisation);
+			String name = HtmlSanitise.checkCleanName(person.name, localisation);
+			
+			ContactStatus current = getPerson(sd, person.id);
+			boolean newAddress = current != null && current.email != null && !current.email.equals(email);
+			if(newAddress && current.unsubscribed) {
+				// The record of the unsubscribe is what stops emails to that address
+				throw new ApplicationException(localisation.getString("contact_uns_email").replace("%s1", current.email));
+			}
+			
+			if(newAddress) {
+				pstmt = sd.prepareStatement(sqlNewAddress);
+				pstmt.setString(1, email);
+				pstmt.setString(2, name);
+				pstmt.setString(3, UUID.randomUUID().toString());
+				pstmt.setInt(4, person.id);
+			} else {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, email);
+				pstmt.setString(2, name);	
+				pstmt.setInt(3, person.id);
+			}
 			
 			log.fine("Update person: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
+	}
+	
+	/*
+	 * The email address of a contact and whether they have unsubscribed
+	 */
+	private static class ContactStatus {
+		String email;
+		boolean unsubscribed;
+	}
+	
+	/*
+	 * Null if there is no such contact
+	 */
+	private ContactStatus getPerson(Connection sd, int id) throws SQLException {
+		ContactStatus person = null;
+		String sql = "select email, unsubscribed from people where id = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				person = new ContactStatus();
+				person.email = rs.getString(1);
+				person.unsubscribed = rs.getBoolean(2);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+		return person;
 	}
 	
 	/*
@@ -499,7 +565,13 @@ public class PeopleManager {
 	/*
 	 * Remove a contact
 	 */
-	public void deletePerson(Connection sd, int id) throws SQLException {
+	public void deletePerson(Connection sd, int id) throws SQLException, ApplicationException {
+		
+		// The record of an unsubscribe is what stops emails to that address, so it stays
+		ContactStatus current = getPerson(sd, id);
+		if(current != null && current.unsubscribed) {
+			throw new ApplicationException(localisation.getString("contact_uns_del").replace("%s1", current.email));
+		}
 		
 		String sql = "delete from people "
 				+ "where id = ?";
