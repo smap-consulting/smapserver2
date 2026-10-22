@@ -35,16 +35,21 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RegistrationThrottle;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.TurnstileVerifier;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.ProjectManager;
+import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -80,7 +85,15 @@ public class Register extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-Register-enabled");
 		try {
 			boolean enabled = GeneralUtilityMethods.isSelfRegistrationEnabled(sd);
-			return Response.ok("{\"enabled\":" + enabled + "}").build();
+			
+			// The Turnstile site key, if set, so the page shows the challenge.  It is public.
+			String siteKey = enabled ? new ServerManager().getServer(sd, null).turnstile_site_key : null;
+			JsonObject resp = new JsonObject();
+			resp.addProperty("enabled", enabled);
+			if(siteKey != null && !siteKey.trim().isEmpty()) {
+				resp.addProperty("turnstileSiteKey", siteKey.trim());
+			}
+			return Response.ok(resp.toString()).build();
 		} finally {
 			SDDataSource.closeConnection("surveyKPI-Register-enabled", sd);
 		}
@@ -92,7 +105,8 @@ public class Register extends Application {
 	@POST
 	public Response register(
 			@Context HttpServletRequest request,
-			@FormParam("registrationDetails") String registrationDetails) { 
+			@FormParam("registrationDetails") String registrationDetails,
+			@FormParam("cfToken") String cfToken) { 
 		
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
@@ -131,6 +145,25 @@ public class Register extends Application {
 			} 
 			Locale locale = new Locale(loc_code);
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			/*
+			 * Registration is public, creates an organisation, a user and a project, and emails
+			 * the address given.  Where the server has Turnstile keys the person must pass the
+			 * challenge, and there is a limit on how many can be made.  The challenge is checked
+			 * first so that requests failing it do not use up the limit for genuine ones.
+			 */
+			ServerData serverData = new ServerManager().getServer(sd, localisation);
+			if(serverData.turnstile_secret_key != null && !serverData.turnstile_secret_key.trim().isEmpty()
+					&& serverData.turnstile_site_key != null && !serverData.turnstile_site_key.trim().isEmpty()) {
+				if(!TurnstileVerifier.verify(cfToken, serverData.turnstile_secret_key.trim(), request.getRemoteAddr())) {
+					log.info("Registration refused, Turnstile check failed for " + request.getRemoteAddr());
+					throw new ApplicationException(localisation.getString("reg_captcha"));
+				}
+			}
+			if(!RegistrationThrottle.tryRegister(request)) {
+				log.warning("Registration refused, too many registrations, client " + request.getRemoteAddr());
+				throw new ApplicationException(localisation.getString("reg_too_many"));
+			}
 			
 			String requestUrl = request.getRequestURL().toString();
 			String userIdent = request.getRemoteUser();
