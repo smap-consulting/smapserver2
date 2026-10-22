@@ -148,7 +148,6 @@ create TABLE server (
 	mcp_token_ttl integer default 3600,				-- Lifetime in seconds of an MCP access token
 	mcp_allow_access boolean default false,			-- Whether MCP clients may ask for smap:access at all
 	self_registration boolean default false,		-- Whether anyone may register a new organisation
-	hostname text,									-- The name this server is reached by, used in links that are emailed or stored
 	turnstile_site_key text,
 	turnstile_secret_key text,
 	sharepoint_url text,						-- SharePoint server base URL

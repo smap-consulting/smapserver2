@@ -410,7 +410,7 @@ public class ManagedForms extends Application {
 				 */
 				if(organisation.can_notify) {
 					
-					String server = GeneralUtilityMethods.getServerHost(sd, request);				
+					String server = request.getServerName();				
 					String content = localisation.getString("mf_ca2");
 					content = content.replace("%s1", GeneralUtilityMethods.htmlText(surveyName));
 					

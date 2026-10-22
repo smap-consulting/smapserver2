@@ -980,9 +980,3 @@ create table if not exists reply_token (
 );
 alter table reply_token owner to ws;
 create index if not exists idx_reply_token_created on reply_token(created);
-
--- The name this server is reached by, used in links that are emailed or stored.  These used the
--- host name the request arrived with, which is whatever the client puts in the Host header, so
--- a forged one sent password reset and notification links to another site.  Until a server
--- owner sets it the request's host name is used as before.
-alter table server add column if not exists hostname text;

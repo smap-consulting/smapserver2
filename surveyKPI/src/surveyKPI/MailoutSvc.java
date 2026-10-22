@@ -386,7 +386,7 @@ public class MailoutSvc extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 						
 			MailoutManager mm = new MailoutManager(localisation);
-			mm.genEmailLinks(sd, mailoutId, GeneralUtilityMethods.getServerHost(sd, request));
+			mm.genEmailLinks(sd, mailoutId, request.getServerName());
 				
 			response = Response.ok("").build();
 				

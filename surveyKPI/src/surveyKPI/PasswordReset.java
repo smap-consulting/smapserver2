@@ -141,9 +141,9 @@ public class PasswordReset extends Application {
 
 						StringBuilder content = new StringBuilder(); 
 						String info = localisation.getString("c_rp_info");
-						info = info.replace("%s1", GeneralUtilityMethods.getServerHost(sd, request));
+						info = info.replace("%s1", request.getServerName());
 						content.append("<p>").append(info).append("</p><p style=\"text-align:center;\">")
-						.append("<a href=\"").append("https").append("://").append(GeneralUtilityMethods.getServerHost(sd, request))
+						.append("<a href=\"").append("https").append("://").append(request.getServerName())
 						.append("/app/resetForgottonPassword.html?token=")
 						.append(uuid)
 						.append("\" style=\"").append(EmailManager.LINK_BUTTON_STYLE).append("\">")
@@ -191,7 +191,7 @@ public class PasswordReset extends Application {
 								null,
 								null,
 								emailServer,
-								GeneralUtilityMethods.getServerHost(sd, request),
+								request.getServerName(),
 								subStatus.emailKey,
 								localisation,
 								null,

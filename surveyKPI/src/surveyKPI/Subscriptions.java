@@ -163,7 +163,7 @@ public class Subscriptions extends Application {
 								.append("<p>").append(msg).append("</p>")
 								.append("<p style=\"text-align:center;\">")
 								.append("<a href=\"")
-								.append(request.getScheme()).append("://").append(GeneralUtilityMethods.getServerHost(sd, request))
+								.append(request.getScheme()).append("://").append(request.getServerName())
 								.append("/app/subscriptions.html?subscribe=yes&token=")
 								.append(key)
 								.append("\" style=\"").append(EmailManager.LINK_BUTTON_STYLE).append("\">")
@@ -182,7 +182,7 @@ public class Subscriptions extends Application {
 								null,
 								null,
 								emailServer,
-								GeneralUtilityMethods.getServerHost(sd, request),
+								request.getServerName(),
 								key,
 								localisation,
 								null,

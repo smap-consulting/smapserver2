@@ -239,7 +239,7 @@ public class UserCreateTool extends AbstractMcpTool {
 				isOrgUser, isSecurityManager, isEnterpriseManager, isServerOwner,
 				ctx.user,
 				ctx.request.getScheme(),
-				GeneralUtilityMethods.getServerHost(ctx.sd, ctx.request),
+				ctx.request.getServerName(),
 				ctx.user,
 				null,
 				ctx.localisation);

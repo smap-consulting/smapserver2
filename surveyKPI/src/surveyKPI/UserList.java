@@ -512,7 +512,7 @@ public class UserList extends Application {
 								isServerOwner,
 								request.getRemoteUser(),
 								request.getScheme(),
-								GeneralUtilityMethods.getServerHost(sd, request),
+								request.getServerName(),
 								adminName,
 								adminEmail,
 								localisation);
@@ -527,7 +527,7 @@ public class UserList extends Application {
 								isEnterpriseManager,
 								isServerOwner,
 								request.getRemoteUser(),
-								GeneralUtilityMethods.getServerHost(sd, request),
+								request.getServerName(),
 								adminName,
 								false);
 						
@@ -822,7 +822,7 @@ public class UserList extends Application {
 					String adminEmail = resultSet.getString(3);	
 				
 					String scheme = request.getScheme();
-					String serverName = GeneralUtilityMethods.getServerHost(sd, request);
+					String serverName = request.getServerName();
 					ArrayList<String> added = new ArrayList<> ();
 					
 					// Process xls file

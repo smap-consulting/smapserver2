@@ -173,7 +173,7 @@ public class EventList extends Application {
 						emailServer, 
 						rs.getString(2),		// email key 
 						"https", 
-						GeneralUtilityMethods.getServerHost(sd, request),
+						request.getServerName(),
 						true);
 			}
 			
