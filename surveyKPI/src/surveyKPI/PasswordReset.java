@@ -32,6 +32,7 @@ import jakarta.ws.rs.core.Response.Status;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestLimiter;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -49,7 +50,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -65,32 +65,8 @@ public class PasswordReset extends Application {
 
 	LogManager lm = new LogManager();		// Application log
 
-	/*
-	 * When a reset was last asked for, by address entered in lower case
-	 */
-	private static final ConcurrentHashMap<String, Long> lastRequest = new ConcurrentHashMap<>();
-	private static final long REQUEST_INTERVAL_MS = 10 * 60 * 1000L;
-
-	/*
-	 * Minutes until another reset can be asked for at this address, 0 if one can be now, in
-	 * which case this request is recorded
-	 */
-	private static int minutesToWait(String email) {
-		long now = System.currentTimeMillis();
-		String key = email.trim().toLowerCase();
-
-		// Forget requests that no longer limit anything, so the map stays small
-		if(lastRequest.size() > 1000) {
-			lastRequest.values().removeIf(t -> now - t >= REQUEST_INTERVAL_MS);
-		}
-
-		Long previous = lastRequest.get(key);
-		if(previous != null && now - previous < REQUEST_INTERVAL_MS) {
-			return (int) Math.max(1, (REQUEST_INTERVAL_MS - (now - previous) + 59999) / 60000);
-		}
-		lastRequest.put(key, now);
-		return 0;
-	}
+	// One request every 10 minutes for each address entered
+	private static final RequestLimiter limiter = new RequestLimiter(10 * 60 * 1000L);
 
 	/*
 	 * Send an email with a link for a one time logon
@@ -128,7 +104,7 @@ public class PasswordReset extends Application {
 				 * account has it.  This used to be checked against the account, so being asked to
 				 * wait told anyone that the address had one.
 				 */
-				int minutesToWait = minutesToWait(email);
+				int minutesToWait = limiter.minutesToWait(email);
 				if(minutesToWait > 0) {
 					// Potential spam
 					log.info("warning: email: " + email + " multiple password reset requests");

@@ -12,7 +12,6 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.HtmlSanitise;
-import org.smap.sdal.model.OrganisationLite;
 import org.smap.sdal.model.People;
 import org.smap.sdal.model.SubscriptionStatus;
 
@@ -440,33 +439,61 @@ public class PeopleManager {
 	}
 	
 	/*
-	 * Get all organisations where the specified email is unsubscribed
+	 * An organisation an email address has unsubscribed from, and the key that re-subscribes it
 	 */
-	public ArrayList<OrganisationLite> getUnsubOrganisationsFromEmail(Connection sd, String email) throws SQLException {
+	public static class Unsubscribed {
+		public int oId;
+		public String orgName;
+		public String key;
+	}
+
+	/*
+	 * Get all organisations where the specified email is unsubscribed, with the key for each
+	 * Only for sending to that address.  The key is also the address's unsubscribe key, and the
+	 * list says which organisations it belongs to.
+	 */
+	public ArrayList<Unsubscribed> getUnsubscribed(Connection sd, String email) throws SQLException {
 		
-		String sql = "select o.id, o.name from people p, organisation o "
+		String sql = "select p.id, o.id, o.name, p.uuid from people p, organisation o "
 				+ "where p.o_id = o.id "
 				+ "and p.email = ? "
 				+ "and p.unsubscribed";
-		
 		PreparedStatement pstmt = null;
 		
-		ArrayList<OrganisationLite> oList = new ArrayList<> ();
+		String sqlKey = "update people set uuid = ? where id = ? and uuid is null";
+		PreparedStatement pstmtKey = null;
+		
+		ArrayList<Unsubscribed> list = new ArrayList<> ();
 		try {
 			if(email != null) {
-				email = email.toLowerCase();
+				email = email.trim().toLowerCase();
 			}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, email);
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
-				oList.add(new OrganisationLite(rs.getInt(1), rs.getString(2)));
+				Unsubscribed u = new Unsubscribed();
+				u.oId = rs.getInt(2);
+				u.orgName = rs.getString(3);
+				u.key = rs.getString(4);
+				if(u.key == null) {
+					// Unsubscribed before keys were kept, give it one
+					u.key = UUID.randomUUID().toString();
+					if(pstmtKey == null) {
+						pstmtKey = sd.prepareStatement(sqlKey);
+					}
+					pstmtKey.setString(1, u.key);
+					pstmtKey.setInt(2, rs.getInt(1));
+					pstmtKey.executeUpdate();
+				}
+				list.add(u);
 			}
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			try {if (pstmtKey != null) {pstmtKey.close();} } catch (SQLException e) {	}
 		}
-		return oList;
+		return list;
 	}
 	
 	/*
