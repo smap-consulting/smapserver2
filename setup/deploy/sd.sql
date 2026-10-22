@@ -987,3 +987,7 @@ create index if not exists idx_reply_token_created on reply_token(created);
 alter table people add column if not exists subscribe_token text;
 alter table people add column if not exists subscribe_token_expiry timestamp with time zone;
 create index if not exists idx_people_subscribe_token on people(subscribe_token);
+
+-- A password never set, such as the initial admin / admin, must be changed when the user next
+-- logs on.  A password_set of 'epoch' marks it as expired whatever the expiry setting.
+update users set password_set = 'epoch' where password_set is null and basic_password is not null and not coalesce(temporary, false);

@@ -129,7 +129,7 @@ create TABLE server (
 	keep_erased_days integer default 0,
 	billing_enabled boolean default false,
 	css text,
-	password_strength decimal default 0.0,
+	password_strength decimal default 25.0,			-- Minimum entropy in bits, rejects admin / admin
 	rebuild_link_cache boolean default false,
 	password_expiry integer default 0,				-- password expiry in months
 	disable_ref_role_filters boolean default false,	-- If set true role filters will not be used for reference data
@@ -162,6 +162,8 @@ create TABLE server (
 	two_factor_key text							-- Signs the two factor step up cookie, generated on first use
 	);
 ALTER TABLE server OWNER TO ws;
+-- The single server settings record, with the defaults, so these apply before the settings are first saved
+insert into server default values;
 
 DROP SEQUENCE IF EXISTS enterprise_seq CASCADE;
 CREATE SEQUENCE enterprise_seq START 1;
@@ -713,13 +715,14 @@ insert into enterprise(id, name, changed_by, changed_ts) values(1, 'Default', ''
 -- Create an organisation with communal ownership
 insert into organisation(id, name, e_id, can_edit, owner) values(1, 'Smap', 1, 'true', 0);
 
--- The initial administrator.  The password is 'admin' and must be changed on first use.
+-- The initial administrator.  The password is 'admin' and must be changed on first use, a
+-- password_set of 'epoch' marks it as expired whatever the expiry setting.
 -- Hashed here rather than pasted as literals so a new server starts on bcrypt for the
 -- console.  password is the MD5 digest HA1 that the device and API locations still check
 -- - see the section 5 comment in a24-smap-volatile.conf for why both are still needed.
-insert into users (id, ident, realm, password, basic_password, o_id, name, email)
+insert into users (id, ident, realm, password, basic_password, o_id, name, email, password_set)
 	values (1, 'admin', 'smap', md5('admin:smap:admin'), crypt('admin', gen_salt('bf', 10)),
-		1, 'Administrator', '');
+		1, 'Administrator', '', 'epoch');
 
 insert into groups(id,name) values(1,'admin');
 insert into groups(id,name) values(2,'analyst');

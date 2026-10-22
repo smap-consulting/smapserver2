@@ -304,6 +304,7 @@ public class PasswordReset extends Application {
 				if(pd.password != null) {
 					pwm = new PasswordManager(sd, locale, localisation,ident, request.getServerName());
 					pwm.checkStrength(pd.password);
+					pwm.checkNotCurrent(ident, pd.password);
 				}
 
 				sql = "update users "
