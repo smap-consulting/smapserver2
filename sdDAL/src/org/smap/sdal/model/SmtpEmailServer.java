@@ -649,6 +649,11 @@ public class SmtpEmailServer extends EmailServer {
 				&& emailPassword.trim().length() > 0;
 	}
 
+	private boolean isLocalRelay() {
+		String h = smtpHost == null ? "" : smtpHost.trim().toLowerCase();
+		return h.equals("localhost") || h.startsWith("127.") || h.equals("::1") || h.equals("[::1]");
+	}
+
 	private int getPort() {
 		if(emailPort > 0) {
 			return emailPort;
@@ -679,14 +684,36 @@ public class SmtpEmailServer extends EmailServer {
 			authenticator = new Authenticator(authUser, emailPassword);
 			props.setProperty("mail.smtp.submitter", authenticator.getPasswordAuthentication().getUserName());
 			props.setProperty("mail.smtp.auth", "true");
-			props.setProperty("mail.smtp.ssl.trust", smtpHost);
-			props.setProperty("mail.smtp.starttls.enable", "true");
-			props.setProperty("mail.smtp.ssl.protocols", "TLSv1.2");
 
 			log.fine("Trying to send email as html with authentication");
 		} else {
 			log.fine("No authentication");
 		}
+
+		/*
+		 * Encryption
+		 *
+		 * This used to ask for STARTTLS without requiring it and trusted any certificate the
+		 * relay's host name presented, so anyone between us and the relay could remove the
+		 * STARTTLS offer, or answer it with their own certificate, and read the password and
+		 * every email, password reset links included.
+		 *
+		 * Port 465 is TLS from the start.  Otherwise STARTTLS, which is required when we log
+		 * on, as the password must not go in clear, and used when offered otherwise.  The
+		 * certificate is checked against the java trust store and must name the relay.  A
+		 * relay on this machine is left alone, the connection never leaves it.
+		 */
+		int port = getPort();
+		if(port == 465) {
+			props.setProperty("mail.smtp.ssl.enable", "true");
+		} else if(!isLocalRelay()) {
+			props.setProperty("mail.smtp.starttls.enable", "true");
+			if(hasAuthentication()) {
+				props.setProperty("mail.smtp.starttls.required", "true");
+			}
+		}
+		props.setProperty("mail.smtp.ssl.checkserveridentity", "true");
+		props.setProperty("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
 
 		/*
 		 * Timeouts.  Only the connect timeout is short.  That is the one that parked a worker
