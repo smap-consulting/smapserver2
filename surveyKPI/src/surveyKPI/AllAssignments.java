@@ -1211,7 +1211,7 @@ public class AllAssignments extends Application {
 								preloads,
 								uploadedFileName,
 								importTime,
-								request.getServerName(),
+								GeneralUtilityMethods.getServerHost(sd, request),
 								sdf,
 								oId,
 								request.getRemoteUser());
@@ -1230,7 +1230,7 @@ public class AllAssignments extends Application {
 					            		xm,
 					            		importSource,
 					            		importTime,
-					            		request.getServerName(),
+					            		GeneralUtilityMethods.getServerHost(sd, request),
 					            		basePath,
 					            		sIdent,
 					            		mediaFiles,

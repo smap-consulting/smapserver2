@@ -200,7 +200,7 @@ public class Register extends Application {
 					false,		// Server owner
 					request.getRemoteUser(),
 					request.getScheme(),
-					request.getServerName(),
+					GeneralUtilityMethods.getServerHost(sd, request),
 					rd.admin_name,
 					null,
 					localisation);			 

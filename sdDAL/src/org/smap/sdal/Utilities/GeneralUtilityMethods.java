@@ -262,6 +262,41 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * The host name this server is reached by, as set by the server owner, or null if not set
+	 */
+	static public String getConfiguredHost(Connection sd) {
+		String host = null;
+		String sql = "select hostname from server";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				host = rs.getString(1);
+				if(host != null && host.trim().isEmpty()) {
+					host = null;
+				}
+			}
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Error getting the configured host name", e);
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		return host;
+	}
+
+	/*
+	 * The host name to put in a link that is emailed or stored, so that someone other than
+	 * the caller follows it.  request.getServerName() is the client's Host header, which a
+	 * caller can set to anything, so use the name the server owner has set.  Until one is set
+	 * the request's host name is used as before.
+	 */
+	static public String getServerHost(Connection sd, HttpServletRequest request) {
+		String host = getConfiguredHost(sd);
+		return host != null ? host : request.getServerName();
+	}
+
+	/*
 	 * Text, such as an answer from a submission, placed in HTML
 	 * Escaped so it shows as written rather than as markup, with its line breaks kept
 	 */
@@ -2169,6 +2204,17 @@ public class GeneralUtilityMethods {
 	 * the server name from the last upload event
 	 */
 	static public String getSubmissionServer(Connection sd) throws SQLException {
+
+		/*
+		 * The host name the server owner has set.  The fallback, the host name the last
+		 * submission arrived with, is whatever that client put in its Host header, so one
+		 * submission with a forged one would put another site in every link emailed until the
+		 * next submission
+		 */
+		String configured = getConfiguredHost(sd);
+		if(configured != null) {
+			return configured;
+		}
 
 		String sql = "select server_name from upload_event order by ue_id desc limit 1";
 		String serverName = "smap";

@@ -32,6 +32,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -193,7 +194,8 @@ public class Server extends Application {
 				+ "wa_app_secret = ?,"
 				+ "wa_verify_token = ?,"
 				+ "wa_api_version = ?,"
-				+ "self_registration = ? ";
+				+ "self_registration = ?,"
+				+ "hostname = ? ";
 
 		PreparedStatement pstmt = null;
 
@@ -204,8 +206,8 @@ public class Server extends Application {
 				+ "sharepoint_url, sharepoint_client_id, sharepoint_realm, sharepoint_cert_pem,"
 				+ "sharepoint_auth_type, sharepoint_username, sharepoint_password, sharepoint_domain,"
 				+ "mcp_enabled, mcp_client_registration, mcp_max_rows, mcp_token_ttl, mcp_allow_access,"
-				+ "wa_access_token, wa_app_secret, wa_verify_token, wa_api_version, self_registration)"
-				+ " values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "wa_access_token, wa_app_secret, wa_verify_token, wa_api_version, self_registration, hostname)"
+				+ " values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtInsert = null;
 		
 		try {
@@ -213,6 +215,17 @@ public class Server extends Application {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			/*
+			 * The host name goes into links, so only the characters a host name and port can have
+			 */
+			String hostname = data.hostname == null ? null : data.hostname.trim().toLowerCase();
+			if(hostname != null && hostname.isEmpty()) {
+				hostname = null;
+			}
+			if(hostname != null && !hostname.matches("[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?")) {
+				throw new ApplicationException(localisation.getString("srv_bad_host").replace("%s1", hostname));
+			}
 			
 			// Add the updated data
 			pstmt = sd.prepareStatement(sql);
@@ -254,6 +267,7 @@ public class Server extends Application {
 			pstmt.setString(36, data.wa_verify_token);
 			pstmt.setString(37, data.wa_api_version);
 			pstmt.setBoolean(38, data.self_registration);
+			pstmt.setString(39, hostname);
 			int count = pstmt.executeUpdate();
 
 			if(count == 0) {
@@ -296,6 +310,7 @@ public class Server extends Application {
 				pstmtInsert.setString(36, data.wa_verify_token);
 				pstmtInsert.setString(37, data.wa_api_version);
 				pstmtInsert.setBoolean(38, data.self_registration);
+				pstmtInsert.setString(39, hostname);
 				pstmtInsert.executeUpdate();
 			}
 			

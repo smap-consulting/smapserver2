@@ -681,7 +681,7 @@ public class Tasks extends Application {
 					tm.deleteTasksInTaskGroup(sd, tgId);
 				}
 				tm.writeTaskList(sd, cResults, tArray, tgId, 
-						request.getScheme() + "://" + request.getServerName(), 
+						request.getScheme() + "://" + GeneralUtilityMethods.getServerHost(sd, request), 
 						true, 		// update resources
 						oId, 
 						false, 

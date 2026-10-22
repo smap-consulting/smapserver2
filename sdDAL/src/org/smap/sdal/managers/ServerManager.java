@@ -156,7 +156,8 @@ public class ServerManager {
 				+ "mcp_max_rows,"
 				+ "mcp_token_ttl,"
 				+ "mcp_allow_access,"
-				+ "self_registration "
+				+ "self_registration,"
+				+ "hostname "
 				+ "from server;";
 		PreparedStatement pstmt = null;
 		ServerData data = new ServerData();
@@ -206,6 +207,7 @@ public class ServerManager {
 				data.mcp_token_ttl = rs.getInt("mcp_token_ttl");
 				data.mcp_allow_access = rs.getBoolean("mcp_allow_access");
 				data.self_registration = rs.getBoolean("self_registration");
+				data.hostname = rs.getString("hostname");
 			}
 
 		}  catch (Exception e) {
