@@ -309,7 +309,8 @@ public class SmtpEmailServer extends EmailServer {
 			String contentString,
 			ArrayList<String> filePaths,
 			ArrayList<String> filenames,
-			String replyTo) throws Exception {
+			String replyTo,
+			String unsubscribeUrl) throws Exception {
 
 		if(smtpHost == null) {
 			throw new Exception("Cannot send email, smtp_host not available");
@@ -326,6 +327,7 @@ public class SmtpEmailServer extends EmailServer {
 
 				Message msg = buildMessage(conn.session, email, ccType, subject, emailId,
 						contentString, filePaths, filenames);
+				addUnsubscribeHeaders(msg, unsubscribeUrl);
 
 				// sendMessage does not do this for us, unlike the static Transport.send
 				msg.saveChanges();

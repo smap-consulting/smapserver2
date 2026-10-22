@@ -62,16 +62,35 @@ public class Subscriptions extends Application {
 
 	/*
 	 * Unsubscribe
+	 * Called by the subscriptions page, from the link at the foot of each email
 	 */
 	@GET
 	@Path("/unsubscribe/{token}")
 	public Response unsubscribe(
 			@Context HttpServletRequest request,
 			@PathParam("token") String token) { 
+		return doUnsubscribe(request, token);
+	}
+	
+	/*
+	 * One click unsubscribe, called by a mail client's own unsubscribe button using the
+	 * List-Unsubscribe header (RFC 8058).  The client posts List-Unsubscribe=One-Click, there
+	 * is no page and no user to ask.
+	 */
+	@POST
+	@Path("/unsubscribe/{token}")
+	public Response unsubscribeOneClick(
+			@Context HttpServletRequest request,
+			@PathParam("token") String token) { 
+		return doUnsubscribe(request, token);
+	}
+	
+	private Response doUnsubscribe(HttpServletRequest request, String token) {
 
 		Response response = null;
 
-		log.info("Unsubscribing user: " + token);
+		// Not the token, which would let anyone who can read the log unsubscribe the person
+		log.info("Unsubscribe request");
 
 		Connection sd = SDDataSource.getConnection("surveyKPI-Register");
 
@@ -234,7 +253,7 @@ public class Subscriptions extends Application {
 
 		Response response = null;
 
-		log.info("Subscribing user: " + token);
+		log.info("Subscribe request");		// Not the token, see doUnsubscribe
 		String connectionString = "surveyKPI-Subscribe Step 2";
 
 		Connection sd = SDDataSource.getConnection(connectionString);

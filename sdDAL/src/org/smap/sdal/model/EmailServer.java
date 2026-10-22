@@ -47,10 +47,24 @@ abstract public class EmailServer {
 	}
 
 	// Returns SES MessageId for AWS sends; null for SMTP
+	// unsubscribeUrl: one click unsubscribe for the List-Unsubscribe header, null if none
 	public abstract String send(String email, String ccType, String subject,
 			String emailId,
 			String contentString,
 			java.util.ArrayList<String> filePaths,
 			java.util.ArrayList<String> filenames,
-			String replyTo) throws Exception;
+			String replyTo,
+			String unsubscribeUrl) throws Exception;
+
+	/*
+	 * Headers that let a mail client offer its own unsubscribe button, which unsubscribes with
+	 * a single POST to the url (RFC 2369 and RFC 8058).  Gmail and Yahoo require them of bulk
+	 * senders, and without one a recipient who wants no more email tends to report it as spam.
+	 */
+	public static void addUnsubscribeHeaders(jakarta.mail.Message msg, String unsubscribeUrl) throws jakarta.mail.MessagingException {
+		if(unsubscribeUrl != null) {
+			msg.setHeader("List-Unsubscribe", "<" + unsubscribeUrl + ">");
+			msg.setHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
+		}
+	}
 }

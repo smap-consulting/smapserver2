@@ -578,12 +578,22 @@ public class EmailManager {
 		/*
 		 * Send the email
 		 */
+		/*
+		 * One click unsubscribe for the mail client's own button.  A POST, as link checkers and
+		 * previews fetch urls with GET, and that must not unsubscribe anyone.
+		 */
+		String unsubscribeUrl = null;
+		if(emailKey != null) {
+			unsubscribeUrl = "https://" + serverName + "/surveyKPI/subscriptions/unsubscribe/" + emailKey;
+		}
+		
 		return emailServer.send(email, ccType, subject,
 						emailId,
 						contentString,
 						filePaths,
 						safeFilenames,
-						replyTo);
+						replyTo,
+						unsubscribeUrl);
 	}
 	
 	/*
