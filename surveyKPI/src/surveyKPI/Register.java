@@ -86,17 +86,36 @@ public class Register extends Application {
 		try {
 			boolean enabled = GeneralUtilityMethods.isSelfRegistrationEnabled(sd);
 			
-			// The Turnstile site key, if set, so the page shows the challenge.  It is public.
-			String siteKey = enabled ? new ServerManager().getServer(sd, null).turnstile_site_key : null;
+			/*
+			 * The Turnstile site key, so the page shows the challenge.  It is public.  Only when the
+			 * secret is set as well, as otherwise the challenge is not checked and passing it means nothing
+			 */
 			JsonObject resp = new JsonObject();
 			resp.addProperty("enabled", enabled);
-			if(siteKey != null && !siteKey.trim().isEmpty()) {
-				resp.addProperty("turnstileSiteKey", siteKey.trim());
+			if(enabled) {
+				ServerData serverData = new ServerManager().getServer(sd, null);
+				if(hasTurnstile(serverData)) {
+					resp.addProperty("turnstileSiteKey", serverData.turnstile_site_key.trim());
+				}
 			}
 			return Response.ok(resp.toString()).build();
 		} finally {
 			SDDataSource.closeConnection("surveyKPI-Register-enabled", sd);
 		}
+	}
+
+	/*
+	 * True if registrations must pass the Turnstile challenge, which needs both keys.  With only one
+	 * the challenge is not used, which an administrator may not have meant, so it is logged.
+	 */
+	private static boolean hasTurnstile(ServerData serverData) {
+		boolean site = serverData.turnstile_site_key != null && !serverData.turnstile_site_key.trim().isEmpty();
+		boolean secret = serverData.turnstile_secret_key != null && !serverData.turnstile_secret_key.trim().isEmpty();
+		if(site != secret) {
+			log.warning("Turnstile is not used for registration, only the " + (site ? "site" : "secret")
+					+ " key is set in the server settings");
+		}
+		return site && secret;
 	}
 
 	/*
@@ -153,8 +172,7 @@ public class Register extends Application {
 			 * first so that requests failing it do not use up the limit for genuine ones.
 			 */
 			ServerData serverData = new ServerManager().getServer(sd, localisation);
-			if(serverData.turnstile_secret_key != null && !serverData.turnstile_secret_key.trim().isEmpty()
-					&& serverData.turnstile_site_key != null && !serverData.turnstile_site_key.trim().isEmpty()) {
+			if(hasTurnstile(serverData)) {
 				if(!TurnstileVerifier.verify(cfToken, serverData.turnstile_secret_key.trim(), request.getRemoteAddr())) {
 					log.info("Registration refused, Turnstile check failed for " + request.getRemoteAddr());
 					throw new ApplicationException(localisation.getString("reg_captcha"));

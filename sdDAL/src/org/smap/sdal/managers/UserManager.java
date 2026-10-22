@@ -608,7 +608,7 @@ public class UserManager {
 						null,
 						emailServer,
 						serverName,
-						subStatus.emailKey,
+						null,		// Account email, no unsubscribe link or header
 						localisation,
 						customTokens,
 						organisation.getAdminEmail(),

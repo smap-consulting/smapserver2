@@ -39,10 +39,8 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PasswordManager;
-import org.smap.sdal.managers.PeopleManager;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.SubscriptionStatus;
 
 import com.google.gson.Gson;
 
@@ -122,15 +120,11 @@ public class PasswordReset extends Application {
 
 					EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, email, request.getRemoteUser(), 0);
 
-					PeopleManager pm = new PeopleManager(localisation);
-					SubscriptionStatus subStatus = pm.getEmailKey(sd, 0, email);
-					if(subStatus.unsubscribed) {
-						// Person has unsubscribed
-						String msg = localisation.getString("email_us");
-						msg = msg.replaceFirst("%s1", email);
-						throw new ApplicationException(msg);
-					}
-					
+					/*
+					 * Sent whether or not the address has unsubscribed, the person asked for it.  It
+					 * has no unsubscribe link, unsubscribing from a reset email blocked later resets.
+					 */
+
 					/*
 					 * Send to the address on the account, not the one entered.  They match apart
 					 * from case, sending to what was entered is what let a lookalike address
@@ -189,7 +183,7 @@ public class PasswordReset extends Application {
 						.append("</p>");
 
 						content.append("<p>")
-						.append(localisation.getString("email_dnr"))
+						.append(localisation.getString("email_dnr_nl"))
 						.append("</p>");
 
 						em.sendEmailHtml(
@@ -205,7 +199,7 @@ public class PasswordReset extends Application {
 								null,
 								emailServer,
 								request.getServerName(),
-								subStatus.emailKey,
+								null,		// Account email, no unsubscribe link or header
 								localisation,
 								null,
 								null,

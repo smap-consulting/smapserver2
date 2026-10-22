@@ -528,7 +528,8 @@ public class EmailManager {
 		 */
 		String contentString = sanitise.sanitiseHtml(replaceTokens(template, tokens));
 		if(adminEmail != null) {
-			contentString += "<p>" + localisation.getString("email_dnr") + "</p>";
+			// Only mention unsubscribing when there is a link to do it, account emails have none
+			contentString += "<p>" + localisation.getString(emailKey != null ? "email_dnr" : "email_dnr_nl") + "</p>";
 		}
 		if(orgFooter != null) {
 			contentString += " " + sanitise.sanitiseHtml(replaceTokens(orgFooter, tokens));
