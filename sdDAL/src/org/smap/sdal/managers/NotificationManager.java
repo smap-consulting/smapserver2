@@ -1230,7 +1230,8 @@ public class NotificationManager {
 				 * The subject, and the content for sms and conversations, are plain text.  Email
 				 * gets its own copy of the content, which is HTML, with the answers escaped
 				 */
-				String htmlContent = sm.fillStringTemplate(survey, msg.content, true);
+				String htmlContent = sm.fillStringTemplate(survey,
+						msg.contentIsText ? GeneralUtilityMethods.htmlText(msg.content) : msg.content, true);
 				msg.subject = sm.fillStringTemplate(survey, msg.subject);
 				msg.content = sm.fillStringTemplate(survey, msg.content);
 				TextManager tm = new TextManager(localisation, organisation.timeZone);

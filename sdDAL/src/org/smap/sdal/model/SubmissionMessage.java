@@ -27,6 +27,7 @@ public class SubmissionMessage {
 	public String assignQuestion;
 	public String emailMeta;
 	public boolean emailAssigned;
+	public boolean contentIsText;	// Content is plain text, as typed in the webform, so escape it in an email
 	public String ourNumber;			// SMS / WhatsApp messaging
 	public String msgChannel;			// sms or whatsapp
 	public ArrayList<String> emails;
@@ -124,6 +125,7 @@ public class SubmissionMessage {
 	
 	// copy constructor
 	public SubmissionMessage(SubmissionMessage orig) {
+		this.contentIsText = orig.contentIsText;
 		this.notificationName = orig.notificationName;
 		this.title = orig.title;
 		this.taskId = orig.taskId;

@@ -501,6 +501,21 @@ public class EmailManager {
 			String emailId,
 			String replyTo) throws Exception  {
 
+		/*
+		 * Attachment names go into the mail headers, and some come from a submission: the
+		 * names of files sent with a webform notification, and the instance name a pdf is
+		 * named after.  The mail library writes a line break in one through, so it would start
+		 * a header of the sender's choosing, such as a content type that shows the file as the
+		 * body of the email.
+		 */
+		ArrayList<String> safeFilenames = null;
+		if(filenames != null) {
+			safeFilenames = new ArrayList<>();
+			for(String name : filenames) {
+				safeFilenames.add(safeAttachmentName(name));
+			}
+		}
+
 		/* 
 		 * Create the content
 		 */
@@ -567,8 +582,16 @@ public class EmailManager {
 						emailId,
 						contentString,
 						filePaths,
-						filenames,
+						safeFilenames,
 						replyTo);
+	}
+	
+	/*
+	 * An attachment name without control characters, which includes line breaks
+	 */
+	static String safeAttachmentName(String name) {
+		String safe = name == null ? "" : name.replaceAll("\\p{Cntrl}", " ").trim();
+		return safe.isEmpty() ? "attachment" : safe;
 	}
 	
 	/*

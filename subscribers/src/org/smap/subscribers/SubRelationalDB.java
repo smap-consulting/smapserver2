@@ -53,7 +53,10 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.ConversationManager;
 import org.smap.sdal.managers.NotificationManager;
+import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.CaseConversation;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.CMS;
@@ -163,7 +166,8 @@ public class SubRelationalDB extends Subscriber {
 			/*
 			 * Process any webform notifications stored alongside the submission
 			 */
-			processWebformNotifications(log, dbc.sd, filePath, instance, survey, submittingUser);
+			processWebformNotifications(log, dbc.sd, dbc.results, filePath, instance, survey, submittingUser,
+					temporaryUser, updateId);
 
 			/*
 			 * Update the assignment status
@@ -231,14 +235,42 @@ public class SubRelationalDB extends Subscriber {
 		ArrayList<String> extraFileNames;
 	}
 
-	private void processWebformNotifications(Logger log, Connection sd, String filePath,
-			SurveyInstance instance, Survey survey, String submittingUser) {
+	/*
+	 * Send the messages a user queued in the webform while editing a record
+	 *
+	 * The messages arrive with the submission, so they are whatever the client sent.  Apply the
+	 * rules the webform applies when it offers the panel, as anything can be sent here: only an
+	 * organisation that allows it, only when editing an existing record, never from an anonymous
+	 * public link, only the message types the user is offered, and a conversation message only
+	 * to the case's own conversation, whose numbers come from the record and not the client.
+	 * Without this any submission could send email, sms and whatsapp messages to anyone.
+	 */
+	private void processWebformNotifications(Logger log, Connection sd, Connection cResults, String filePath,
+			SurveyInstance instance, Survey survey, String submittingUser,
+			boolean temporaryUser, String updateId) {
 		File xmlFile = new File(filePath);
 		File notifFile = new File(xmlFile.getParent(), "notifications.json");
 		if (!notifFile.exists()) {
 			return;
 		}
 		try {
+			Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, survey.surveyData.o_id);
+			String refused = null;
+			if(organisation == null || !organisation.notification_webform) {
+				refused = "the organisation does not allow notifications from the webform";
+			} else if(updateId == null) {
+				refused = "the submission does not edit an existing record";
+			} else if(temporaryUser) {
+				refused = "the submission is from a temporary user";
+			}
+			if(refused != null) {
+				log.warning("Webform notifications from " + submittingUser + " for " + survey.surveyData.ident 
+						+ " not sent: " + refused);
+				return;
+			}
+			ArrayList<String> allowedTypes = new NotificationManager(localisation)
+					.getNotificationTypes(sd, submittingUser, "console");
+
 			String json = org.apache.commons.io.FileUtils.readFileToString(notifFile, java.nio.charset.StandardCharsets.UTF_8);
 			java.lang.reflect.Type listType = new com.google.gson.reflect.TypeToken<ArrayList<WebformNotification>>(){}.getType();
 			ArrayList<WebformNotification> notifications = gson.fromJson(json, listType);
@@ -248,10 +280,34 @@ public class SubRelationalDB extends Subscriber {
 			MessagingManager mm = new MessagingManager(localisation);
 			int pId = GeneralUtilityMethods.getProjectId(sd, survey.surveyData.id);
 			for (WebformNotification wn : notifications) {
-				ArrayList<String> emails = wn.target != null && wn.target.equals("email") ? wn.emails : null;
-				String ourNum = (wn.target != null && !wn.target.equals("email")) ? wn.ourNumber : null;
-				String toNum = (wn.target != null && !wn.target.equals("email")) ? wn.toNumber : null;
-				String channel = wn.msgChannel;
+				
+				String ourNum = null;
+				String toNum = null;
+				String channel = null;
+				if("conversation".equals(wn.target)) {
+					ConversationManager convMgr = new ConversationManager(localisation, tz);
+					// The edit is now the record, fall back to the record it replaced in case it is not visible yet
+					CaseConversation conv = convMgr.getCaseConversation(sd, cResults, survey.surveyData.ident, instance.getUuid());
+					if(conv == null) {
+						conv = convMgr.getCaseConversation(sd, cResults, survey.surveyData.ident, updateId);
+					}
+					if(conv == null) {
+						log.warning("Webform conversation message from " + submittingUser + " not sent: the case has no conversation");
+						continue;
+					}
+					ourNum = conv.ourNumber;
+					toNum = conv.theirNumber;
+					channel = conv.channel;
+				} else if(wn.target == null || !(wn.target.equals("email") || wn.target.equals("sms")) 
+						|| !allowedTypes.contains(wn.target)) {
+					log.warning("Webform notification from " + submittingUser + " not sent: type " + wn.target + " is not allowed");
+					continue;
+				} else if(wn.target.equals("sms")) {
+					ourNum = wn.ourNumber;
+					toNum = wn.toNumber;
+					channel = wn.msgChannel;
+				}
+				ArrayList<String> emails = wn.target.equals("email") ? wn.emails : null;
 				// For sms/conversation: treat toNumber as single email-like recipient in the emails list
 				if (toNum != null && emails == null) {
 					emails = new ArrayList<>();
@@ -290,6 +346,7 @@ public class SubRelationalDB extends Subscriber {
 						ourNum,
 						channel,
 						new java.sql.Timestamp(new java.util.Date().getTime()));
+				subMsg.contentIsText = true;		// Typed into a text box, not an HTML template
 				if (wn.extraFileNames != null && !wn.extraFileNames.isEmpty()) {
 					subMsg.extraFilePaths = new ArrayList<>();
 					subMsg.extraFileNames = new ArrayList<>();
