@@ -407,7 +407,7 @@ pg_initdb() {
 		debian) ;;
 		rhel) postgresql-setup --initdb ;;
 		suse) systemctl start $PG_SERVICE ;;		# The service creates the cluster on its first start
-		arch) su - postgres -c "initdb --locale=C.UTF-8 --encoding=UTF8 -D $PG_DATA_DIR" ;;
+		arch) su - postgres -s /bin/sh -c "initdb --locale=C.UTF-8 --encoding=UTF8 --auth-local=peer --auth-host=scram-sha-256 -D $PG_DATA_DIR" ;;
 	esac
 }
 
@@ -701,6 +701,154 @@ platform_setup() {
 		platform_save
 	fi
 	platform_check_installed
+}
+
+#
+# Repositories
+#
+
+# Repositories that required packages come from.  Added before the version check, as the check
+# would otherwise fail.  PostGIS is not in openSUSE's own repositories, it is in Application:Geo,
+# which is openSUSE's own build service.  verify: repository paths
+platform_add_required_repos() {
+	[ $SMAP_FAMILY = "suse" ] || return 0
+	[ -n "`pkg_candidate postgis`" ] && return 0
+	case $SMAP_OS_ID in
+		opensuse-tumbleweed) _dist=openSUSE_Tumbleweed ;;
+		opensuse-leap) _dist=$SMAP_OS_VERSION ;;
+		*) echo "Add a repository with PostGIS for $SMAP_OS_NAME, then run the install again"; return 0 ;;
+	esac
+	echo "Adding the openSUSE Application:Geo repository for PostGIS"
+	zypper --non-interactive --gpg-auto-import-keys addrepo -f \
+		https://download.opensuse.org/repositories/Application:/Geo/$_dist/Application:Geo.repo
+	zypper --non-interactive --gpg-auto-import-keys refresh
+}
+
+# ffmpeg with the codecs phones record video in, such as H.264, which are patented and so left out
+# of the ffmpeg in RHEL, Fedora and openSUSE's own repositories.  It comes from RPM Fusion or
+# Packman, which are run by others, so ask first.  Set SMAP_MEDIA_REPOS to yes or no to not be asked
+platform_offer_media_repos() {
+	case $SMAP_FAMILY in
+		rhel)
+			command -v rpm > /dev/null && rpm -q rpmfusion-free-release > /dev/null 2>&1 && return 0
+			_repo="RPM Fusion"
+			;;
+		suse)
+			zypper -q repos 2>/dev/null | grep -qi packman && return 0
+			_repo="Packman"
+			;;
+		*) return 0 ;;
+	esac
+
+	_answer=$SMAP_MEDIA_REPOS
+	if [ -z "$_answer" ]; then
+		echo "Video thumbnails and audio conversion need ffmpeg with codecs that $SMAP_OS_NAME does not include."
+		printf "Add the $_repo repository, which is not part of $SMAP_OS_NAME, to get them? (y/n) "
+		read _answer
+	fi
+	case $_answer in
+		y|Y|yes) ;;
+		*) echo "Not adding $_repo, video thumbnails and audio conversion may not work"; return 0 ;;
+	esac
+
+	case $SMAP_FAMILY in
+		rhel)
+			if [ "$SMAP_OS_ID" = "fedora" ]; then
+				dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-`rpm -E %fedora`.noarch.rpm
+				# Fedora's own ffmpeg-free conflicts with the full one
+				rpm -q ffmpeg-free > /dev/null 2>&1 && dnf swap -y ffmpeg-free ffmpeg --allowerasing
+			else
+				# RPM Fusion for RHEL needs EPEL
+				dnf install -y epel-release || dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-`rpm -E %rhel`.noarch.rpm
+				dnf install -y https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-`rpm -E %rhel`.noarch.rpm
+			fi
+			;;
+		suse)
+			# verify: repository paths
+			case $SMAP_OS_ID in
+				opensuse-tumbleweed) _dist=openSUSE_Tumbleweed ;;
+				*) _dist=openSUSE_Leap_$SMAP_OS_VERSION ;;
+			esac
+			zypper --non-interactive --gpg-auto-import-keys addrepo -cfp 90 \
+				https://ftp.gwdg.de/pub/linux/misc/packman/suse/$_dist/ packman
+			zypper --non-interactive --gpg-auto-import-keys refresh
+			zypper --non-interactive install --from packman --allow-vendor-change ffmpeg
+			;;
+	esac
+}
+
+# Arch is a rolling release, so a routine upgrade can move PostgreSQL to a new major version,
+# which cannot read the old version's data until pg_upgrade is run by hand.  Hold PostgreSQL and
+# PostGIS back so that the upgrade is done deliberately
+pg_pin() {
+	[ $SMAP_FAMILY = "arch" ] || return 0
+	grep -q "^IgnorePkg.*postgresql" /etc/pacman.conf && return 0
+	awk '{ print } /^\[options\]/ { print "IgnorePkg = postgresql postgresql-libs postgis" }' /etc/pacman.conf > /etc/pacman.conf.smap
+	cat /etc/pacman.conf.smap > /etc/pacman.conf
+	rm /etc/pacman.conf.smap
+	echo "PostgreSQL and PostGIS are held back from upgrades in /etc/pacman.conf (IgnorePkg)."
+	echo "To move to a new major version, upgrade them and run pg_upgrade, see the Arch wiki."
+}
+
+#
+# Apache and PostgreSQL settings that differ between families
+#
+
+# Debian, Ubuntu and RHEL listen on 443 once mod_ssl is enabled, the others need telling
+apache_enable_https() {
+	case $SMAP_FAMILY in
+		suse) a2enflag SSL ;;
+		arch)
+			_conf=/etc/httpd/conf/smap-modules.conf
+			grep -qs "^Listen 443" $_conf || echo "Listen 443" >> $_conf
+			apache_include $_conf
+			;;
+	esac
+}
+
+# Logins to PostgreSQL.  The postgres user logs in as itself over the local socket.  Other local
+# logins and those over TCP, which is how Smap connects, need a password.  The original file is
+# kept as pg_hba.conf.bu
+pg_configure_logins() {
+	_hba=$PG_CONF_DIR/pg_hba.conf
+	[ -f $_hba.bu ] || mv $_hba $_hba.bu
+	if [ $SMAP_FAMILY = "debian" ]; then
+		# Debian already lets postgres log in as itself, ahead of the line changed here
+		awk 'BEGIN{doit=0;}/# "local"/{doit=1;isdone=0;}{if(doit==1){isdone=sub("peer","md5",$0);print;if(isdone==1){doit=0}}else{print}}' $_hba.bu > $_hba
+	else
+		{
+			echo "local   all             postgres                                peer"
+			awk '$1 == "local" { sub(/(peer|trust)$/, "md5") }
+				$1 ~ /^host/ { sub(/(ident|trust)$/, "scram-sha-256") }
+				{ print }' $_hba.bu
+		} > $_hba
+	fi
+	chown postgres $_hba
+}
+
+# The scripts run psql through a login shell of the postgres user, which Arch, for one, does not
+# give it
+pg_login_shell() {
+	case `getent passwd postgres | cut -d: -f7` in
+		*nologin|*false) usermod -s /bin/sh postgres ;;
+	esac
+}
+
+#
+# SELinux, on RHEL, Fedora and openSUSE 16
+#
+
+platform_selinux() {
+	command -v getenforce > /dev/null || return 0
+	[ "`getenforce`" = "Disabled" ] && return 0
+	echo "Setting SELinux permissions"
+	command -v semanage > /dev/null || pkg_install policycoreutils-python-utils
+	setsebool -P httpd_can_network_connect_db 1		# Apache logons are checked against the database
+	setsebool -P httpd_can_network_connect 1		# Apache passes requests to Tomcat
+	# Apache serves attachments and media from /smap, which Tomcat writes
+	semanage fcontext -a -t httpd_sys_rw_content_t "/smap(/.*)?" 2>/dev/null || \
+		semanage fcontext -m -t httpd_sys_rw_content_t "/smap(/.*)?"
+	restorecon -R /smap /var/www/smap
 }
 
 #
