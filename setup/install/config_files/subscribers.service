@@ -3,7 +3,7 @@ Description=Smap Database Subscriber
 
 [Service]
 Type=simple
-User=tomcat
+User={tomcat_user}
 ExecStart=/smap_bin/subscribers.sh default /smap upload
 Restart=on-failure
 

@@ -278,12 +278,12 @@ cd ../install
 if [ ! -f "$a_config_dir/smap.conf.bu" ]; then
     sudo cp  $a_config_dir/smap.conf $a_config_dir/smap.conf.bu
 fi
-sudo cp config_files/a24-smap.conf $a_config_dir/smap.conf
+platform_template config_files/a24-smap.conf $a_config_dir/smap.conf
 
 if [ ! -f "$a_config_dir/smap-ssl.conf.bu" ]; then
     sudo cp $a_config_dir/smap-ssl.conf $a_config_dir/smap-ssl.conf.bu
 fi
-sudo cp config_files/a24-smap-ssl.conf $a_config_dir/smap-ssl.conf
+platform_template config_files/a24-smap-ssl.conf $a_config_dir/smap-ssl.conf
 
 sudo a2ensite  smap.conf
 sudo a2ensite  smap-ssl.conf
@@ -356,9 +356,9 @@ if [ $version -lt "1612" ]
 then
 	echo '# copy subscriber service files'
 	service_dir="/etc/systemd/system"
-	sudo cp ../install/config_files/subscribers.service $service_dir/subscribers.service
+	platform_template ../install/config_files/subscribers.service $service_dir/subscribers.service
 	sudo chmod 664 $service_dir/subscribers.service
-	sudo cp ../install/config_files/subscribers_fwd.service $service_dir/subscribers_fwd.service
+	platform_template ../install/config_files/subscribers_fwd.service $service_dir/subscribers_fwd.service
 	sudo chmod 664 $service_dir/subscribers_fwd.service
 fi
 

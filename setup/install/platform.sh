@@ -704,6 +704,20 @@ platform_setup() {
 }
 
 #
+# Configuration files
+#
+
+# Copy a configuration file from config_files, filling in the values for this server
+platform_template() {
+	sed -e "s|{apache_log_dir}|$APACHE_LOG_DIR|g" \
+		-e "s|{apache_site_dir}|$APACHE_SITE_DIR|g" \
+		-e "s|{ssl_cert_file}|$SSL_CERT_FILE|g" \
+		-e "s|{ssl_key_file}|$SSL_KEY_FILE|g" \
+		-e "s|{tomcat_user}|$TOMCAT_USER|g" \
+		$1 > $2
+}
+
+#
 # Certificates
 #
 

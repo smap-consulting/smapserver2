@@ -52,7 +52,7 @@ results="results"												# Postgres config results db name
 tc_server_xml="/etc/$TOMCAT_VERSION/server.xml"					# Tomcat config
 tc_context_xml="/etc/$TOMCAT_VERSION/context.xml"				# Tomcat config
 tc_logging="/var/lib/$TOMCAT_VERSION/conf/logging.properties"	# Tomcat config
-a_config_dir="/etc/apache2/sites-available"						# Apache config	
+a_config_dir=$APACHE_SITE_DIR									# Apache config
 a_config_conf="/etc/apache2/apache2.conf"						# Apache config
 a_config_prefork_conf="/etc/apache2/mods-available/mpm_prefork.conf"		# Apache 2.4 config
 a_default_xml="/etc/apache2/sites-available/default"						# Apache config
@@ -186,8 +186,8 @@ sudo mkdir $filelocn/temp
 sudo mkdir $filelocn/settings
 
 # Allow tomcat to write to /smap (systemd override)
-mkdir -p /etc/systemd/system/tomcat10.service.d
-cp config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
+mkdir -p /etc/systemd/system/$TOMCAT_SERVICE.service.d
+cp config_files/override.conf /etc/systemd/system/$TOMCAT_SERVICE.service.d/override.conf
 
 # Make sure all subdirectories of filelocn are updated even if the latter is a symbolic link
 sudo chown -R $TOMCAT_USER $filelocn
@@ -250,12 +250,13 @@ if [ "$config" != "manual" ]; then
 	if [ ! -f "$a_config_dir/smap.conf.bu" ]; then
 		sudo cp $a_config_dir/smap.conf $a_config_dir/smap.conf.bu
 	fi
-	sudo cp config_files/a24-smap.conf $a_config_dir/smap.conf
+	platform_template config_files/a24-smap.conf $a_config_dir/smap.conf
 
 	if [ ! -f "$a_config_dir/smap-ssl.conf.bu" ]; then
 		sudo cp $a_config_dir/smap-ssl.conf $a_config_dir/smap-ssl.conf.bu
 	fi
-	sudo cp config_files/a24-smap-ssl.conf $a_config_dir/smap-ssl.conf
+	platform_template config_files/a24-smap-ssl.conf $a_config_dir/smap-ssl.conf
+	ssl_ensure_self_signed $SMAP_DOMAIN
 
 	# Fill in the domain name, or allow any host name if there is none
 	chmod +x setDomain.sh
@@ -264,8 +265,8 @@ if [ "$config" != "manual" ]; then
 	# disable default config - TODO work out how to get Smap to coexist with existing Apache installations	
 	sudo a2dissite 000-default
 	sudo a2dissite default-ssl
-	sudo a2ensite smap.conf
-	sudo a2ensite smap-ssl.conf
+	apache_enable_site smap.conf
+	apache_enable_site smap-ssl.conf
 	
 	# Update the volatile configuration setting, only this should change after initial installation
 	chmod +x apacheConfig.sh
@@ -273,9 +274,9 @@ if [ "$config" != "manual" ]; then
 
 	echo '# copy subscriber service files'
 
-	sudo cp config_files/subscribers.service $service_dir/subscribers.service
+	platform_template config_files/subscribers.service $service_dir/subscribers.service
 	sudo chmod 664 $service_dir/subscribers.service
-	sudo cp config_files/subscribers_fwd.service $service_dir/subscribers_fwd.service
+	platform_template config_files/subscribers_fwd.service $service_dir/subscribers_fwd.service
 	sudo chmod 664 $service_dir/subscribers_fwd.service
 
 	sudo systemctl enable subscribers.service
