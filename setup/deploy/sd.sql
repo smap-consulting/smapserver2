@@ -988,6 +988,7 @@ alter table people add column if not exists subscribe_token text;
 alter table people add column if not exists subscribe_token_expiry timestamp with time zone;
 create index if not exists idx_people_subscribe_token on people(subscribe_token);
 
--- A password never set, such as the initial admin / admin, must be changed when the user next
--- logs on.  A password_set of 'epoch' marks it as expired whatever the expiry setting.
-update users set password_set = 'epoch' where password_set is null and basic_password is not null and not coalesce(temporary, false);
+-- The initial admin / admin, if still in use, must be changed when the user next logs on to the console,
+-- and until then devices and the API refuse it.  A password_set of 'epoch' marks this whatever the expiry
+-- setting.  Only that account, other users who have never set a password, such as enumerators, are left alone.
+update users set password_set = 'epoch' where ident = 'admin' and password = md5('admin:smap:admin');
