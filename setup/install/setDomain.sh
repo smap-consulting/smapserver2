@@ -13,7 +13,13 @@
 # links.  There is no option to accept any host name, as that would remove this protection.
 
 domain=$1
-a_config_dir=${A_CONFIG_DIR:-/etc/apache2/sites-available}
+
+# Where this server's Apache is, saved by install.sh or deploy.sh
+platform_conf=${SMAP_PLATFORM_CONF:-/etc/smap/platform.conf}
+[ -f $platform_conf ] && . $platform_conf
+a_config_dir=${A_CONFIG_DIR:-${APACHE_SITE_DIR:-/etc/apache2/sites-available}}
+APACHE_SERVICE=${APACHE_SERVICE:-apache2}
+APACHECTL=${APACHECTL:-apache2ctl}
 
 # Only the characters a host name or IPv4 address can have, as the value is written into the Apache configuration
 if ! echo "$domain" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$'; then
@@ -48,6 +54,6 @@ done
 
 echo "Apache will only accept requests for $domain"
 
-if command -v systemctl > /dev/null && systemctl is-active --quiet apache2; then
-	apache2ctl configtest && systemctl reload apache2
+if command -v systemctl > /dev/null && systemctl is-active --quiet $APACHE_SERVICE; then
+	$APACHECTL configtest && systemctl reload $APACHE_SERVICE
 fi

@@ -17,9 +17,9 @@ filelocn="/smap"
 . ./platform.sh
 platform_detect || exit 1
 
-# Until deploy.sh and patchdb.sh use platform.sh only Ubuntu can be installed
-if [ "$SMAP_OS_ID" != "ubuntu" ]; then
-    echo "ERROR: $SMAP_OS_NAME is not supported yet, only Ubuntu"
+# The rest of this script uses apt, so for now only Debian and Ubuntu can be installed
+if [ "$SMAP_FAMILY" != "debian" ]; then
+    echo "ERROR: $SMAP_OS_NAME is not supported yet, only Debian and Ubuntu"
     exit 1
 fi
 
@@ -166,6 +166,11 @@ else
     sudo apt-get install postgresql-client -y
 fi
 # End of conditional install
+
+# Save where everything was installed, for apacheConfig.sh, patchdb.sh and deploy.sh
+pg_paths $SMAP_PG_VERSION
+platform_validate || exit 1
+platform_save
 
 echo "##### 6. Create folders for files in $filelocn"
 sudo mkdir $filelocn

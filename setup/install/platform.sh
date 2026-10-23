@@ -35,6 +35,11 @@ SMAP_APACHE_MODULES="auth_digest expires dbd authn_dbd proxy proxy_ajp ssl heade
 
 SMAP_OS_RELEASE=${SMAP_OS_RELEASE:-/etc/os-release}
 
+# Where this server's components are, saved by platform_save so that later deploys use what
+# was installed rather than detecting it again.  These are the settings it holds.
+SMAP_PLATFORM_CONF=${SMAP_PLATFORM_CONF:-/etc/smap/platform.conf}
+SMAP_PLATFORM_SETTINGS="SMAP_FAMILY TOMCAT_TARBALL TOMCAT_SERVICE TOMCAT_USER TOMCAT_INSTALL_DIR TOMCAT_BASE_DIR TOMCAT_CONF_DIR TOMCAT_WEBAPPS TOMCAT_LIB APACHE_SERVICE APACHE_USER APACHECTL APACHE_SITE_DIR APACHE_LOG_DIR SMAP_PG_VERSION PG_SERVICE PG_HOME PG_CONF_DIR PG_DATA_DIR SSL_CERT_FILE SSL_KEY_FILE"
+
 # Read one value from os-release without sourcing it, as it would overwrite variables
 # such as NAME and VERSION in the calling script
 os_release_value() {
@@ -80,8 +85,10 @@ platform_detect() {
 # APACHE_*         Apache service, user, configuration and log locations.  Smap's site files
 #                  go in APACHE_SITE_DIR, which Apache does not read by itself, and are
 #                  switched on with apache_enable_site
-# TOMCAT_*         Tomcat service and user, and where its configuration, web applications
-#                  and shared libraries are
+# TOMCAT_*         Tomcat service and user, where its programs are (TOMCAT_INSTALL_DIR,
+#                  CATALINA_HOME in Tomcat's terms), where this instance is (TOMCAT_BASE_DIR,
+#                  CATALINA_BASE) and where its configuration, web applications and shared
+#                  libraries are
 # PG_*             PostgreSQL service and the postgres user's home.  The configuration and
 #                  data directories depend on the version, see pg_paths
 # SSL_*            A self signed certificate for the https virtual host until a real one
@@ -95,7 +102,8 @@ platform_debian() {
 	PKG_APACHE="apache2 apache2-utils libaprutil1-dbd-pgsql"
 	PKG_PG_SERVER="postgresql postgresql-contrib"
 	PKG_PG_CLIENT="postgresql-client"
-	PKG_MEDIA="imagemagick ffmpeg libimage-exiftool-perl gdal-bin"
+	PKG_EXIFTOOL="libimage-exiftool-perl"
+	PKG_MEDIA="imagemagick ffmpeg $PKG_EXIFTOOL gdal-bin"
 	PKG_UTILS="zip fonts-dejavu"
 
 	APACHE_SERVICE=apache2
@@ -106,8 +114,8 @@ platform_debian() {
 
 	TOMCAT_SERVICE=tomcat10
 	TOMCAT_USER=tomcat
-	CATALINA_HOME=/usr/share/tomcat10
-	CATALINA_BASE=/var/lib/tomcat10
+	TOMCAT_INSTALL_DIR=/usr/share/tomcat10
+	TOMCAT_BASE_DIR=/var/lib/tomcat10
 	TOMCAT_CONF_DIR=/etc/tomcat10
 	TOMCAT_WEBAPPS=/var/lib/tomcat10/webapps
 	TOMCAT_LIB=/var/lib/tomcat10/lib
@@ -128,7 +136,8 @@ platform_rhel() {
 	PKG_APACHE="httpd mod_ssl mod_session apr-util-pgsql"
 	PKG_PG_SERVER="postgresql-server postgresql-contrib"
 	PKG_PG_CLIENT="postgresql"
-	PKG_MEDIA="ImageMagick ffmpeg perl-Image-ExifTool gdal"
+	PKG_EXIFTOOL="perl-Image-ExifTool"
+	PKG_MEDIA="ImageMagick ffmpeg $PKG_EXIFTOOL gdal"
 	PKG_UTILS="zip dejavu-sans-fonts"
 
 	APACHE_SERVICE=httpd
@@ -139,8 +148,8 @@ platform_rhel() {
 
 	TOMCAT_SERVICE=tomcat
 	TOMCAT_USER=tomcat
-	CATALINA_HOME=/usr/share/tomcat
-	CATALINA_BASE=/usr/share/tomcat
+	TOMCAT_INSTALL_DIR=/usr/share/tomcat
+	TOMCAT_BASE_DIR=/usr/share/tomcat
 	TOMCAT_CONF_DIR=/etc/tomcat
 	TOMCAT_WEBAPPS=/var/lib/tomcat/webapps
 	TOMCAT_LIB=/usr/share/tomcat/lib
@@ -161,7 +170,8 @@ platform_suse() {
 	PKG_APACHE="apache2 libapr-util1-dbd-pgsql"
 	PKG_PG_SERVER="postgresql-server postgresql-contrib"
 	PKG_PG_CLIENT="postgresql"
-	PKG_MEDIA="ImageMagick ffmpeg exiftool gdal"
+	PKG_EXIFTOOL="exiftool"
+	PKG_MEDIA="ImageMagick ffmpeg $PKG_EXIFTOOL gdal"
 	PKG_UTILS="zip dejavu-fonts"
 
 	APACHE_SERVICE=apache2
@@ -172,8 +182,8 @@ platform_suse() {
 
 	TOMCAT_SERVICE=tomcat10
 	TOMCAT_USER=tomcat
-	CATALINA_HOME=/usr/share/tomcat10
-	CATALINA_BASE=/usr/share/tomcat10
+	TOMCAT_INSTALL_DIR=/usr/share/tomcat10
+	TOMCAT_BASE_DIR=/usr/share/tomcat10
 	TOMCAT_CONF_DIR=/etc/tomcat10
 	TOMCAT_WEBAPPS=/srv/tomcat10/webapps
 	TOMCAT_LIB=/usr/share/tomcat10/lib
@@ -193,7 +203,8 @@ platform_arch() {
 	PKG_APACHE="apache postgresql-libs"
 	PKG_PG_SERVER="postgresql"
 	PKG_PG_CLIENT="postgresql"
-	PKG_MEDIA="imagemagick ffmpeg perl-image-exiftool gdal"
+	PKG_EXIFTOOL="perl-image-exiftool"
+	PKG_MEDIA="imagemagick ffmpeg $PKG_EXIFTOOL gdal"
 	PKG_UTILS="zip ttf-dejavu"
 
 	APACHE_SERVICE=httpd
@@ -204,8 +215,8 @@ platform_arch() {
 
 	TOMCAT_SERVICE=tomcat10
 	TOMCAT_USER=tomcat10
-	CATALINA_HOME=/usr/share/tomcat10
-	CATALINA_BASE=/usr/share/tomcat10
+	TOMCAT_INSTALL_DIR=/usr/share/tomcat10
+	TOMCAT_BASE_DIR=/usr/share/tomcat10
 	TOMCAT_CONF_DIR=/etc/tomcat10
 	TOMCAT_WEBAPPS=/var/lib/tomcat10/webapps
 	TOMCAT_LIB=/usr/share/tomcat10/lib
@@ -301,8 +312,8 @@ tomcat_use_tarball() {
 	TOMCAT_TARBALL=yes
 	TOMCAT_SERVICE=tomcat10
 	TOMCAT_USER=tomcat
-	CATALINA_HOME=/var/lib/tomcat10
-	CATALINA_BASE=/var/lib/tomcat10
+	TOMCAT_INSTALL_DIR=/var/lib/tomcat10
+	TOMCAT_BASE_DIR=/var/lib/tomcat10
 	TOMCAT_CONF_DIR=/var/lib/tomcat10/conf
 	TOMCAT_WEBAPPS=/var/lib/tomcat10/webapps
 	TOMCAT_LIB=/var/lib/tomcat10/lib
@@ -530,6 +541,166 @@ PostGIS is in the openSUSE Application:Geo repository, which needs to be added"
 		return 1
 	fi
 	return 0
+}
+
+#
+# Saved settings
+#
+
+# A setting from the environment, or from /etc/environment when sudo has not passed it on
+env_value() {
+	eval _val=\$$1
+	[ -n "$_val" ] || _val=`sed -n "s/^$1=//p" /etc/environment 2>/dev/null | tr -d '"' | tail -1`
+	echo "$_val"
+}
+
+# A server built with WEBSITE=no only runs the subscribers, it has no Tomcat or Apache
+platform_web() {
+	[ "`env_value WEBSITE`" != "no" ]
+}
+
+platform_local_db() {
+	_h=`env_value DBHOST`
+	[ -z "$_h" ] || [ "$_h" = "127.0.0.1" ]
+}
+
+# Major version of the local PostgreSQL server that is running, which is the one Smap uses
+# when more than one is installed
+pg_server_major() {
+	[ "`id -u`" = "0" ] || return 0
+	_n=`su postgres -s /bin/sh -c "psql -tAc 'show server_version_num'" 2>/dev/null`
+	[ -n "$_n" ] && echo $((_n / 10000))
+}
+
+# Work out where the components are on a server installed before platform.conf existed.
+# Those were all Ubuntu, with Tomcat from either the packages or the tarball
+platform_discover() {
+	if [ $SMAP_FAMILY = "debian" ] && [ -f /var/lib/tomcat10/bin/catalina.sh ]; then
+		tomcat_use_tarball
+	fi
+	if platform_local_db; then
+		SMAP_PG_VERSION=`pg_server_major`
+		if [ -z "$SMAP_PG_VERSION" ]; then
+			case $SMAP_FAMILY in
+				debian) SMAP_PG_VERSION=`ls /etc/postgresql 2>/dev/null | sort -n | tail -1` ;;
+				*) pg_paths; SMAP_PG_VERSION=`cat $PG_DATA_DIR/PG_VERSION 2>/dev/null` ;;
+			esac
+		fi
+		pg_paths $SMAP_PG_VERSION
+	fi
+}
+
+validate_path() {
+	[ -e "$1" ] || _missing="$_missing
+  $1"
+}
+
+validate_service() {
+	systemctl cat $1 > /dev/null 2>&1 || _missing="$_missing
+  service $1"
+}
+
+# Check that everything the settings point to is on this server
+platform_validate() {
+	_missing=""
+	id $TOMCAT_USER > /dev/null 2>&1 || _missing="$_missing
+  user $TOMCAT_USER"
+	if platform_web; then
+		validate_path $TOMCAT_INSTALL_DIR/lib/catalina.jar
+		validate_path $TOMCAT_CONF_DIR/server.xml
+		validate_path $TOMCAT_WEBAPPS
+		validate_path $TOMCAT_LIB
+		validate_service $TOMCAT_SERVICE
+		command -v $APACHECTL > /dev/null || _missing="$_missing
+  command $APACHECTL"
+		validate_path $APACHE_SITE_DIR
+		validate_service $APACHE_SERVICE
+	fi
+	if platform_local_db; then
+		validate_path $PG_CONF_DIR/postgresql.conf
+		validate_service $PG_SERVICE
+	fi
+	if [ -n "$_missing" ]; then
+		echo "ERROR: These were expected on this server but were not found:$_missing"
+		return 1
+	fi
+	return 0
+}
+
+platform_save() {
+	mkdir -p `dirname $SMAP_PLATFORM_CONF`
+	{
+		echo "# Written by Smap on `date +%Y-%m-%d`, $SMAP_OS_NAME"
+		echo "#"
+		echo "# Where this server's components are, read by the install and deploy scripts."
+		echo "# Delete this file to have deploy.sh detect them again."
+		for _s in $SMAP_PLATFORM_SETTINGS
+		do
+			eval _val=\$$_s
+			printf '%s="%s"\n' $_s "$_val"
+		done
+	} > $SMAP_PLATFORM_CONF
+	chmod 644 $SMAP_PLATFORM_CONF
+	echo "Saved this server's settings in $SMAP_PLATFORM_CONF"
+}
+
+# Check the versions that are installed, when deploying.  PostgreSQL only gets a warning, as
+# a server upgraded from an older release can still be running the older version's cluster
+platform_check_installed() {
+	_failed=""
+	echo "Checking the versions installed"
+	check_row "Component" "Needed" "Installed" ""
+
+	_v=`java -version 2>&1 | sed -n 's/.*version "\([^"]*\)".*/\1/p' | head -1`
+	check_version "$_v" $SMAP_MIN_JAVA
+	check_row "Java" "$SMAP_MIN_JAVA" "$_v" $_result
+
+	if platform_web; then
+		_v=`java -cp $TOMCAT_INSTALL_DIR/lib/catalina.jar org.apache.catalina.util.ServerInfo 2>/dev/null | sed -n 's/^Server number: *//p'`
+		check_version "$_v" $SMAP_MIN_TOMCAT
+		check_row "Tomcat" "$SMAP_MIN_TOMCAT" "$_v" $_result
+
+		_v=`$APACHECTL -v 2>/dev/null | sed -n 's|^Server version: Apache/\([0-9.]*\).*|\1|p'`
+		check_version "$_v" $SMAP_MIN_APACHE
+		check_row "Apache" "$SMAP_MIN_APACHE" "$_v" $_result
+	fi
+
+	if platform_local_db; then
+		_v=`pg_server_major`
+		_v=${_v:-$SMAP_PG_VERSION}
+		if version_ge "$_v" $SMAP_MIN_POSTGRES; then
+			_result=ok
+		else
+			_result="warning, upgrade to $SMAP_MIN_POSTGRES or later"
+		fi
+		check_row "PostgreSQL" "$SMAP_MIN_POSTGRES" "$_v" "$_result"
+	fi
+
+	if [ -n "$_failed" ]; then
+		echo ""
+		echo "ERROR: This server does not have the versions Smap needs."
+		return 1
+	fi
+	return 0
+}
+
+# Used by the deploy scripts.  Loads the saved settings or, on a server installed before they
+# were saved, detects and saves them.  Then checks the installed versions
+platform_setup() {
+	platform_detect || return 1
+	if [ -f $SMAP_PLATFORM_CONF ]; then
+		. $SMAP_PLATFORM_CONF
+		if ! platform_validate; then
+			echo "The settings came from $SMAP_PLATFORM_CONF.  Correct it, or delete it to have them detected again"
+			return 1
+		fi
+	else
+		echo "Detecting this server's settings, as there is no $SMAP_PLATFORM_CONF"
+		platform_discover
+		platform_validate || return 1
+		platform_save
+	fi
+	platform_check_installed
 }
 
 #

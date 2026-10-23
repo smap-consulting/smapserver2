@@ -1,34 +1,34 @@
 #!/bin/sh
 
-# Set flag for ubuntu version
-u2204=`lsb_release -r | grep -c "22\.04"`
-u2404=`lsb_release -r | grep -c "24\.04"`
-u2604=`lsb_release -r | grep -c "26\.04"`
+# Where this server's components are, saved by install.sh or deploy.sh
+. ./platform.sh
+platform_detect || exit 1
+[ -f $SMAP_PLATFORM_CONF ] && . $SMAP_PLATFORM_CONF
 
 TOMCAT_VERSION=tomcat10
-TOMCAT_USER=tomcat
-if [ $u2604 -eq 1 ]; then
-    # 26.04: apt install - config at /etc/tomcat10
-    tc_server_xml="/etc/$TOMCAT_VERSION/server.xml"
-else
-    # 24.04 and 22.04: manual install - config at /var/lib/tomcat10/conf
-    tc_server_xml="/var/lib/$TOMCAT_VERSION/conf/server.xml"
-fi
+tc_server_xml="$TOMCAT_CONF_DIR/server.xml"
 
 echo "Updating Tomcat configuration"
 sudo cp config_files/server.xml.$TOMCAT_VERSION $tc_server_xml
 
 echo "Setting up Apache 2.4"
-a_config_dir="/etc/apache2/sites-available"
+a_config_dir=$APACHE_SITE_DIR
 
 sudo cp $a_config_dir/smap-volatile.conf $a_config_dir/smap-volatile.conf.bu
 sudo cp config_files/a24-smap-volatile.conf $a_config_dir/smap-volatile.conf
 
 # Ensure apache loads the environment variables and export them
-avars_set=`grep "\. /etc/environment" /etc/apache2/envvars | wc -l`
-if [ $avars_set -eq 0 ]; then
-    echo "set -a"  >> /etc/apache2/envvars
-    echo ". /etc/environment" >> /etc/apache2/envvars
-    echo "set +a"  >> /etc/apache2/envvars
+if [ $SMAP_FAMILY = "debian" ]; then
+    avars_set=`grep "\. /etc/environment" /etc/apache2/envvars | wc -l`
+    if [ $avars_set -eq 0 ]; then
+        echo "set -a"  >> /etc/apache2/envvars
+        echo ". /etc/environment" >> /etc/apache2/envvars
+        echo "set +a"  >> /etc/apache2/envvars
+    fi
+else
+    # There is no envvars file, systemd passes them to Apache instead
+    mkdir -p /etc/systemd/system/$APACHE_SERVICE.service.d
+    printf '[Service]\nEnvironmentFile=/etc/environment\n' > /etc/systemd/system/$APACHE_SERVICE.service.d/smap-environment.conf
+    systemctl daemon-reload
 fi
-sudo service apache2 reload
+sudo systemctl reload $APACHE_SERVICE
