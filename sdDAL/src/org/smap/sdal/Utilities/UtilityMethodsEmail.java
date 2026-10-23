@@ -701,16 +701,17 @@ public class UtilityMethodsEmail {
 			destRoot = dest.substring(0, idx + 1);
 		}
 
-		String os = System.getProperty("os.name");
-		String binDir = "/usr/bin/";
-		if(os.startsWith("Mac")) {
-			binDir = "/usr/local/bin/";
-		} 
+		/*
+		 * The tools are found on the PATH, which varies between Linux distributions, with the
+		 * Mac locations added for development.  ImageMagick 7 is called magick, convert is the
+		 * version 6 name and is deprecated in 7.  The input file comes first, which both accept
+		 */
+		String setup = "PATH=$PATH:/usr/local/bin:/opt/homebrew/bin; im=`command -v magick || echo convert`; ";
 		String cmd = null;
 		if(contentType.startsWith("image")) {
-			cmd = binDir + "convert -thumbnail 100x100 \"" + file.getAbsolutePath() + "\" \"" + dest + "\"";
+			cmd = setup + "\"$im\" \"" + file.getAbsolutePath() + "\" -thumbnail 100x100 \"" + dest + "\"";
 		} else if(contentType.startsWith("video")) {
-			cmd = binDir + "ffmpeg -i \"" + file.getAbsolutePath() + "\" -vf scale=-1:100 -vframes 1 \"" + destRoot + "jpg\" -y";
+			cmd = setup + "ffmpeg -i \"" + file.getAbsolutePath() + "\" -vf scale=-1:100 -vframes 1 \"" + destRoot + "jpg\" -y";
 		} 
 
 		log.fine("Exec: " + cmd);
