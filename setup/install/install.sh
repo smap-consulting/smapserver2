@@ -59,11 +59,13 @@ echo 'This script has been specified to work on Ubuntu only and assumes you are 
 echo 'However Smap can be deployed on any variant of Linux, Mac and Windows'
 echo 'If you have an existing database then you may need to apply database patched to complete the installation. The script will not overwrite an existing database.  However you should BACK UP ANY EXISTING DATA BEFORE UPGRADING'
 
-# The domain name, which can already exist or be created later.  It cannot be worked out from the
-# machine, whose host name is usually an internal one.  Set SMAP_DOMAIN to install without asking.
-if [ -z "${SMAP_DOMAIN+set}" ]; then
-	read -r -p 'Domain name for this server, for example smap.example.com (leave blank if none): ' SMAP_DOMAIN
-fi
+# The domain name, which can already exist or be created later, or the IP address if the server has
+# no domain name.  It cannot be worked out from the machine, whose host name is usually an internal
+# one.  Apache refuses requests for any other host name.  Set SMAP_DOMAIN to install without asking.
+while ! echo "$SMAP_DOMAIN" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$'
+do
+	read -r -p 'Domain name for this server, for example smap.example.com, or its IP address if it has none: ' SMAP_DOMAIN
+done
 
 read -r -p 'Do you want to continue? (y/n) ' choice
 case $choice in
@@ -205,7 +207,7 @@ if [ "$config" != "manual" ]; then
 
 	sudo service apache2 stop
 	sudo service $TOMCAT_VERSION stop
-        if [ $DBHOST = "127.0.0.1" ]; then
+        if [ "$DBHOST" = "127.0.0.1" ]; then
 	    sudo service postgresql stop
 	    echo '# copy postgres conf file'
 		if [ ! -f "$pg_conf.bu" ]; then

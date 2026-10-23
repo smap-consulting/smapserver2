@@ -2,7 +2,14 @@
 deploy_from="version1"
 
 # Get location of database
-if [ $DBHOST = "127.0.0.1" ]
+# From /etc/environment if it is not in this environment, as on a new install, where install.sh has
+# only just written it there and sudo does not pass it on.  Without it this would be taken for a
+# remote database and the patches would not be applied
+if [ -z "$DBHOST" ]; then
+	DBHOST=`sed -n 's/^DBHOST=//p' /etc/environment | tr -d '"' | tail -1`
+fi
+DBHOST=${DBHOST:-127.0.0.1}; export DBHOST
+if [ "$DBHOST" = "127.0.0.1" ]
 then
         echo "local database"
         PSQL="psql"
@@ -160,7 +167,7 @@ echo "Current Smap Version is $version"
 #
 # A remote database (RDS) cannot be changed this way - ALTER SYSTEM is blocked and the
 # setting belongs in a DB parameter group.  See RDS_TUNING.md.
-if [ $DBHOST = "127.0.0.1" ]; then
+if [ "$DBHOST" = "127.0.0.1" ]; then
     preload_now=`echo "show shared_preload_libraries" | sudo -i -u postgres $PSQL -tA -d survey_definitions 2>/dev/null`
     preload_set=`echo "$preload_now" | grep -c pg_stat_statements`
     if [ "$preload_set" -eq 0 ]; then

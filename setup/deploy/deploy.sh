@@ -40,7 +40,14 @@ mv /etc/environment.temp /etc/environment
 echo "SESSPASS=\"`cat /dev/urandom | tr -dc '[:alnum:]' | head -c 10`\"" >> /etc/environment
 
 # Get location of database
-if [ $DBHOST = "127.0.0.1" ]
+# From /etc/environment if it is not in this environment, as on a new install, where install.sh has
+# only just written it there and sudo does not pass it on.  Without it this would be taken for a
+# remote database and the patches would not be applied
+if [ -z "$DBHOST" ]; then
+	DBHOST=`sed -n 's/^DBHOST=//p' /etc/environment | tr -d '"' | tail -1`
+fi
+DBHOST=${DBHOST:-127.0.0.1}; export DBHOST
+if [ "$DBHOST" = "127.0.0.1" ]
 then
         echo "local database"
         PSQL="psql"
@@ -59,7 +66,7 @@ service apache2 stop
 service $TOMCAT_VERSION stop
 systemctl stop subscribers
 systemctl stop subscribers_fwd
-if [ $DBHOST = "127.0.0.1" ]; then
+if [ "$DBHOST" = "127.0.0.1" ]; then
     service postgresql stop
 fi
 
@@ -189,7 +196,7 @@ then
 fi
 
 # Restart Servers
-if [ $DBHOST = "127.0.0.1" ]; then
+if [ "$DBHOST" = "127.0.0.1" ]; then
     service postgresql start
     echo "Starting postgres"
 

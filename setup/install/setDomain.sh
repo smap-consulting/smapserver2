@@ -1,23 +1,24 @@
 #!/bin/sh
-##### Set the domain name that the Apache virtual hosts answer to
+##### Set the domain name, or IP address, that the Apache virtual hosts answer to
 #
-# Usage: sudo ./setDomain.sh example.com     Only accept requests for example.com
-#        sudo ./setDomain.sh                 No domain, accept requests for any host name
+# Usage: sudo ./setDomain.sh smap.example.com
+#        sudo ./setDomain.sh 203.0.113.10       A server without a domain name
 #
 # Called by install.sh, and can be run again later, for example when a server that was installed
-# without a domain is given one.  It edits smap.conf and smap-ssl.conf where they are, so changes
-# made since the install, such as the certificate lines certbot adds, are kept.
+# with an IP address is given a domain name.  It edits smap.conf and smap-ssl.conf where they are,
+# so changes made since the install, such as the certificate lines certbot adds, are kept.
 #
-# The application builds links in emails from the host name a request arrives with, so with a
-# domain set any request for another host name is refused, which stops a forged Host header
-# putting another site in those links.  Without one that protection is not there.
+# The application builds links in emails from the host name a request arrives with, so any request
+# for another host name is refused, which stops a forged Host header putting another site in those
+# links.  There is no option to accept any host name, as that would remove this protection.
 
 domain=$1
 a_config_dir=${A_CONFIG_DIR:-/etc/apache2/sites-available}
 
-# Only the characters a host name can have, as the value is written into the Apache configuration
-if [ -n "$domain" ] && ! echo "$domain" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$'; then
-	echo "Invalid domain name: $domain"
+# Only the characters a host name or IPv4 address can have, as the value is written into the Apache configuration
+if ! echo "$domain" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$'; then
+	echo "Usage: sudo ./setDomain.sh {domain name or IP address}"
+	[ -n "$domain" ] && echo "Invalid domain name or IP address: $domain"
 	exit 1
 fi
 
@@ -35,7 +36,7 @@ do
 		skip { if ($0 ~ /^[[:space:]]*<\/If>/) skip = 0; next }
 		/^[[:space:]]*Server(Name|Alias)[[:space:]]/ { next }
 		{ print }
-		/^<VirtualHost / && domain != "" {
+		/^<VirtualHost / {
 			print "    ServerName " domain
 			print "    <If \"req(" q "Host" q ") != " q domain q "\">"
 			print "       Deny from all"
@@ -45,13 +46,7 @@ do
 	rm -f $tmp
 done
 
-if [ -n "$domain" ]; then
-	echo "Apache will only accept requests for $domain"
-else
-	echo "WARNING: No domain name set, Apache will accept requests for any host name."
-	echo "Links in emails will use whatever host name a request arrives with."
-	echo "When the server has a domain name run: sudo ./setDomain.sh <domain name>"
-fi
+echo "Apache will only accept requests for $domain"
 
 if command -v systemctl > /dev/null && systemctl is-active --quiet apache2; then
 	apache2ctl configtest && systemctl reload apache2
