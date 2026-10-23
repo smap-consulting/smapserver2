@@ -12,28 +12,34 @@ config="auto"
 clean="true"
 filelocn="/smap"
 
+# Work out which Linux this is and check that its packages have the versions Smap needs,
+# before anything on the server is changed
+. ./platform.sh
+platform_detect || exit 1
+
+# Until deploy.sh and patchdb.sh use platform.sh only Ubuntu can be installed
+if [ "$SMAP_OS_ID" != "ubuntu" ]; then
+    echo "ERROR: $SMAP_OS_NAME is not supported yet, only Ubuntu"
+    exit 1
+fi
+
+# The database is remote if DBHOST is set to anything other than this server
+dbhost_now=${DBHOST:-`sed -n 's/^DBHOST=//p' /etc/environment | tr -d '"' | tail -1`}
+if [ -z "$dbhost_now" ] || [ "$dbhost_now" = "127.0.0.1" ]; then
+    db_location=local
+else
+    db_location=remote
+fi
+
+pkg_update > /dev/null
+platform_check_versions $db_location || exit 1
+echo ""
+
 # Add a default setting of 127.0.0.1 as the DBHOST if it has not already been set
 dbhost_set=`grep DBHOST /etc/environment | wc -l`
 if [ $dbhost_set -eq 0 ]; then
     echo "DBHOST=127.0.0.1" >> /etc/environment
     DBHOST=127.0.0.1; export DBHOST;
-fi
-
-# Set flag for ubuntu version
-u2204=`lsb_release -r | grep -c "22\.04"`
-u2404=`lsb_release -r | grep -c "24\.04"`
-u2604=`lsb_release -r | grep -c "26\.04"`
-
-# Check that this version of ubuntu is supported
-if [ $u2604 -eq 1 ]; then
-    echo "Installing on Ubuntu 26.04"
-elif [ $u2404 -eq 1 ]; then
-    echo "Installing on Ubuntu 24.04"
-elif [ $u2204 -eq 1 ]; then
-    echo "Installing on Ubuntu 22.04"
-else
-    echo "Unsupported version of Ubuntu, you need 26.04, 24.04, or 22.04"
-    exit 1;
 fi
 
 
@@ -101,8 +107,8 @@ sudo a2enmod session_crypto
 sudo mkdir /var/www/smap
 
 echo "##### 3. Install Tomcat: $TOMCAT_VERSION"
-if [ $u2604 -eq 1 ]; then
-    # 26.04: tomcat10 and java 21 available natively via apt
+if [ "$TOMCAT_TARBALL" != "yes" ]; then
+    # tomcat10 from the packages, which platform_check_versions found to be new enough
     sudo apt-get install openjdk-21-jdk-headless -y
     sudo apt-get install tomcat10 -y
     echo 'Fix tomcat10 logs symlink for systemd sandboxing'
@@ -111,8 +117,8 @@ if [ $u2604 -eq 1 ]; then
     sudo rm -rf /var/lib/tomcat10/logs
     sudo ln -s /var/log/tomcat10 /var/lib/tomcat10/logs
     sudo chown tomcat:tomcat /var/log/tomcat10
-elif [ $u2404 -eq 1 ] || [ $u2204 -eq 1 ]; then
-    # 24.04 and 22.04: manual wget install (apt does not provide tomcat10)
+else
+    # An Ubuntu LTS release whose packages do not have Tomcat 10.1: the tarball from apache.org
     tc_server_xml="/var/lib/$TOMCAT_VERSION/conf/server.xml"
     tc_context_xml="/var/lib/$TOMCAT_VERSION/conf/context.xml"
     tc_logging="/var/lib/$TOMCAT_VERSION/conf/logging.properties"
@@ -123,7 +129,7 @@ elif [ $u2404 -eq 1 ] || [ $u2204 -eq 1 ]; then
     sudo groupadd tomcat 2>/dev/null || true
     sudo useradd -s /bin/false -g tomcat -d /var/lib/tomcat10 tomcat 2>/dev/null || true
     echo 'get tomcat'
-    TC10_VER=10.1.40
+    TC10_VER=$SMAP_TOMCAT_TARBALL_VERSION
     wget https://archive.apache.org/dist/tomcat/tomcat-10/v${TC10_VER}/bin/apache-tomcat-${TC10_VER}.tar.gz
     sudo mkdir -p /var/lib/tomcat10
     sudo tar xzf apache-tomcat-10*tar.gz -C /var/lib/tomcat10 --strip-components=1
@@ -148,20 +154,8 @@ echo '##### 5. Install Postgres / Postgis'
 if [ "$DBHOST" = "127.0.0.1" ]; then
 
     echo 'installing postgres'
-    # Install Postgres for Ubuntu 26.04
-    if [ $u2604 -eq 1 ]; then
-        PGV=18
-    fi
-
-    # Install Postgres for Ubuntu 24.04
-    if [ $u2404 -eq 1 ]; then
-        PGV=16
-    fi
-
-    # Install Postgres for Ubuntu 22.04
-    if [ $u2204 -eq 1 ]; then
-        PGV=14
-    fi
+    # The major version the packages provide, found by platform_check_versions
+    PGV=$SMAP_PG_VERSION
 
     sudo apt-get install postgresql postgresql-contrib postgis -y
     pg_conf="/etc/postgresql/$PGV/main/postgresql.conf"
@@ -209,11 +203,16 @@ if [ "$config" != "manual" ]; then
 	sudo service $TOMCAT_VERSION stop
         if [ "$DBHOST" = "127.0.0.1" ]; then
 	    sudo service postgresql stop
-	    echo '# copy postgres conf file'
-		if [ ! -f "$pg_conf.bu" ]; then
-	    	sudo mv $pg_conf $pg_conf.bu
+	    # There is a configuration file only for the versions Smap has been installed with before
+	    if [ -f config_files/postgresql.conf.$PGV ]; then
+	        echo '# copy postgres conf file'
+		    if [ ! -f "$pg_conf.bu" ]; then
+	    	    sudo mv $pg_conf $pg_conf.bu
+	        fi
+	        sudo cp config_files/postgresql.conf.$PGV $pg_conf
+	    else
+	        echo "# no postgres conf file for version $PGV, keeping the one installed with it"
 	    fi
-	    sudo cp config_files/postgresql.conf.$PGV $pg_conf
 	fi
 
 	echo '# copy tomcat server file'

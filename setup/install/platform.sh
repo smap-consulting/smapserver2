@@ -221,14 +221,14 @@ platform_arch() {
 # Packages
 #
 
+# Refresh the list of available packages, so pkg_candidate sees current versions.  Nothing
+# is installed or upgraded
 pkg_update() {
 	case $SMAP_FAMILY in
 		debian) apt-get update ;;
 		rhel) dnf -y makecache ;;
 		suse) zypper --non-interactive refresh ;;
-		# Arch does not support installing packages after a refresh without also
-		# upgrading, so this upgrades the whole system
-		arch) pacman -Syu --noconfirm ;;
+		arch) pacman -Sy ;;
 	esac
 }
 
@@ -237,7 +237,9 @@ pkg_install() {
 		debian) DEBIAN_FRONTEND=noninteractive apt-get install -y "$@" ;;
 		rhel) dnf install -y "$@" ;;
 		suse) zypper --non-interactive install "$@" ;;
-		arch) pacman -S --noconfirm --needed "$@" ;;
+		# Arch does not support installing packages from a refreshed list without upgrading
+		# the rest of the system to match
+		arch) pacman -Syu --noconfirm --needed "$@" ;;
 	esac
 }
 
@@ -267,9 +269,9 @@ version_clean() {
 
 # True if version $1 is $2 or later
 version_ge() {
-	v1=`version_clean "$1"`
-	v2=`version_clean "$2"`
-	[ -n "$v1" ] && [ "`printf '%s\n%s\n' "$v2" "$v1" | sort -V | head -1`" = "$v2" ]
+	_v1=`version_clean "$1"`
+	_v2=`version_clean "$2"`
+	[ -n "$_v1" ] && [ "`printf '%s\n%s\n' "$_v2" "$_v1" | sort -V | head -1`" = "$_v2" ]
 }
 
 # Major version, 16.4 -> 16
@@ -284,10 +286,10 @@ version_major() {
 # True if this Ubuntu LTS release may use the Tomcat tarball
 tomcat_tarball_allowed() {
 	[ "$SMAP_OS_ID" = "ubuntu" ] || return 1
-	now=`date +%Y%m`
-	for r in $SMAP_TOMCAT_TARBALL_RELEASES
+	_now=`date +%Y%m`
+	for _r in $SMAP_TOMCAT_TARBALL_RELEASES
 	do
-		if [ "${r%%:*}" = "$SMAP_OS_VERSION" ] && [ "$now" -lt "${r#*:}" ]; then
+		if [ "${_r%%:*}" = "$SMAP_OS_VERSION" ] && [ "$_now" -lt "${_r#*:}" ]; then
 			return 0
 		fi
 	done
@@ -321,15 +323,15 @@ apache_enable_module() {
 			# Most modules are loaded by the stock configuration.  Any that are not are
 			# loaded from a file of Smap's own so the distribution's files are left alone
 			if [ $SMAP_FAMILY = "rhel" ]; then
-				conf=/etc/httpd/conf.modules.d/99-smap.conf
+				_conf=/etc/httpd/conf.modules.d/99-smap.conf
 			else
-				conf=/etc/httpd/conf/smap-modules.conf
-				apache_include $conf
+				_conf=/etc/httpd/conf/smap-modules.conf
+				apache_include $_conf
 			fi
 			# mod_ssl needs a session cache, which Debian enables along with it
 			[ $1 = "ssl" ] && apache_enable_module socache_shmcb
 			if ! $APACHECTL -M 2>/dev/null | grep -q " $1_module"; then
-				grep -qs "^LoadModule $1_module " $conf || echo "LoadModule $1_module modules/mod_$1.so" >> $conf
+				grep -qs "^LoadModule $1_module " $_conf || echo "LoadModule $1_module modules/mod_$1.so" >> $_conf
 			fi
 			;;
 	esac
@@ -399,6 +401,138 @@ pg_initdb() {
 }
 
 #
+# Version check
+#
+# Run before anything is installed or changed.  Asks the package manager which version of
+# each component it would install, prints them against the versions Smap needs and returns
+# false if any required one is missing or too old, so that the install can stop while the
+# server is still as it was.  Call pkg_update first so the versions are current.
+#
+# $1 is "remote" if the database is on another server, in which case only the PostgreSQL
+# client is needed here.
+#
+# Sets SMAP_PG_VERSION to the PostgreSQL major version that will be installed, and switches
+# to the Tomcat tarball locations if the package is too old but the tarball is allowed.
+#
+
+check_row() {
+	printf '%-12s %-10s %-24s %s\n' "$1" "$2" "${3:-none}" "$4"
+}
+
+check_note() {
+	printf '%-48s %s\n' "" "$1"
+}
+
+# Record the result of one check.  $1 is the version found, $2 the minimum
+check_version() {
+	if version_ge "$1" "$2"; then
+		_result=ok
+	else
+		_result=FAIL
+		_failed=yes
+	fi
+}
+
+# Every package in the list must be available
+check_available() {
+	for _p in "$@"
+	do
+		_v=`pkg_candidate $_p`
+		if [ -z "$_v" ]; then
+			check_note "FAIL: package $_p not available"
+			_failed=yes
+		fi
+	done
+}
+
+# What stops working without an optional package
+optional_feature() {
+	case $1 in
+		imagemagick|ImageMagick) echo "photo thumbnails" ;;
+		ffmpeg*) echo "video thumbnails and audio conversion" ;;
+		*exif*|*Exif*) echo "keeping exif data in resized photos" ;;
+		gdal*) echo "shapefile and KML export" ;;
+		zip) echo "zip downloads" ;;
+		*dejavu*) echo "fonts in PDF reports" ;;
+		*) echo "$1" ;;
+	esac
+}
+
+platform_check_versions() {
+	_db=$1
+	_failed=""
+	_hints=""
+
+	echo "Checking the versions $SMAP_OS_NAME provides"
+	check_row "Component" "Needed" "Available" ""
+
+	_v=`pkg_candidate $PKG_JAVA`
+	check_version "$_v" $SMAP_MIN_JAVA
+	check_row "Java" "$SMAP_MIN_JAVA" "$_v" $_result
+
+	_v=`pkg_candidate $PKG_TOMCAT`
+	if version_ge "$_v" $SMAP_MIN_TOMCAT; then
+		_result=ok
+	elif tomcat_tarball_allowed; then
+		tomcat_use_tarball
+		_result="ok, tarball $SMAP_TOMCAT_TARBALL_VERSION will be used"
+	else
+		_result=FAIL
+		_failed=yes
+	fi
+	check_row "Tomcat" "$SMAP_MIN_TOMCAT" "$_v" "$_result"
+
+	set -- $PKG_APACHE
+	_v=`pkg_candidate $1`
+	check_version "$_v" $SMAP_MIN_APACHE
+	check_row "Apache" "$SMAP_MIN_APACHE" "$_v" $_result
+	shift
+	check_available "$@"
+
+	if [ "$_db" = "remote" ]; then
+		check_available $PKG_PG_CLIENT
+		SMAP_PG_VERSION=""
+	else
+		set -- $PKG_PG_SERVER
+		_v=`pkg_candidate $1`
+		SMAP_PG_VERSION=`version_major "$_v"`
+		check_version "$_v" $SMAP_MIN_POSTGRES
+		check_row "PostgreSQL" "$SMAP_MIN_POSTGRES" "$_v" $_result
+		if [ $_result = "FAIL" ] && [ $SMAP_FAMILY = "rhel" ]; then
+			_hints="$_hints
+A newer PostgreSQL may be available as a module stream, see: dnf module list postgresql
+For example: dnf module enable postgresql:16"
+		fi
+		shift
+		check_available "$@"
+
+		_p=`pkg_postgis $SMAP_PG_VERSION`
+		_v=`pkg_candidate $_p`
+		check_version "$_v" $SMAP_MIN_POSTGIS
+		check_row "PostGIS" "$SMAP_MIN_POSTGIS" "$_v" "$_result ($_p)"
+		if [ $_result = "FAIL" ] && [ $SMAP_FAMILY = "suse" ]; then
+			_hints="$_hints
+PostGIS is in the openSUSE Application:Geo repository, which needs to be added"
+		fi
+	fi
+
+	# Optional packages are reported but do not stop the install
+	for _p in $PKG_MEDIA $PKG_UTILS
+	do
+		if [ -z "`pkg_candidate $_p`" ]; then
+			check_note "warning: $_p not available, no `optional_feature $_p`"
+		fi
+	done
+
+	if [ -n "$_failed" ]; then
+		echo ""
+		echo "ERROR: $SMAP_OS_NAME does not provide the versions Smap needs.  Nothing has been changed.$_hints"
+		return 1
+	fi
+	return 0
+}
+
+#
 # Certificates
 #
 
@@ -423,13 +557,8 @@ if [ "${0##*/}" = "platform.sh" ] && [ "$1" = "show" ]; then
 	echo "OS:      $SMAP_OS_NAME ($SMAP_OS_ID $SMAP_OS_VERSION)"
 	echo "Family:  $SMAP_FAMILY"
 	if command -v $PKG_MANAGER > /dev/null; then
-		for p in $PKG_JAVA $PKG_TOMCAT `echo $PKG_APACHE | cut -d' ' -f1` `echo $PKG_PG_SERVER | cut -d' ' -f1`
-		do
-			echo "Package: $p `pkg_candidate $p`"
-		done
-	fi
-	if tomcat_tarball_allowed; then
-		echo "Tomcat:  tarball $SMAP_TOMCAT_TARBALL_VERSION allowed if the package is older than $SMAP_MIN_TOMCAT"
+		platform_check_versions
+		echo ""
 	fi
 	echo "Apache:  $APACHE_SERVICE, user $APACHE_USER, sites in $APACHE_SITE_DIR"
 	echo "Tomcat:  $TOMCAT_SERVICE, user $TOMCAT_USER, webapps in $TOMCAT_WEBAPPS"
