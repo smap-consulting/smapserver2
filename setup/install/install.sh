@@ -381,10 +381,6 @@ fi
 
 echo '##### 19. Update miscelaneous file configurations'
 
-if [ $SMAP_FAMILY = "debian" ]; then
-    sudo apt-get install mlocate -y
-fi
-
 echo '##### Add file location to tomcat configuration'
 
 BU_FILE=$TOMCAT_CONF_DIR/web.xml.bu

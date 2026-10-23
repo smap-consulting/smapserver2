@@ -14,7 +14,7 @@ sudo cp config_files/server.xml.$TOMCAT_VERSION $tc_server_xml
 echo "Setting up Apache 2.4"
 a_config_dir=$APACHE_SITE_DIR
 
-sudo cp $a_config_dir/smap-volatile.conf $a_config_dir/smap-volatile.conf.bu
+[ -f $a_config_dir/smap-volatile.conf ] && sudo cp $a_config_dir/smap-volatile.conf $a_config_dir/smap-volatile.conf.bu
 sudo cp config_files/a24-smap-volatile.conf $a_config_dir/smap-volatile.conf
 
 # Ensure apache loads the environment variables and export them
