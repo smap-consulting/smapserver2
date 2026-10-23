@@ -992,3 +992,8 @@ create index if not exists idx_people_subscribe_token on people(subscribe_token)
 -- and until then devices and the API refuse it.  A password_set of 'epoch' marks this whatever the expiry
 -- setting.  Only that account, other users who have never set a password, such as enumerators, are left alone.
 update users set password_set = 'epoch' where ident = 'admin' and password = md5('admin:smap:admin');
+
+-- A user who rejects a self assigned task is recorded once.  The unique index was on a_id, which tasks
+-- no longer set since they moved to t_id, so it never applied and new installs failed to create it
+delete from task_rejected a using task_rejected b where a.t_id = b.t_id and a.ident = b.ident and a.id > b.id;
+create unique index if not exists task_rejected_task_ident on task_rejected(t_id, ident);

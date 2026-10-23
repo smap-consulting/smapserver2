@@ -307,6 +307,17 @@ tomcat_tarball_allowed() {
 	return 1
 }
 
+# True if Tomcat would come from Ubuntu's universe repository, which only gets security fixes
+# through Ubuntu Pro (ESM), on a server that does not have it
+tomcat_package_unpatched() {
+	[ "$SMAP_OS_ID" = "ubuntu" ] || return 1
+	case `apt-cache show --no-all-versions $PKG_TOMCAT 2>/dev/null | sed -n 's/^Section: //p' | head -1` in
+		universe/*|multiverse/*) ;;
+		*) return 1 ;;
+	esac
+	! pro status 2>/dev/null | grep -Eq '^esm-apps[[:space:]].*[[:space:]]enabled'
+}
+
 # Locations used by the tarball install, which is all under /var/lib/tomcat10
 tomcat_use_tarball() {
 	TOMCAT_TARBALL=yes
@@ -482,11 +493,17 @@ platform_check_versions() {
 	check_row "Java" "$SMAP_MIN_JAVA" "$_v" $_result
 
 	_v=`pkg_candidate $PKG_TOMCAT`
-	if version_ge "$_v" $SMAP_MIN_TOMCAT; then
+	if version_ge "$_v" $SMAP_MIN_TOMCAT && ! tomcat_package_unpatched; then
 		_result=ok
 	elif tomcat_tarball_allowed; then
 		tomcat_use_tarball
-		_result="ok, tarball $SMAP_TOMCAT_TARBALL_VERSION will be used"
+		if version_ge "$_v" $SMAP_MIN_TOMCAT; then
+			_result="ok, tarball $SMAP_TOMCAT_TARBALL_VERSION will be used as the package gets no security fixes without Ubuntu Pro"
+		else
+			_result="ok, tarball $SMAP_TOMCAT_TARBALL_VERSION will be used"
+		fi
+	elif version_ge "$_v" $SMAP_MIN_TOMCAT; then
+		_result="ok, but the package gets no security fixes without Ubuntu Pro"
 	else
 		_result=FAIL
 		_failed=yes

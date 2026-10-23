@@ -1406,7 +1406,7 @@ CREATE TABLE public.task_rejected (
 	ident text,		 -- user identifier
 	rejected_at timestamp with time zone
 );
-CREATE UNIQUE INDEX taskRejected ON task_rejected(a_id, ident);
+CREATE UNIQUE INDEX task_rejected_task_ident ON task_rejected(t_id, ident);
 ALTER TABLE public.task_rejected OWNER TO ws;
 
 -- Record sending of notification reminders
