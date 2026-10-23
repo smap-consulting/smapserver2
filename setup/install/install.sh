@@ -58,6 +58,13 @@ echo "If you have already installed Smap and just want to upgrade you need to ru
 echo 'This script has been specified to work on Ubuntu only and assumes you are not using Apache or Postgres currently on the server'
 echo 'However Smap can be deployed on any variant of Linux, Mac and Windows'
 echo 'If you have an existing database then you may need to apply database patched to complete the installation. The script will not overwrite an existing database.  However you should BACK UP ANY EXISTING DATA BEFORE UPGRADING'
+
+# The domain name, which can already exist or be created later.  It cannot be worked out from the
+# machine, whose host name is usually an internal one.  Set SMAP_DOMAIN to install without asking.
+if [ -z "${SMAP_DOMAIN+set}" ]; then
+	read -r -p 'Domain name for this server, for example smap.example.com (leave blank if none): ' SMAP_DOMAIN
+fi
+
 read -r -p 'Do you want to continue? (y/n) ' choice
 case $choice in
         n|N) break;;
@@ -243,6 +250,10 @@ if [ "$config" != "manual" ]; then
 		sudo cp $a_config_dir/smap-ssl.conf $a_config_dir/smap-ssl.conf.bu
 	fi
 	sudo cp config_files/a24-smap-ssl.conf $a_config_dir/smap-ssl.conf
+
+	# Fill in the domain name, or allow any host name if there is none
+	chmod +x setDomain.sh
+	sudo ./setDomain.sh $SMAP_DOMAIN
 	
 	# disable default config - TODO work out how to get Smap to coexist with existing Apache installations	
 	sudo a2dissite 000-default
