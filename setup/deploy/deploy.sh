@@ -234,6 +234,8 @@ then
 
     echo "...... starting subscriber"
     echo "go" > /smap/settings/subscriber
+    # Clear any earlier failures, which would otherwise stop systemd starting them
+    systemctl reset-failed subscribers subscribers_fwd 2>/dev/null
     systemctl enable subscribers
     systemctl start subscribers
 

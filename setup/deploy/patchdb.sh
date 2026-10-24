@@ -403,6 +403,13 @@ then
         # usermod cannot change the home of a user that owns running processes.
         # patchdb.sh otherwise leaves them up, so stop every service that runs
         # as $TOMCAT_USER (tomcat plus the subscriber processes) for the change.
+        # Note which were running, so only those are started again.  On a new install the
+        # subscribers are not set up yet, deploy.sh starts them
+        was_running=""
+        for svc in $TOMCAT_VERSION subscribers subscribers_fwd
+        do
+            systemctl is-active --quiet $svc && was_running="$was_running $svc"
+        done
         sudo systemctl stop $TOMCAT_VERSION subscribers subscribers_fwd
         sudo usermod -d $CATALINA_HOME $TOMCAT_USER
         TOMCAT_HOME=$CATALINA_HOME
@@ -414,8 +421,8 @@ then
     sudo cp $deploy_from/resources/properties/credentials $TOMCAT_HOME/.aws/credentials
     sudo chown -R $TOMCAT_USER $TOMCAT_HOME/.aws
     # Restart with the corrected home and credentials already in place
-    if [ "$NEEDS_HOME_FIX" = "true" ]; then
-        sudo systemctl start $TOMCAT_VERSION subscribers subscribers_fwd
+    if [ "$NEEDS_HOME_FIX" = "true" ] && [ -n "$was_running" ]; then
+        sudo systemctl start $was_running
     fi
     # update any other existing credential files
     for f in `locate .aws/credentials 2>/dev/null`

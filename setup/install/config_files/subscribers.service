@@ -6,6 +6,7 @@ Type=simple
 User={tomcat_user}
 ExecStart=/smap_bin/subscribers.sh default /smap upload
 Restart=on-failure
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target

@@ -100,7 +100,8 @@ platform_debian() {
 	PKG_JAVA="openjdk-21-jdk-headless"
 	PKG_TOMCAT="tomcat10"
 	PKG_APACHE="apache2 apache2-utils libaprutil1-dbd-pgsql"
-	PKG_PG_SERVER="postgresql postgresql-contrib"
+	# pgcrypto and the other contrib modules are part of postgresql-NN; Debian 13 dropped the postgresql-contrib metapackage
+	PKG_PG_SERVER="postgresql"
 	PKG_PG_CLIENT="postgresql-client"
 	PKG_EXIFTOOL="libimage-exiftool-perl"
 	PKG_MEDIA="imagemagick ffmpeg $PKG_EXIFTOOL gdal-bin"

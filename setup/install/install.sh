@@ -41,8 +41,9 @@ echo ""
 dbhost_set=`grep DBHOST /etc/environment | wc -l`
 if [ $dbhost_set -eq 0 ]; then
     echo "DBHOST=127.0.0.1" >> /etc/environment
-    DBHOST=127.0.0.1; export DBHOST;
 fi
+# sudo does not pass on /etc/environment on all distributions, Debian 13 for one
+DBHOST=${dbhost_now:-127.0.0.1}; export DBHOST
 
 
 TOMCAT_VERSION=tomcat10
@@ -80,7 +81,8 @@ echo "##### 1. Update $SMAP_OS_NAME"
 if [ $SMAP_FAMILY = "debian" ]; then
     sudo apt-get update
     sudo apt-get upgrade -y
-    sudo apt-get install ntp -y
+    # Debian 13 has no ntp, systemd-timesyncd keeps the time instead
+    [ -n "`pkg_candidate ntp`" ] && sudo apt-get install ntp -y
     sudo apt-get install rename -y
     sudo apt-get install locate -y
 fi
