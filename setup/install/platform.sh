@@ -17,7 +17,7 @@
 # Values marked "verify" have not yet been checked on a real install of that family.
 
 # Minimum versions.  The install refuses to start if the packages are older than these.
-SMAP_MIN_JAVA=21
+SMAP_MIN_JAVA=11			# the code is built for Java 11, which Tomcat 10.1 also needs; new installs get 21
 SMAP_MIN_TOMCAT=10.1
 SMAP_MIN_APACHE=2.4
 SMAP_MIN_POSTGRES=14
