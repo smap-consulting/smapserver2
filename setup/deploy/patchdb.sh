@@ -164,6 +164,12 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
         fi
         echo "Enabling pg_stat_statements (takes effect when postgres restarts)"
         echo "alter system set shared_preload_libraries = '$preload_new'" | sudo -i -u postgres $PSQL -q -d survey_definitions
+    fi
+
+    # Its settings are only recognised once it is loaded, before PostgreSQL 17, so are set on
+    # the deploy after the restart that loads it
+    stat_max=`echo "show pg_stat_statements.max" | sudo -i -u postgres $PSQL -tA -d survey_definitions 2>/dev/null`
+    if [ -n "$stat_max" ] && [ "$stat_max" != "10000" ]; then
         echo "alter system set pg_stat_statements.max = 10000" | sudo -i -u postgres $PSQL -q -d survey_definitions
         echo "alter system set pg_stat_statements.track = 'top'" | sudo -i -u postgres $PSQL -q -d survey_definitions
         echo "alter system set pg_stat_statements.track_utility = off" | sudo -i -u postgres $PSQL -q -d survey_definitions

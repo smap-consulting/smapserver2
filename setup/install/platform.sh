@@ -23,10 +23,11 @@ SMAP_MIN_APACHE=2.4
 SMAP_MIN_POSTGRES=14
 SMAP_MIN_POSTGIS=3
 
-# Tomcat has to come from the distribution's packages.  The only exception is an Ubuntu
-# LTS release that is still in standard support but whose packages do not have Tomcat
-# 10.1, which gets the tarball from apache.org instead.  Each entry is release:end of
-# standard support (year and month).  Remove a release once its support ends.
+# Tomcat has to come from the distribution's packages.  The exceptions, which get the tarball
+# from apache.org instead, are RHEL and its rebuilds, which have no Tomcat 10.1 package, and an
+# Ubuntu LTS release that is still in standard support but whose packages do not have Tomcat
+# 10.1.  Each entry is release:end of standard support (year and month).  Remove a release
+# once its support ends.
 SMAP_TOMCAT_TARBALL_RELEASES="22.04:202704 24.04:202904 26.04:203104"
 SMAP_TOMCAT_TARBALL_VERSION=10.1.40
 
@@ -128,8 +129,8 @@ platform_debian() {
 	SSL_KEY_FILE=/etc/ssl/private/ssl-cert-snakeoil.key
 }
 
-# RHEL and its rebuilds (Rocky, Alma, Oracle) and Fedora.  RHEL itself has no Tomcat 10.1
-# and an older default PostgreSQL, so the version check may refuse it where Fedora passes
+# RHEL and its rebuilds (Rocky, Alma, Oracle) and Fedora.  RHEL has no Tomcat 10.1, so gets
+# the tarball, and RHEL 9's default PostgreSQL is too old, see platform_add_required_repos
 platform_rhel() {
 	PKG_MANAGER=dnf
 	PKG_JAVA="java-21-openjdk-headless"
@@ -295,8 +296,9 @@ version_major() {
 # Tomcat
 #
 
-# True if this Ubuntu LTS release may use the Tomcat tarball
+# True if this RHEL, or Ubuntu LTS release, may use the Tomcat tarball
 tomcat_tarball_allowed() {
+	[ $SMAP_FAMILY = "rhel" ] && [ "$SMAP_OS_ID" != "fedora" ] && return 0
 	[ "$SMAP_OS_ID" = "ubuntu" ] || return 1
 	_now=`date +%Y%m`
 	for _r in $SMAP_TOMCAT_TARBALL_RELEASES
@@ -729,6 +731,7 @@ platform_setup() {
 # would otherwise fail.  PostGIS is not in openSUSE's own repositories, it is in Application:Geo,
 # which is openSUSE's own build service.  verify: repository paths
 platform_add_required_repos() {
+	[ $SMAP_FAMILY = "rhel" ] && pg_enable_stream
 	[ $SMAP_FAMILY = "suse" ] || return 0
 	[ -n "`pkg_candidate postgis`" ] && return 0
 	case $SMAP_OS_ID in
@@ -742,6 +745,17 @@ platform_add_required_repos() {
 	zypper --non-interactive --gpg-auto-import-keys refresh
 }
 
+# RHEL 9's default PostgreSQL, 13, is too old.  Newer ones are module streams in RHEL's own
+# AppStream repository, and PostGIS is only in the 16 stream.  Switch to it if nothing newer
+# than the minimum has been chosen already
+pg_enable_stream() {
+	version_ge "`pkg_candidate postgresql-server`" $SMAP_MIN_POSTGRES && return 0
+	dnf -q module list postgresql 2>/dev/null | grep -q "^postgresql  *16 " || return 0
+	echo "Enabling the PostgreSQL 16 module stream"
+	dnf module reset -y postgresql
+	dnf module enable -y postgresql:16
+}
+
 # ffmpeg with the codecs phones record video in, such as H.264, which are patented and so left out
 # of the ffmpeg in RHEL, Fedora and openSUSE's own repositories.  It comes from RPM Fusion or
 # Packman, which are run by others, so ask first.  Set SMAP_MEDIA_REPOS to yes or no to not be asked
@@ -750,6 +764,8 @@ platform_offer_media_repos() {
 		rhel)
 			command -v rpm > /dev/null && rpm -q rpmfusion-free-release > /dev/null 2>&1 && return 0
 			_repo="RPM Fusion"
+			# On RHEL ImageMagick, gdal and exiftool are also missing, they are in EPEL
+			[ "$SMAP_OS_ID" != "fedora" ] && _repo="EPEL and RPM Fusion"
 			;;
 		suse)
 			zypper -q repos 2>/dev/null | grep -qi packman && return 0
@@ -761,7 +777,7 @@ platform_offer_media_repos() {
 	_answer=$SMAP_MEDIA_REPOS
 	if [ -z "$_answer" ]; then
 		echo "Video thumbnails and audio conversion need ffmpeg with codecs that $SMAP_OS_NAME does not include."
-		printf "Add the $_repo repository, which is not part of $SMAP_OS_NAME, to get them? (y/n) "
+		printf "Add the $_repo repositories, which are not part of $SMAP_OS_NAME, to get them? (y/n) "
 		read _answer
 	fi
 	case $_answer in
@@ -776,8 +792,16 @@ platform_offer_media_repos() {
 				# Fedora's own ffmpeg-free conflicts with the full one
 				rpm -q ffmpeg-free > /dev/null 2>&1 && dnf swap -y ffmpeg-free ffmpeg --allowerasing
 			else
-				# RPM Fusion for RHEL needs EPEL
-				dnf install -y epel-release || dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-`rpm -E %rhel`.noarch.rpm
+				# RPM Fusion for RHEL needs EPEL.  The rebuilds have epel-release in their own
+				# repositories, RHEL does not
+				if [ "$SMAP_OS_ID" = "rhel" ]; then
+					dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-`rpm -E %rhel`.noarch.rpm
+				else
+					dnf install -y epel-release
+				fi
+				# Some EPEL packages need CodeReady Builder.  epel-release's crb command finds its
+				# name on RHEL, RHEL on a cloud (RHUI) and the rebuilds
+				command -v crb > /dev/null && crb enable
 				dnf install -y https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-`rpm -E %rhel`.noarch.rpm
 			fi
 			;;
@@ -866,6 +890,12 @@ platform_selinux() {
 	# Apache serves attachments and media from /smap, which Tomcat writes
 	semanage fcontext -a -t httpd_sys_rw_content_t "/smap(/.*)?" 2>/dev/null || \
 		semanage fcontext -m -t httpd_sys_rw_content_t "/smap(/.*)?"
+	# systemd will only run the tarball's start scripts if they are labelled as programs
+	if [ "$TOMCAT_TARBALL" = "yes" ]; then
+		semanage fcontext -a -t bin_t "$TOMCAT_INSTALL_DIR/bin(/.*)?" 2>/dev/null || \
+			semanage fcontext -m -t bin_t "$TOMCAT_INSTALL_DIR/bin(/.*)?"
+		restorecon -R $TOMCAT_INSTALL_DIR/bin
+	fi
 	restorecon -R /smap /var/www/smap
 }
 

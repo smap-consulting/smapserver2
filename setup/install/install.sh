@@ -115,9 +115,10 @@ if [ "$TOMCAT_TARBALL" != "yes" ]; then
     fi
     systemctl enable $TOMCAT_SERVICE
 else
-    # An Ubuntu LTS release whose packages do not have Tomcat 10.1: the tarball from apache.org
+    # RHEL, or an Ubuntu LTS release whose packages do not have Tomcat 10.1: the tarball from apache.org
     echo 'install java 21'
     pkg_install $PKG_JAVA
+    command -v wget > /dev/null || pkg_install wget
     echo 'Create tomcat user'
     sudo groupadd tomcat 2>/dev/null || true
     sudo useradd -s /bin/false -g tomcat -d /var/lib/tomcat10 tomcat 2>/dev/null || true
@@ -186,6 +187,7 @@ sudo mkdir $filelocn/settings
 # Allow tomcat to write to /smap (systemd override)
 mkdir -p /etc/systemd/system/$TOMCAT_SERVICE.service.d
 cp config_files/override.conf /etc/systemd/system/$TOMCAT_SERVICE.service.d/override.conf
+systemctl daemon-reload
 
 # Make sure all subdirectories of filelocn are updated even if the latter is a symbolic link
 sudo chown -R $TOMCAT_USER $filelocn
@@ -375,8 +377,8 @@ done
 
 if [ "$DBHOST" = "127.0.0.1" ]; then
     echo '##### 17. Backups'
-    sudo mkdir ~postgres/backups
-    sudo mkdir ~postgres/restore
+    # RHEL's postgres home already has a backups directory
+    sudo mkdir -p ~postgres/backups ~postgres/restore
     sudo chmod +x ~postgres/bu.sh ~postgres/re.sh
     sudo chown postgres ~postgres/bu.sh ~postgres/re.sh ~postgres/backups ~postgres/restore
 fi

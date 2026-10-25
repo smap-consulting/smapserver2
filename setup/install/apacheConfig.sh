@@ -31,4 +31,5 @@ else
     printf '[Service]\nEnvironmentFile=/etc/environment\n' > /etc/systemd/system/$APACHE_SERVICE.service.d/smap-environment.conf
     systemctl daemon-reload
 fi
-sudo systemctl reload $APACHE_SERVICE
+# Not running yet on a new install, install.sh starts it later
+systemctl is-active --quiet $APACHE_SERVICE && sudo systemctl reload $APACHE_SERVICE
