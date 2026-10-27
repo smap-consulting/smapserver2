@@ -164,16 +164,18 @@ platform_rhel() {
 	SSL_KEY_FILE=/etc/pki/tls/private/localhost.key
 }
 
-# openSUSE Leap and Tumbleweed, and SLES.  verify: Tomcat 10 locations and user
+# openSUSE Leap and Tumbleweed, and SLES.  The tomcat10 package installs Tomcat as tomcat, laid
+# out as on RHEL
+# Some package names differ between releases, see suse_package_names
 platform_suse() {
 	PKG_MANAGER=zypper
 	PKG_JAVA="java-21-openjdk-headless"
 	PKG_TOMCAT="tomcat10"
-	PKG_APACHE="apache2 libapr-util1-dbd-pgsql"
+	PKG_APACHE="apache2 libapr-util1-0-dbd-pgsql"
 	PKG_PG_SERVER="postgresql-server postgresql-contrib"
 	PKG_PG_CLIENT="postgresql"
 	PKG_EXIFTOOL="exiftool"
-	PKG_MEDIA="ImageMagick ffmpeg $PKG_EXIFTOOL gdal"
+	PKG_MEDIA="ImageMagick ffmpeg-7 $PKG_EXIFTOOL gdal"
 	PKG_UTILS="zip dejavu-fonts"
 
 	APACHE_SERVICE=apache2
@@ -182,13 +184,13 @@ platform_suse() {
 	APACHE_SITE_DIR=/etc/apache2/smap
 	APACHE_LOG_DIR=/var/log/apache2
 
-	TOMCAT_SERVICE=tomcat10
+	TOMCAT_SERVICE=tomcat
 	TOMCAT_USER=tomcat
-	TOMCAT_INSTALL_DIR=/usr/share/tomcat10
-	TOMCAT_BASE_DIR=/usr/share/tomcat10
-	TOMCAT_CONF_DIR=/etc/tomcat10
-	TOMCAT_WEBAPPS=/srv/tomcat10/webapps
-	TOMCAT_LIB=/usr/share/tomcat10/lib
+	TOMCAT_INSTALL_DIR=/usr/share/tomcat
+	TOMCAT_BASE_DIR=/usr/share/tomcat
+	TOMCAT_CONF_DIR=/etc/tomcat
+	TOMCAT_WEBAPPS=/srv/tomcat/webapps
+	TOMCAT_LIB=/usr/share/tomcat/lib
 
 	PG_SERVICE=postgresql
 	PG_HOME=/var/lib/pgsql
@@ -249,11 +251,32 @@ pkg_install() {
 	case $SMAP_FAMILY in
 		debian) DEBIAN_FRONTEND=noninteractive apt-get install -y "$@" ;;
 		rhel) dnf install -y "$@" ;;
-		suse) zypper --non-interactive install "$@" ;;
+		suse)
+			# Packages from download.opensuse.org come from mirrors, which can be part way through
+			# syncing a rebuilt repository and not have every file yet, so try again before giving up.
+			# zypper's exit codes of 100 and above are notes, such as a restart being needed
+			for _try in 1 2 3; do
+				zypper --non-interactive install "$@"
+				_rc=$?
+				[ $_rc = 0 ] || [ $_rc -ge 100 ] && return 0
+				[ $_try = 3 ] && return $_rc
+				echo "Some packages could not be installed, trying again in 60 seconds"
+				sleep 60
+				zypper --non-interactive --gpg-auto-import-keys refresh
+			done
+			;;
 		# Arch does not support installing packages from a refreshed list without upgrading
 		# the rest of the system to match
 		arch) pacman -Syu --noconfirm --needed "$@" ;;
 	esac
+}
+
+# Packages the install cannot go on without
+pkg_required() {
+	pkg_install "$@" && return 0
+	echo "ERROR: these packages could not be installed: $*"
+	echo "Fix the problem shown above and run the install again"
+	exit 1
 }
 
 # The version the package manager would install, or nothing if it has no such package
@@ -270,8 +293,26 @@ pkg_candidate() {
 pkg_postgis() {
 	case $SMAP_FAMILY in
 		debian) echo "postgresql-$1-postgis-3" ;;
-		*) echo "postgis" ;;		# suse verify: comes from the Application:Geo repository
+		suse) echo "postgresql$1-postgis" ;;		# from the Application:Geo repository
+		*) echo "postgis" ;;
 	esac
+}
+
+# The first of the packages that is available, or the last if none are
+pkg_first() {
+	for _p in "$@"
+	do
+		[ -n "`pkg_candidate $_p`" ] && break
+	done
+	echo $_p
+}
+
+# 16 renamed the APR database drivers, and ffmpeg has a package for each major version
+suse_package_names() {
+	[ $SMAP_FAMILY = "suse" ] || return 0
+	PKG_APACHE="apache2 `pkg_first libapr-util1-0-dbd-pgsql libapr-util1-dbd-pgsql`"
+	_ffmpeg=`pkg_first ffmpeg-8 ffmpeg-7 ffmpeg`
+	PKG_MEDIA="ImageMagick $_ffmpeg $PKG_EXIFTOOL gdal"
 }
 
 # Strip the epoch, Debian revision and release from a package version, 1:16+257 -> 16,
@@ -488,6 +529,7 @@ platform_check_versions() {
 	_failed=""
 	_hints=""
 
+	suse_package_names
 	echo "Checking the versions $SMAP_OS_NAME provides"
 	check_row "Component" "Needed" "Available" ""
 
@@ -538,6 +580,7 @@ For example: dnf module enable postgresql:16"
 		check_available "$@"
 
 		_p=`pkg_postgis $SMAP_PG_VERSION`
+		_postgis_pkg=$_p
 		_v=`pkg_candidate $_p`
 		check_version "$_v" $SMAP_MIN_POSTGIS
 		check_row "PostGIS" "$SMAP_MIN_POSTGIS" "$_v" "$_result ($_p)"
@@ -547,13 +590,35 @@ PostGIS is in the openSUSE Application:Geo repository, which needs to be added"
 		fi
 	fi
 
+	# zypper offers packages whose dependencies are not available, which only shows when they
+	# are installed, so try the install without changing anything.  The openSUSE build of
+	# PostGIS needs GTK 2 for example, which SLES does not have
+	if [ $SMAP_FAMILY = "suse" ] && [ -z "$_failed" ]; then
+		if [ "$_db" = "remote" ]; then
+			_req="$PKG_JAVA $PKG_TOMCAT $PKG_APACHE $PKG_PG_CLIENT"
+		else
+			_req="$PKG_JAVA $PKG_TOMCAT $PKG_APACHE $PKG_PG_SERVER $_postgis_pkg"
+		fi
+		if ! zypper --non-interactive install --dry-run $_req > /dev/null 2>&1; then
+			check_note "FAIL: these cannot all be installed, see: zypper install --dry-run $_req"
+			_failed=yes
+			[ "$SMAP_OS_ID" = "sles" ] && _hints="$_hints
+What they need may be in SUSE Package Hub: suseconnect -p PackageHub/$SMAP_OS_VERSION/`uname -m`"
+		fi
+	fi
+
 	# Optional packages are reported but do not stop the install
+	_missing_optional=""
 	for _p in $PKG_MEDIA $PKG_UTILS
 	do
 		if [ -z "`pkg_candidate $_p`" ]; then
 			check_note "warning: $_p not available, no `optional_feature $_p`"
+			_missing_optional=yes
 		fi
 	done
+	if [ -n "$_missing_optional" ] && [ "$SMAP_OS_ID" = "sles" ]; then
+		check_note "SUSE Package Hub has some of these: suseconnect -p PackageHub/$SMAP_OS_VERSION/`uname -m`"
+	fi
 
 	if [ -n "$_failed" ]; then
 		echo ""
@@ -728,21 +793,67 @@ platform_setup() {
 #
 
 # Repositories that required packages come from.  Added before the version check, as the check
-# would otherwise fail.  PostGIS is not in openSUSE's own repositories, it is in Application:Geo,
-# which is openSUSE's own build service.  verify: repository paths
+# would otherwise fail.  PostGIS is not in openSUSE's or SLES's own repositories, it is in
+# Application:Geo, which is openSUSE's own build service.  SLES 16 uses the one for Leap 16,
+# which is built from the same packages
 platform_add_required_repos() {
 	[ $SMAP_FAMILY = "rhel" ] && pg_enable_stream
 	[ $SMAP_FAMILY = "suse" ] || return 0
-	[ -n "`pkg_candidate postgis`" ] && return 0
+	[ "$SMAP_OS_ID" = "sles" ] && sles_package_hub
+	_pgv=`pkg_candidate postgresql-server`
+	_postgis=`pkg_postgis \`version_major "$_pgv"\``
+	[ -n "`pkg_candidate $_postgis`" ] && return 0
 	case $SMAP_OS_ID in
 		opensuse-tumbleweed) _dist=openSUSE_Tumbleweed ;;
-		opensuse-leap) _dist=$SMAP_OS_VERSION ;;
-		*) echo "Add a repository with PostGIS for $SMAP_OS_NAME, then run the install again"; return 0 ;;
+		*) _dist=$SMAP_OS_VERSION ;;
 	esac
+	_repo=https://download.opensuse.org/repositories/Application:/Geo/$_dist/Application:Geo.repo
+	if ! curl -sfIL -o /dev/null $_repo; then
+		echo "Add a repository with PostGIS for $SMAP_OS_NAME, then run the install again"
+		return 0
+	fi
+	# It is not supported by SUSE, so ask first on SLES.  Set SMAP_GEO_REPO to yes or no to not be asked
+	if [ "$SMAP_OS_ID" = "sles" ]; then
+		_answer=$SMAP_GEO_REPO
+		if [ -z "$_answer" ]; then
+			echo "PostGIS is not in the SLES repositories.  It is in openSUSE's Application:Geo repository, which SUSE does not support."
+			printf "Add the Application:Geo repository to get it? (y/n) "
+			read _answer
+		fi
+		case $_answer in
+			y|Y|yes) ;;
+			*) echo "Not adding Application:Geo"; return 0 ;;
+		esac
+	fi
 	echo "Adding the openSUSE Application:Geo repository for PostGIS"
-	zypper --non-interactive --gpg-auto-import-keys addrepo -f \
-		https://download.opensuse.org/repositories/Application:/Geo/$_dist/Application:Geo.repo
+	zypper --non-interactive --gpg-auto-import-keys addrepo -f $_repo
+	# download.opensuse.org sends each request to a mirror, and a mirror part way through syncing
+	# a rebuilt repository lists files it does not have yet, so try again before giving up
+	for _try in 1 2 3 4 5; do
+		zypper --non-interactive --gpg-auto-import-keys refresh Application_Geo && break
+		[ $_try = 5 ] && { echo "Application:Geo could not be read, its mirrors may still be updating.  Run the install again later"; break; }
+		echo "Trying Application:Geo again in 60 seconds"
+		sleep 60
+	done
 	zypper --non-interactive --gpg-auto-import-keys refresh
+}
+
+# The PostGIS from Application:Geo needs GTK 2, which SLES only has in SUSE Package Hub, along
+# with gdal and exiftool.  Package Hub is SUSE's repository of community packages, which SUSE
+# does not support, so ask first.  Set SMAP_PACKAGE_HUB to yes or no to not be asked
+sles_package_hub() {
+	zypper -q repos 2>/dev/null | grep -qi packagehub && return 0
+	_answer=$SMAP_PACKAGE_HUB
+	if [ -z "$_answer" ]; then
+		echo "PostGIS needs packages that are only in SUSE Package Hub, which SUSE does not support."
+		printf "Turn on SUSE Package Hub? (y/n) "
+		read _answer
+	fi
+	case $_answer in
+		y|Y|yes) ;;
+		*) echo "Not turning on SUSE Package Hub"; return 0 ;;
+	esac
+	suseconnect -p PackageHub/$SMAP_OS_VERSION/`uname -m` && zypper --non-interactive refresh
 }
 
 # RHEL 9's default PostgreSQL, 13, is too old.  Newer ones are module streams in RHEL's own
@@ -896,7 +1007,16 @@ platform_selinux() {
 			semanage fcontext -m -t bin_t "$TOMCAT_INSTALL_DIR/bin(/.*)?"
 		restorecon -R $TOMCAT_INSTALL_DIR/bin
 	fi
-	restorecon -R /smap /var/www/smap
+	# systemd will only run the subscribers' start script if /smap_bin is labelled as programs
+	semanage fcontext -a -t bin_t "/smap_bin(/.*)?" 2>/dev/null || \
+		semanage fcontext -m -t bin_t "/smap_bin(/.*)?"
+	restorecon -R /smap /var/www/smap /smap_bin
+}
+
+# Labels for files deploy.sh has just copied, which may keep the labels of where they came from
+selinux_restore() {
+	command -v restorecon > /dev/null || return 0
+	command -v getenforce > /dev/null && [ "`getenforce`" != "Disabled" ] && restorecon -R "$@"
 }
 
 #

@@ -45,7 +45,7 @@ do
 		/^<VirtualHost / {
 			print "    ServerName " domain
 			print "    <If \"req(" q "Host" q ") != " q domain q "\">"
-			print "       Deny from all"
+			print "       Require all denied"
 			print "    </If>"
 		}
 	' $f > $tmp && cat $tmp > $f

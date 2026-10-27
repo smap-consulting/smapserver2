@@ -23,7 +23,7 @@ fi
 platform_detect || exit 1
 
 # The database is remote if DBHOST is set to anything other than this server
-dbhost_now=${DBHOST:-`sed -n 's/^DBHOST=//p' /etc/environment | tr -d '"' | tail -1`}
+dbhost_now=${DBHOST:-`sed -n 's/^DBHOST=//p' /etc/environment 2>/dev/null | tr -d '"' | tail -1`}
 if [ -z "$dbhost_now" ] || [ "$dbhost_now" = "127.0.0.1" ]; then
     db_location=local
 else
@@ -38,7 +38,7 @@ platform_check_versions $db_location || exit 1
 echo ""
 
 # Add a default setting of 127.0.0.1 as the DBHOST if it has not already been set
-dbhost_set=`grep DBHOST /etc/environment | wc -l`
+dbhost_set=`grep DBHOST /etc/environment 2>/dev/null | wc -l`
 if [ $dbhost_set -eq 0 ]; then
     echo "DBHOST=127.0.0.1" >> /etc/environment
 fi
@@ -86,11 +86,11 @@ if [ $SMAP_FAMILY = "debian" ]; then
     sudo apt-get install rename -y
     sudo apt-get install locate -y
 fi
-command -v sudo > /dev/null || pkg_install sudo		# The deploy scripts use it
+command -v sudo > /dev/null || pkg_required sudo		# The deploy scripts use it
 sudo sysctl -w kernel.shmmax=67068800		# 64MB of shared memory
 
 echo '##### 2. Install Apache'
-pkg_install $PKG_APACHE
+pkg_required $PKG_APACHE
 for m in $SMAP_APACHE_MODULES
 do
     apache_enable_module $m
@@ -99,12 +99,12 @@ apache_enable_https
 systemctl enable $APACHE_SERVICE
 mkdir -p $APACHE_SITE_DIR		# Only Debian has one already
 
-sudo mkdir /var/www/smap
+sudo mkdir -p /var/www/smap		# SUSE has no /var/www
 
 echo "##### 3. Install Tomcat"
 if [ "$TOMCAT_TARBALL" != "yes" ]; then
     # Tomcat from the packages, which platform_check_versions found to be new enough
-    pkg_install $PKG_JAVA $PKG_TOMCAT
+    pkg_required $PKG_JAVA $PKG_TOMCAT
     if [ $SMAP_FAMILY = "debian" ]; then
         echo 'Fix tomcat10 logs symlink for systemd sandboxing'
         sudo systemctl stop tomcat10 2>/dev/null || true
@@ -117,8 +117,8 @@ if [ "$TOMCAT_TARBALL" != "yes" ]; then
 else
     # RHEL, or an Ubuntu LTS release whose packages do not have Tomcat 10.1: the tarball from apache.org
     echo 'install java 21'
-    pkg_install $PKG_JAVA
-    command -v wget > /dev/null || pkg_install wget
+    pkg_required $PKG_JAVA
+    command -v wget > /dev/null || pkg_required wget
     echo 'Create tomcat user'
     sudo groupadd tomcat 2>/dev/null || true
     sudo useradd -s /bin/false -g tomcat -d /var/lib/tomcat10 tomcat 2>/dev/null || true
@@ -151,7 +151,7 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
     # The major version the packages provide, found by platform_check_versions
     PGV=$SMAP_PG_VERSION
 
-    pkg_install $PKG_PG_SERVER `pkg_postgis $PGV`
+    pkg_required $PKG_PG_SERVER `pkg_postgis $PGV`
     pg_paths $PGV
     pg_initdb
     pg_pin
@@ -162,7 +162,7 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
 else
     # Just install the psql client and create a postgres user
     id postgres > /dev/null 2>&1 || sudo useradd -s /bin/sh -d /home/postgres -m postgres
-    pkg_install $PKG_PG_CLIENT
+    pkg_required $PKG_PG_CLIENT
 fi
 # End of conditional install
 
