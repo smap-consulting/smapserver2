@@ -53,7 +53,7 @@ public class Vonage extends Application {
 		    	/*
 		    	 * Get message details
 		    	 */
-		    	log.info("Sms: " + body);
+		    	log.fine("Sms: " + body);		// Message text and phone numbers, not for the normal log
 		        MessageVonage inbound = gson.fromJson(body, MessageVonage.class);
 		        ConversationItemDetails sms = new ConversationItemDetails(inbound.from, 
 		        		inbound.to, inbound.text, true, 

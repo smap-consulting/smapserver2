@@ -102,7 +102,7 @@ public class WhatsApp extends Application {
 			}
 
 			String json = new String(body, StandardCharsets.UTF_8);
-			log.info("WhatsApp: " + json);
+			log.fine("WhatsApp: " + json);		// Message text and phone numbers, not for the normal log
 			MessageWhatsApp inbound = gson.fromJson(json, MessageWhatsApp.class);
 
 			/*
