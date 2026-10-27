@@ -12,7 +12,8 @@
 # for another host name is refused, which stops a forged Host header putting another site in those
 # links.  There is no option to accept any host name, as that would remove this protection.
 
-domain=$1
+# Lower case, as browsers send the host name in lower case and the check below is exact
+domain=`echo "$1" | tr 'A-Z' 'a-z'`
 
 # Where this server's Apache is, saved by install.sh or deploy.sh
 platform_conf=${SMAP_PLATFORM_CONF:-/etc/smap/platform.conf}
