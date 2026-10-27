@@ -160,9 +160,7 @@ public class Register extends Application {
 		PreparedStatement pstmt = null;
 		String newUserIdent = null;
 		try {
-			
-			sd.setAutoCommit(false);  // Transaction
-			
+
 			// Localisation
 			String hostname = request.getServerName();
 			String loc_code = "en";
@@ -189,7 +187,10 @@ public class Register extends Application {
 				log.warning("Registration refused, too many registrations, client " + request.getRemoteAddr());
 				throw new ApplicationException(localisation.getString("reg_too_many"));
 			}
-			
+
+			// Only now, so the transaction is not held open while Cloudflare is asked
+			sd.setAutoCommit(false);  // Transaction
+
 			String requestUrl = request.getRequestURL().toString();
 			String userIdent = request.getRemoteUser();
 			String basePath = GeneralUtilityMethods.getBasePath(request);
