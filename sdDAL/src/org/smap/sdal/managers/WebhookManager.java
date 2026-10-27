@@ -3,6 +3,7 @@ package org.smap.sdal.managers;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
@@ -59,13 +60,6 @@ public class WebhookManager {
 	ResourceBundle localisation;
 	
 	/*
-	 * The callback url is chosen by a user, and the request comes from inside this network, so it
-	 * must not reach this server or the cloud metadata service.  Checked when the connection is made
-	 * rather than on the url, so that a redirect, or a name that resolves differently the second
-	 * time, cannot get past it.  Private network ranges are allowed for now as a self hosted server
-	 * may post to another system on its own network.
-	 */
-	/*
 	 * Webhooks are sent by the notification processor, so a callback url that never answers must
 	 * not hold it up for ever
 	 */
@@ -74,11 +68,26 @@ public class WebhookManager {
 			.setConnectionRequestTimeout(30 * 1000)
 			.setSocketTimeout(60 * 1000)
 			.build();
-	
+
+	/*
+	 * The AWS metadata service over IPv6, fd00:ec2::254.  It is in the unique local range, not
+	 * link local like 169.254.169.254, so it needs its own check
+	 */
+	private static final byte[] AWS_METADATA_V6 = {
+			(byte) 0xfd, 0x00, 0x0e, (byte) 0xc2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x02, 0x54 };
+
+	/*
+	 * The callback url is chosen by a user, and the request comes from inside this network, so it
+	 * must not reach this server or the cloud metadata service.  Checked when the connection is made
+	 * rather than on the url, so that a redirect, or a name that resolves differently the second
+	 * time, cannot get past it.  Private network ranges are allowed for now as a self hosted server
+	 * may post to another system on its own network.
+	 */
 	private static final DnsResolver WEBHOOK_DNS = host -> {
 		InetAddress[] addresses = SystemDefaultDnsResolver.INSTANCE.resolve(host);
 		for(InetAddress a : addresses) {
-			if(a.isLoopbackAddress() || a.isAnyLocalAddress() || a.isLinkLocalAddress() || a.isMulticastAddress()) {
+			if(a.isLoopbackAddress() || a.isAnyLocalAddress() || a.isLinkLocalAddress() || a.isMulticastAddress()
+					|| Arrays.equals(a.getAddress(), AWS_METADATA_V6)) {
 				throw new UnknownHostException("Webhooks cannot call " + host + " as it is an address on this server");
 			}
 		}
