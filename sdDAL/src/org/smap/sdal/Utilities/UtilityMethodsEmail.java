@@ -706,20 +706,28 @@ public class UtilityMethodsEmail {
 		 * Mac locations added for development.  ImageMagick 7 is called magick, convert is the
 		 * version 6 name and is deprecated in 7.  The input file comes first, which both accept
 		 */
+		/*
+		 * The file names are passed as arguments, $1 and $2, never put in the script.  They contain
+		 * the resource name the user typed, and in the script the shell would run any $(...) or
+		 * backticks in it
+		 */
 		String setup = "PATH=$PATH:/usr/local/bin:/opt/homebrew/bin; im=`command -v magick || echo convert`; ";
 		String cmd = null;
+		String out = null;
 		if(contentType.startsWith("image")) {
-			cmd = setup + "\"$im\" \"" + file.getAbsolutePath() + "\" -thumbnail 100x100 \"" + dest + "\"";
+			cmd = setup + "\"$im\" \"$1\" -thumbnail 100x100 \"$2\"";
+			out = dest;
 		} else if(contentType.startsWith("video")) {
-			cmd = setup + "ffmpeg -i \"" + file.getAbsolutePath() + "\" -vf scale=-1:100 -vframes 1 \"" + destRoot + "jpg\" -y";
-		} 
+			cmd = setup + "ffmpeg -i \"$1\" -vf scale=-1:100 -vframes 1 \"$2\" -y";
+			out = destRoot + "jpg";
+		}
 
-		log.fine("Exec: " + cmd);
+		log.fine("Exec: " + cmd + " with " + file.getAbsolutePath() + " " + out);
 
 		if(cmd != null) {
 			try {
 
-				Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", cmd});
+				Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", cmd, "sh", file.getAbsolutePath(), out});
 
 				int code = proc.waitFor();
 				log.fine("Attachment processing finished with status:" + code);
