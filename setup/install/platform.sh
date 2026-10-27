@@ -77,6 +77,8 @@ platform_detect() {
 	fi
 
 	platform_$SMAP_FAMILY
+	[ "$SMAP_OS_ID" = "amzn" ] && platform_amzn
+	return 0
 }
 
 #
@@ -162,6 +164,18 @@ platform_rhel() {
 	# Created by httpd on its first start
 	SSL_CERT_FILE=/etc/pki/tls/certs/localhost.crt
 	SSL_KEY_FILE=/etc/pki/tls/private/localhost.key
+}
+
+# Amazon Linux 2023, which is based on Fedora but has neither its Java nor PostGIS, and no
+# Tomcat 10.1, so gets the tarball.  Java is Amazon's own build, Corretto.  PostgreSQL and PostGIS
+# come from the PostgreSQL project's repository (PGDG), which installs each major version in its
+# own directories with its own service, see pg_paths and pgdg_repo
+SMAP_PGDG_VERSION=17
+platform_amzn() {
+	PKG_JAVA="java-21-amazon-corretto-headless"
+	PKG_PG_SERVER="postgresql$SMAP_PGDG_VERSION-server postgresql$SMAP_PGDG_VERSION-contrib"
+	PKG_PG_CLIENT="postgresql$SMAP_PGDG_VERSION"
+	PG_SERVICE=postgresql-$SMAP_PGDG_VERSION
 }
 
 # openSUSE Leap and Tumbleweed, and SLES.  The tomcat10 package installs Tomcat as tomcat, laid
@@ -294,6 +308,14 @@ pkg_postgis() {
 	case $SMAP_FAMILY in
 		debian) echo "postgresql-$1-postgis-3" ;;
 		suse) echo "postgresql$1-postgis" ;;		# from the Application:Geo repository
+		rhel)
+			# PGDG names PostGIS by its own version as well as PostgreSQL's
+			if [ "$SMAP_OS_ID" = "amzn" ]; then
+				pkg_first postgis36_$1 postgis35_$1
+			else
+				echo "postgis"
+			fi
+			;;
 		*) echo "postgis" ;;
 	esac
 }
@@ -444,8 +466,12 @@ pg_paths() {
 			PG_DATA_DIR=/var/lib/postgresql/$1/main
 			;;
 		rhel|suse)
-			PG_CONF_DIR=/var/lib/pgsql/data
-			PG_DATA_DIR=/var/lib/pgsql/data
+			if [ "$SMAP_OS_ID" = "amzn" ]; then
+				PG_CONF_DIR=/var/lib/pgsql/${1:-$SMAP_PGDG_VERSION}/data
+			else
+				PG_CONF_DIR=/var/lib/pgsql/data
+			fi
+			PG_DATA_DIR=$PG_CONF_DIR
 			;;
 		arch)
 			PG_CONF_DIR=/var/lib/postgres/data
@@ -460,7 +486,13 @@ pg_initdb() {
 	[ -f $PG_DATA_DIR/PG_VERSION ] && return 0
 	case $SMAP_FAMILY in
 		debian) ;;
-		rhel) postgresql-setup --initdb ;;
+		rhel)
+			if [ "$SMAP_OS_ID" = "amzn" ]; then
+				/usr/pgsql-$SMAP_PG_VERSION/bin/postgresql-$SMAP_PG_VERSION-setup initdb
+			else
+				postgresql-setup --initdb
+			fi
+			;;
 		suse) systemctl start $PG_SERVICE ;;		# The service creates the cluster on its first start
 		arch) su - postgres -s /bin/sh -c "initdb --locale=C.UTF-8 --encoding=UTF8 --auth-local=peer --auth-host=scram-sha-256 -D $PG_DATA_DIR" ;;
 	esac
@@ -571,7 +603,10 @@ platform_check_versions() {
 		SMAP_PG_VERSION=`version_major "$_v"`
 		check_version "$_v" $SMAP_MIN_POSTGRES
 		check_row "PostgreSQL" "$SMAP_MIN_POSTGRES" "$_v" $_result
-		if [ $_result = "FAIL" ] && [ $SMAP_FAMILY = "rhel" ]; then
+		if [ $_result = "FAIL" ] && [ "$SMAP_OS_ID" = "amzn" ]; then
+			_hints="$_hints
+PostgreSQL and PostGIS are in the PostgreSQL project's repository, which needs to be added"
+		elif [ $_result = "FAIL" ] && [ $SMAP_FAMILY = "rhel" ]; then
 			_hints="$_hints
 A newer PostgreSQL may be available as a module stream, see: dnf module list postgresql
 For example: dnf module enable postgresql:16"
@@ -797,7 +832,11 @@ platform_setup() {
 # Application:Geo, which is openSUSE's own build service.  SLES 16 uses the one for Leap 16,
 # which is built from the same packages
 platform_add_required_repos() {
-	[ $SMAP_FAMILY = "rhel" ] && pg_enable_stream
+	if [ "$SMAP_OS_ID" = "amzn" ]; then
+		pgdg_repo
+	elif [ $SMAP_FAMILY = "rhel" ]; then
+		pg_enable_stream
+	fi
 	[ $SMAP_FAMILY = "suse" ] || return 0
 	[ "$SMAP_OS_ID" = "sles" ] && sles_package_hub
 	_pgv=`pkg_candidate postgresql-server`
@@ -867,12 +906,34 @@ pg_enable_stream() {
 	dnf module enable -y postgresql:16
 }
 
+# Amazon Linux has no PostGIS, so PostgreSQL and PostGIS come from the PostgreSQL project's
+# repository.  It is run by others, so ask first.  Set SMAP_PGDG_REPO to yes or no to not be asked
+pgdg_repo() {
+	rpm -q pgdg-amazonlinux-repo > /dev/null 2>&1 && return 0
+	_answer=$SMAP_PGDG_REPO
+	if [ -z "$_answer" ]; then
+		echo "PostGIS is not in the $SMAP_OS_NAME repositories.  It is in the PostgreSQL project's repository (PGDG), along with PostgreSQL $SMAP_PGDG_VERSION."
+		printf "Add the PostgreSQL project's repository to get them? (y/n) "
+		read _answer
+	fi
+	case $_answer in
+		y|Y|yes) ;;
+		*) echo "Not adding the PostgreSQL project's repository"; return 0 ;;
+	esac
+	dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/AL-2023-`uname -m`/pgdg-amazonlinux-repo-latest.noarch.rpm || return 0
+	# Amazon Linux has packages with the same names, laid out as on Fedora, so PGDG's are
+	# preferred whatever their version
+	sed -i '/^\[pgdg/a priority=10' /etc/yum.repos.d/pgdg-amazonlinux-all.repo
+	dnf -y makecache
+}
+
 # ffmpeg with the codecs phones record video in, such as H.264, which are patented and so left out
 # of the ffmpeg in RHEL, Fedora and openSUSE's own repositories.  It comes from RPM Fusion or
 # Packman, which are run by others, so ask first.  Set SMAP_MEDIA_REPOS to yes or no to not be asked
 platform_offer_media_repos() {
 	case $SMAP_FAMILY in
 		rhel)
+			[ "$SMAP_OS_ID" = "amzn" ] && return 0		# EPEL and RPM Fusion do not support Amazon Linux
 			command -v rpm > /dev/null && rpm -q rpmfusion-free-release > /dev/null 2>&1 && return 0
 			_repo="RPM Fusion"
 			# On RHEL ImageMagick, gdal and exiftool are also missing, they are in EPEL
