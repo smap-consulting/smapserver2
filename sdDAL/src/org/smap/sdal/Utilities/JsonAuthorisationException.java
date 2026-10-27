@@ -20,7 +20,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 package org.smap.sdal.Utilities;
 
 import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 

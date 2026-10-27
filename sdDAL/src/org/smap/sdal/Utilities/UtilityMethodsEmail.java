@@ -225,9 +225,10 @@ public class UtilityMethodsEmail {
 
 		/*
 		 * Get the table name and column name containing the text data
-		 * Do a case insensitive check
+		 * Do a case insensitive check.  Not ilike, which treats _ and % in the address as
+		 * wildcards, so "b_b@x.com" matched "bob@x.com"
 		 */
-		String sql = "select ident from users where email ilike ?";
+		String sql = "select ident from users where lower(email) = lower(?)";
 
 		pstmt = connectionSD.prepareStatement(sql);	
 		pstmt.setString(1, email);
@@ -238,6 +239,28 @@ public class UtilityMethodsEmail {
 		}
 
 		return idents;
+	}
+
+	/*
+	 * The address stored on the account an email address matches, for sending to.  The match
+	 * ignores case, so this can differ in case from the address that was entered.  Null if
+	 * no account has the address.
+	 */
+	static public String getStoredEmail(Connection sd, String email) throws SQLException {
+		String stored = null;
+		String sql = "select email from users where lower(email) = lower(?) limit 1";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, email);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				stored = rs.getString(1);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		return stored;
 	}
 
 	/*
@@ -289,7 +312,7 @@ public class UtilityMethodsEmail {
 				+ "from organisation o, users u "
 				+ "where u.o_id = o.id ";
 		String sqlUser = " and u.ident = ?;";
-		String sqlEmail = " and u.email ilike ?;";
+		String sqlEmail = " and lower(u.email) = lower(?);";
 		String sql = null;
 
 		if(user == null) {
@@ -369,7 +392,7 @@ public class UtilityMethodsEmail {
 				+ "o.smtp_host, o.email_domain, o.email_user, o.email_password, o.email_port " +
 				" from organisation o, users u " +
 				" where u.o_id = o.id " +
-				" and u.email ilike ?";
+				" and lower(u.email) = lower(?)";
 
 		String sqlServer = "select email_type, aws_region, "
 				+ "smtp_host, email_domain, email_user, email_password, email_port " +
@@ -500,12 +523,13 @@ public class UtilityMethodsEmail {
 
 		/*
 		 * Update the users table by adding the UUID and expiry time
-		 * Do a case insensitive test against email
+		 * Do a case insensitive test against email.  Not ilike, its wildcards let a reset for
+		 * one address put the token on other people's accounts
 		 */
 		String sql = "update users set "
 				+ "one_time_password = ?,"
 				+ "one_time_password_expiry = timestamp 'now' + interval '" + interval + "' "
-				+ "where email ilike ?";
+				+ "where lower(email) = lower(?)";
 
 		pstmt = connectionSD.prepareStatement(sql);	
 		pstmt.setString(1, uuid);
@@ -521,42 +545,6 @@ public class UtilityMethodsEmail {
 	}
 	
 	/*
-	 * Check to see if a password has been sent within the last 'interval'
-	 * The interval for password reset is 1 hour, however if the expiry time was set by account creation it will be 48 hours.
-	 * Hence allow a resend if the expiry time is greater than 1 hour
-	 * This means there is an anomoly where resend will not be allowed between 50 and 60 minutes before an account registration expires
-	 * This is a security measure to prevent spamming
-	 * 
-	 * Returns the number of minutes since an email has been sent
-	 */
-	public static int hasOnetimePasswordBeenSent(
-			Connection connectionSD, 
-			PreparedStatement pstmt, 
-			String email, 
-			String interval) throws SQLException {
-
-		int seconds = 0;
-		interval = interval.replace("'", "''");	// Escape apostrophes
-
-		String sql = "select EXTRACT(EPOCH FROM (now() - one_time_password_sent)) from users "
-				+ "where one_time_password_sent > (timestamp 'now' - interval '" + interval + "') "
-				+ "and email ilike ?";
-
-		pstmt = connectionSD.prepareStatement(sql);	
-		pstmt.setString(1, email);
-		log.fine("SQL checking for already sent email: " + pstmt.toString());
-		ResultSet rs = pstmt.executeQuery();
-		if(rs.next()) {
-			seconds = rs.getInt(1);
-			if(seconds < 60) {
-				seconds  = 60;  // Set the elapsed time to a minimym of 1 minute		
-			}
-		}
-
-		return seconds / 60;
-	}
-	
-	/*
 	 * Record in the database that a one time password email has been sent
 	 */
 	public static void reportOnetimePasswordSent(
@@ -565,7 +553,7 @@ public class UtilityMethodsEmail {
 
 		String sql = "update users "
 				+ "set one_time_password_sent = now() "
-				+ "where email ilike ?";
+				+ "where lower(email) = lower(?)";
 
 		PreparedStatement pstmt = null;
 		try {
@@ -713,16 +701,17 @@ public class UtilityMethodsEmail {
 			destRoot = dest.substring(0, idx + 1);
 		}
 
-		String os = System.getProperty("os.name");
-		String binDir = "/usr/bin/";
-		if(os.startsWith("Mac")) {
-			binDir = "/usr/local/bin/";
-		} 
+		/*
+		 * The tools are found on the PATH, which varies between Linux distributions, with the
+		 * Mac locations added for development.  ImageMagick 7 is called magick, convert is the
+		 * version 6 name and is deprecated in 7.  The input file comes first, which both accept
+		 */
+		String setup = "PATH=$PATH:/usr/local/bin:/opt/homebrew/bin; im=`command -v magick || echo convert`; ";
 		String cmd = null;
 		if(contentType.startsWith("image")) {
-			cmd = binDir + "convert -thumbnail 100x100 \"" + file.getAbsolutePath() + "\" \"" + dest + "\"";
+			cmd = setup + "\"$im\" \"" + file.getAbsolutePath() + "\" -thumbnail 100x100 \"" + dest + "\"";
 		} else if(contentType.startsWith("video")) {
-			cmd = binDir + "ffmpeg -i \"" + file.getAbsolutePath() + "\" -vf scale=-1:100 -vframes 1 \"" + destRoot + "jpg\" -y";
+			cmd = setup + "ffmpeg -i \"" + file.getAbsolutePath() + "\" -vf scale=-1:100 -vframes 1 \"" + destRoot + "jpg\" -y";
 		} 
 
 		log.fine("Exec: " + cmd);
@@ -944,7 +933,7 @@ public class UtilityMethodsEmail {
 			if(l.text != null ) {
 				pstmt.setString(3, textId + ":label");
 				pstmt.setString(4, "none");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.text));
+				pstmt.setString(5, sanitise.cleanText(l.text));
 				pstmt.executeUpdate();
 			}
 
@@ -952,7 +941,7 @@ public class UtilityMethodsEmail {
 			if(l.hint != null) {
 				pstmt.setString(3, textId + ":hint");
 				pstmt.setString(4, "none");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.hint));
+				pstmt.setString(5, sanitise.cleanText(l.hint));
 				pstmt.executeUpdate();
 			}
 			
@@ -960,7 +949,7 @@ public class UtilityMethodsEmail {
 			if(l.guidance_hint != null) {
 				pstmt.setString(3, textId + ":guidance_hint");
 				pstmt.setString(4, "guidance");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.guidance_hint));
+				pstmt.setString(5, sanitise.cleanText(l.guidance_hint));
 				pstmt.executeUpdate();
 			}
 			
@@ -968,7 +957,7 @@ public class UtilityMethodsEmail {
 			if(l.constraint_msg != null) {
 				pstmt.setString(3, textId + ":constraint");
 				pstmt.setString(4, "constraint_msg");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.constraint_msg));
+				pstmt.setString(5, sanitise.cleanText(l.constraint_msg));
 				pstmt.executeUpdate();
 			}
 			
@@ -976,7 +965,7 @@ public class UtilityMethodsEmail {
 			if(l.required_msg != null) {
 				pstmt.setString(3, textId + ":required");
 				pstmt.setString(4, "required_msg");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.required_msg));
+				pstmt.setString(5, sanitise.cleanText(l.required_msg));
 				pstmt.executeUpdate();
 			}
 
@@ -984,7 +973,7 @@ public class UtilityMethodsEmail {
 			if(l.image != null) {
 				pstmt.setString(3, textId + ":label");
 				pstmt.setString(4, "image");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.image));
+				pstmt.setString(5, sanitise.cleanText(l.image));
 				pstmt.executeUpdate();
 			}
 			
@@ -992,7 +981,7 @@ public class UtilityMethodsEmail {
 			if(l.bigImage != null) {
 				pstmt.setString(3, textId + ":label");
 				pstmt.setString(4, "big-image");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.bigImage));
+				pstmt.setString(5, sanitise.cleanText(l.bigImage));
 				pstmt.executeUpdate();
 			}
 
@@ -1000,7 +989,7 @@ public class UtilityMethodsEmail {
 			if(l.video != null) {
 				pstmt.setString(3, textId + ":label");
 				pstmt.setString(4, "video");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.video));
+				pstmt.setString(5, sanitise.cleanText(l.video));
 				pstmt.executeUpdate();
 			}
 
@@ -1008,7 +997,7 @@ public class UtilityMethodsEmail {
 			if(l.audio != null) {
 				pstmt.setString(3, textId + ":label");
 				pstmt.setString(4, "audio");
-				pstmt.setString(5, sanitise.sanitiseHtml(l.audio));
+				pstmt.setString(5, sanitise.cleanText(l.audio));
 				pstmt.executeUpdate();
 			}
 

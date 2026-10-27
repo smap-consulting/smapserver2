@@ -10,10 +10,6 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Bundle;
-import org.smap.sdal.model.CMS;
-import org.smap.sdal.model.Case;
-import org.smap.sdal.model.CaseCount;
-import org.smap.sdal.model.CaseManagementAlert;
 import org.smap.sdal.model.CaseManagementSettings;
 
 import com.google.gson.Gson;

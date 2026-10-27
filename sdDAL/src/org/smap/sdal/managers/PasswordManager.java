@@ -112,6 +112,26 @@ public class PasswordManager {
 		}
 	}
 	
+	/*
+	 * A new password must differ from the current one, or an expired password could be "changed" to itself.
+	 * Checks the digest HA1, which every password change writes, as basic_password can still be in the old
+	 * {SHA} format that crypt() cannot check.  bcrypt as well for anyone without a digest.
+	 */
+	public void checkNotCurrent(String ident, String password) throws SQLException, ApplicationException {
+		String sql = "select count(*) from users where ident = ? "
+				+ "and (password = md5(?) "
+				+ "or (basic_password like '$2%' and basic_password = crypt(?, basic_password)))";
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setString(1, ident);
+			pstmt.setString(2, ident + ":smap:" + password);
+			pstmt.setString(3, password);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next() && rs.getInt(1) > 0) {
+				throw new ApplicationException(localisation.getString("msg_pwd_same"));
+			}
+		}
+	}
+
 	public void logReset() {
 		if(result != null) {
 			String logMessage = localisation.getString("msg_pr");

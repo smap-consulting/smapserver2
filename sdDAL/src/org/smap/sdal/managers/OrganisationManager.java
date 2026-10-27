@@ -390,7 +390,7 @@ public class OrganisationManager {
 			pstmt.setString(17, HtmlSanitise.checkCleanName(o.email_user, localisation));
 			pstmt.setString(18, o.email_password);
 			pstmt.setInt(19, o.email_port);
-			pstmt.setString(20, sanitise.sanitiseHtml(o.default_email_content));
+			pstmt.setString(20, sanitise.cleanText(o.default_email_content));
 			pstmt.setString(21, o.website);			// Allowed to have https: - leave unchecked
 			pstmt.setString(22, HtmlSanitise.checkCleanName(o.locale, localisation));
 			

@@ -12,116 +12,125 @@ config="auto"
 clean="true"
 filelocn="/smap"
 
+if [ "`id -u`" != "0" ]; then
+    echo "ERROR: Run the install as root, for example: sudo ./install.sh"
+    exit 1
+fi
+
+# Work out which Linux this is and check that its packages have the versions Smap needs,
+# before anything on the server is changed
+. ./platform.sh
+platform_detect || exit 1
+
+# The database is remote if DBHOST is set to anything other than this server
+dbhost_now=${DBHOST:-`sed -n 's/^DBHOST=//p' /etc/environment 2>/dev/null | tr -d '"' | tail -1`}
+if [ -z "$dbhost_now" ] || [ "$dbhost_now" = "127.0.0.1" ]; then
+    db_location=local
+else
+    db_location=remote
+fi
+
+pkg_update > /dev/null
+if [ $db_location = "local" ]; then
+    platform_add_required_repos
+fi
+platform_check_versions $db_location || exit 1
+echo ""
+
 # Add a default setting of 127.0.0.1 as the DBHOST if it has not already been set
-dbhost_set=`grep DBHOST /etc/environment | wc -l`
+dbhost_set=`grep DBHOST /etc/environment 2>/dev/null | wc -l`
 if [ $dbhost_set -eq 0 ]; then
     echo "DBHOST=127.0.0.1" >> /etc/environment
-    DBHOST=127.0.0.1; export DBHOST;
 fi
-
-# Set flag for ubuntu version
-u2204=`lsb_release -r | grep -c "22\.04"`
-u2404=`lsb_release -r | grep -c "24\.04"`
-u2604=`lsb_release -r | grep -c "26\.04"`
-
-# Check that this version of ubuntu is supported
-if [ $u2604 -eq 1 ]; then
-    echo "Installing on Ubuntu 26.04"
-elif [ $u2404 -eq 1 ]; then
-    echo "Installing on Ubuntu 24.04"
-elif [ $u2204 -eq 1 ]; then
-    echo "Installing on Ubuntu 22.04"
-else
-    echo "Unsupported version of Ubuntu, you need 26.04, 24.04, or 22.04"
-    exit 1;
-fi
+# sudo does not pass on /etc/environment on all distributions, Debian 13 for one
+DBHOST=${dbhost_now:-127.0.0.1}; export DBHOST
 
 
 TOMCAT_VERSION=tomcat10
-TOMCAT_USER=tomcat
 
-CATALINA_HOME=/var/lib/$TOMCAT_VERSION
 sd="survey_definitions"											# Postgres config survey definitions db name
 results="results"												# Postgres config results db name
-tc_server_xml="/etc/$TOMCAT_VERSION/server.xml"					# Tomcat config
-tc_context_xml="/etc/$TOMCAT_VERSION/context.xml"				# Tomcat config
-tc_logging="/var/lib/$TOMCAT_VERSION/conf/logging.properties"	# Tomcat config
-a_config_dir="/etc/apache2/sites-available"						# Apache config	
-a_config_conf="/etc/apache2/apache2.conf"						# Apache config
-a_config_prefork_conf="/etc/apache2/mods-available/mpm_prefork.conf"		# Apache 2.4 config
-a_default_xml="/etc/apache2/sites-available/default"						# Apache config
-a_default_ssl_xml="/etc/apache2/sites-available/default-ssl"				# Apache config
-service_dir="/etc/systemd/system"								# Subscriber config 
+tc_server_xml="$TOMCAT_CONF_DIR/server.xml"						# Tomcat config
+tc_context_xml="$TOMCAT_CONF_DIR/context.xml"					# Tomcat config
+tc_logging="$TOMCAT_CONF_DIR/logging.properties"				# Tomcat config
+a_config_dir=$APACHE_SITE_DIR									# Apache config
+a_config_prefork_conf="/etc/apache2/mods-available/mpm_prefork.conf"		# Apache 2.4 config, Debian
+service_dir="/etc/systemd/system"								# Subscriber config
 
 echo "Setting up your server to run Smap"
 echo "If you have already installed Smap and just want to upgrade you need to run deploy.sh and not this script"
-echo 'This script has been specified to work on Ubuntu only and assumes you are not using Apache or Postgres currently on the server'
-echo 'However Smap can be deployed on any variant of Linux, Mac and Windows'
+echo 'This script assumes you are not using Apache, Tomcat or Postgres currently on the server'
 echo 'If you have an existing database then you may need to apply database patched to complete the installation. The script will not overwrite an existing database.  However you should BACK UP ANY EXISTING DATA BEFORE UPGRADING'
-read -r -p 'Do you want to continue? (y/n) ' choice
+
+# The domain name, which can already exist or be created later, or the IP address if the server has
+# no domain name.  It cannot be worked out from the machine, whose host name is usually an internal
+# one.  Apache refuses requests for any other host name.  Set SMAP_DOMAIN to install without asking.
+while ! echo "$SMAP_DOMAIN" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$'
+do
+	printf 'Domain name for this server, for example smap.example.com, or its IP address if it has none: '
+	read -r SMAP_DOMAIN
+done
+
+printf 'Do you want to continue? (y/n) '
+read -r choice
 case $choice in
         n|N) break;;
         y|Y)
 
-echo '##### 1. Update Ubuntu'
-sudo apt-get update
-sudo apt-get upgrade -y
+echo "##### 1. Update $SMAP_OS_NAME"
+if [ $SMAP_FAMILY = "debian" ]; then
+    sudo apt-get update
+    sudo apt-get upgrade -y
+    # Debian 13 has no ntp, systemd-timesyncd keeps the time instead
+    [ -n "`pkg_candidate ntp`" ] && sudo apt-get install ntp -y
+    sudo apt-get install rename -y
+    sudo apt-get install locate -y
+fi
+command -v sudo > /dev/null || pkg_required sudo		# The deploy scripts use it
 sudo sysctl -w kernel.shmmax=67068800		# 64MB of shared memory
-sudo apt-get install ntp -y
-sudo apt-get install rename -y
-sudo apt-get install locate -y
 
-echo '##### 2. Install Apache' 
-sudo apt-get install apache2 apache2-doc apache2-utils -y
-sudo apt-get install libaprutil1-dbd-pgsql -y
-sudo a2enmod auth_digest
-sudo a2enmod expires
-sudo a2enmod authn_dbd
-sudo a2enmod proxy
-sudo a2enmod proxy_ajp
-sudo a2enmod ssl
-sudo a2enmod headers
+echo '##### 2. Install Apache'
+pkg_required $PKG_APACHE
+for m in $SMAP_APACHE_MODULES
+do
+    apache_enable_module $m
+done
+apache_enable_https
+systemctl enable $APACHE_SERVICE
+mkdir -p $APACHE_SITE_DIR		# Only Debian has one already
 
-# Modules for module auth form
-sudo a2enmod request
-sudo a2enmod auth_form
-sudo a2enmod session
-sudo a2enmod session_cookie
-sudo a2enmod session_crypto
+sudo mkdir -p /var/www/smap		# SUSE has no /var/www
 
-sudo mkdir /var/www/smap
-
-echo "##### 3. Install Tomcat: $TOMCAT_VERSION"
-if [ $u2604 -eq 1 ]; then
-    # 26.04: tomcat10 and java 21 available natively via apt
-    sudo apt-get install openjdk-21-jdk-headless -y
-    sudo apt-get install tomcat10 -y
-    echo 'Fix tomcat10 logs symlink for systemd sandboxing'
-    sudo systemctl stop tomcat10 2>/dev/null || true
-    sudo mkdir -p /var/log/tomcat10
-    sudo rm -rf /var/lib/tomcat10/logs
-    sudo ln -s /var/log/tomcat10 /var/lib/tomcat10/logs
-    sudo chown tomcat:tomcat /var/log/tomcat10
-elif [ $u2404 -eq 1 ] || [ $u2204 -eq 1 ]; then
-    # 24.04 and 22.04: manual wget install (apt does not provide tomcat10)
-    tc_server_xml="/var/lib/$TOMCAT_VERSION/conf/server.xml"
-    tc_context_xml="/var/lib/$TOMCAT_VERSION/conf/context.xml"
-    tc_logging="/var/lib/$TOMCAT_VERSION/conf/logging.properties"
-
+echo "##### 3. Install Tomcat"
+if [ "$TOMCAT_TARBALL" != "yes" ]; then
+    # Tomcat from the packages, which platform_check_versions found to be new enough
+    pkg_required $PKG_JAVA $PKG_TOMCAT
+    if [ $SMAP_FAMILY = "debian" ]; then
+        echo 'Fix tomcat10 logs symlink for systemd sandboxing'
+        sudo systemctl stop tomcat10 2>/dev/null || true
+        sudo mkdir -p /var/log/tomcat10
+        sudo rm -rf /var/lib/tomcat10/logs
+        sudo ln -s /var/log/tomcat10 /var/lib/tomcat10/logs
+        sudo chown tomcat:tomcat /var/log/tomcat10
+    fi
+    systemctl enable $TOMCAT_SERVICE
+else
+    # RHEL, or an Ubuntu LTS release whose packages do not have Tomcat 10.1: the tarball from apache.org
     echo 'install java 21'
-    sudo apt-get install openjdk-21-jdk-headless -y
+    pkg_required $PKG_JAVA
+    command -v wget > /dev/null || pkg_required wget
     echo 'Create tomcat user'
     sudo groupadd tomcat 2>/dev/null || true
     sudo useradd -s /bin/false -g tomcat -d /var/lib/tomcat10 tomcat 2>/dev/null || true
     echo 'get tomcat'
-    TC10_VER=10.1.40
+    TC10_VER=$SMAP_TOMCAT_TARBALL_VERSION
     wget https://archive.apache.org/dist/tomcat/tomcat-10/v${TC10_VER}/bin/apache-tomcat-${TC10_VER}.tar.gz
     sudo mkdir -p /var/lib/tomcat10
     sudo tar xzf apache-tomcat-10*tar.gz -C /var/lib/tomcat10 --strip-components=1
     rm apache-tomcat-10*tar.gz
     echo 'Tomcat service'
     cp config_files/tomcat10.service /usr/lib/systemd/system
-    JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
+    JAVA_HOME=`java_home`
     JH="Environment=\"JAVA_HOME=$JAVA_HOME\""
     sed -i "/JAVA_HOME/c$JH" /usr/lib/systemd/system/tomcat10.service
     echo 'Create tomcat log directory'
@@ -139,30 +148,28 @@ echo '##### 5. Install Postgres / Postgis'
 if [ "$DBHOST" = "127.0.0.1" ]; then
 
     echo 'installing postgres'
-    # Install Postgres for Ubuntu 26.04
-    if [ $u2604 -eq 1 ]; then
-        PGV=18
-    fi
+    # The major version the packages provide, found by platform_check_versions
+    PGV=$SMAP_PG_VERSION
 
-    # Install Postgres for Ubuntu 24.04
-    if [ $u2404 -eq 1 ]; then
-        PGV=16
-    fi
-
-    # Install Postgres for Ubuntu 22.04
-    if [ $u2204 -eq 1 ]; then
-        PGV=14
-    fi
-
-    sudo apt-get install postgresql postgresql-contrib postgis -y
-    pg_conf="/etc/postgresql/$PGV/main/postgresql.conf"
+    pkg_required $PKG_PG_SERVER `pkg_postgis $PGV`
+    pg_paths $PGV
+    pg_initdb
+    pg_pin
+    pg_login_shell
+    systemctl enable $PG_SERVICE
+    pg_conf="$PG_CONF_DIR/postgresql.conf"
 
 else
     # Just install the psql client and create a postgres user
-    sudo useradd -s /bin/sh -d /home/postgres -m postgres
-    sudo apt-get install postgresql-client -y
+    id postgres > /dev/null 2>&1 || sudo useradd -s /bin/sh -d /home/postgres -m postgres
+    pkg_required $PKG_PG_CLIENT
 fi
 # End of conditional install
+
+# Save where everything was installed, for apacheConfig.sh, patchdb.sh and deploy.sh
+pg_paths $SMAP_PG_VERSION
+platform_validate || exit 1
+platform_save
 
 echo "##### 6. Create folders for files in $filelocn"
 sudo mkdir $filelocn
@@ -178,16 +185,17 @@ sudo mkdir $filelocn/temp
 sudo mkdir $filelocn/settings
 
 # Allow tomcat to write to /smap (systemd override)
-mkdir -p /etc/systemd/system/tomcat10.service.d
-cp config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
+mkdir -p /etc/systemd/system/$TOMCAT_SERVICE.service.d
+cp config_files/override.conf /etc/systemd/system/$TOMCAT_SERVICE.service.d/override.conf
+systemctl daemon-reload
 
 # Make sure all subdirectories of filelocn are updated even if the latter is a symbolic link
 sudo chown -R $TOMCAT_USER $filelocn
 sudo chown -R $TOMCAT_USER $filelocn/*
 sudo chmod -R 0777 $filelocn/*
 
-sudo mkdir /var/lib/$TOMCAT_VERSION/.aws
-sudo chown -R $TOMCAT_USER /var/lib/$TOMCAT_VERSION/.aws
+sudo mkdir $TOMCAT_BASE_DIR/.aws
+sudo chown -R $TOMCAT_USER $TOMCAT_BASE_DIR/.aws
 
 
 # If auto configuration is set then copy the pre-set configuration files to their target destination
@@ -196,15 +204,20 @@ if [ "$config" != "manual" ]; then
 
 	echo '##### 7. Copying configuration files'
 
-	sudo service apache2 stop
-	sudo service $TOMCAT_VERSION stop
-        if [ $DBHOST = "127.0.0.1" ]; then
-	    sudo service postgresql stop
-	    echo '# copy postgres conf file'
-		if [ ! -f "$pg_conf.bu" ]; then
-	    	sudo mv $pg_conf $pg_conf.bu
+	sudo systemctl stop $APACHE_SERVICE
+	sudo systemctl stop $TOMCAT_SERVICE
+        if [ "$DBHOST" = "127.0.0.1" ]; then
+	    sudo systemctl stop $PG_SERVICE
+	    # There is a configuration file only for the Debian and Ubuntu versions Smap has been installed with before
+	    if [ $SMAP_FAMILY = "debian" ] && [ -f config_files/postgresql.conf.$PGV ]; then
+	        echo '# copy postgres conf file'
+		    if [ ! -f "$pg_conf.bu" ]; then
+	    	    sudo mv $pg_conf $pg_conf.bu
+	        fi
+	        sudo cp config_files/postgresql.conf.$PGV $pg_conf
+	    else
+	        echo "# no postgres conf file for version $PGV, keeping the one installed with it"
 	    fi
-	    sudo cp config_files/postgresql.conf.$PGV $pg_conf
 	fi
 
 	echo '# copy tomcat server file'
@@ -227,38 +240,47 @@ if [ "$config" != "manual" ]; then
 	fi
 	sudo cp config_files/logging.properties $tc_logging
 
-	echo '# copy Apache configuration file'
-	if [ ! -f "$a_config_prefork_conf.bu" ]; then
-		sudo mv $a_config_prefork_conf $a_config_prefork_conf.bu
+	if [ $SMAP_FAMILY = "debian" ]; then
+		echo '# copy Apache configuration file'
+		if [ ! -f "$a_config_prefork_conf.bu" ]; then
+			sudo mv $a_config_prefork_conf $a_config_prefork_conf.bu
+		fi
+		sudo cp config_files/mpm_prefork.conf $a_config_prefork_conf
 	fi
-	sudo cp config_files/mpm_prefork.conf $a_config_prefork_conf
 
 	echo "Setting up Apache 2.4"
-	if [ ! -f "$a_config_dir/smap.conf.bu" ]; then
+	if [ ! -f "$a_config_dir/smap.conf.bu" ] && [ -f "$a_config_dir/smap.conf" ]; then
 		sudo cp $a_config_dir/smap.conf $a_config_dir/smap.conf.bu
 	fi
-	sudo cp config_files/a24-smap.conf $a_config_dir/smap.conf
+	platform_template config_files/a24-smap.conf $a_config_dir/smap.conf
 
-	if [ ! -f "$a_config_dir/smap-ssl.conf.bu" ]; then
+	if [ ! -f "$a_config_dir/smap-ssl.conf.bu" ] && [ -f "$a_config_dir/smap-ssl.conf" ]; then
 		sudo cp $a_config_dir/smap-ssl.conf $a_config_dir/smap-ssl.conf.bu
 	fi
-	sudo cp config_files/a24-smap-ssl.conf $a_config_dir/smap-ssl.conf
-	
-	# disable default config - TODO work out how to get Smap to coexist with existing Apache installations	
-	sudo a2dissite 000-default
-	sudo a2dissite default-ssl
-	sudo a2ensite smap.conf
-	sudo a2ensite smap-ssl.conf
-	
+	platform_template config_files/a24-smap-ssl.conf $a_config_dir/smap-ssl.conf
+	ssl_ensure_self_signed $SMAP_DOMAIN
+
+	# Fill in the domain name, or allow any host name if there is none
+	chmod +x setDomain.sh
+	sudo ./setDomain.sh $SMAP_DOMAIN
+
+	# disable default config - TODO work out how to get Smap to coexist with existing Apache installations
+	if [ $SMAP_FAMILY = "debian" ]; then
+		sudo a2dissite 000-default
+		sudo a2dissite default-ssl
+	fi
+	apache_enable_site smap.conf
+	apache_enable_site smap-ssl.conf
+
 	# Update the volatile configuration setting, only this should change after initial installation
 	chmod +x apacheConfig.sh
 	sudo ./apacheConfig.sh
 
 	echo '# copy subscriber service files'
 
-	sudo cp config_files/subscribers.service $service_dir/subscribers.service
+	platform_template config_files/subscribers.service $service_dir/subscribers.service
 	sudo chmod 664 $service_dir/subscribers.service
-	sudo cp config_files/subscribers_fwd.service $service_dir/subscribers_fwd.service
+	platform_template config_files/subscribers_fwd.service $service_dir/subscribers_fwd.service
 	sudo chmod 664 $service_dir/subscribers_fwd.service
 
 	sudo systemctl enable subscribers.service
@@ -282,7 +304,7 @@ fi
 if [ "$DBHOST" = "127.0.0.1" ]; then
 
     echo '##### 9. Create user and databases'
-    sudo service postgresql start
+    sudo systemctl start $PG_SERVICE
     sudo -i -u postgres createuser -S -D -R ws
     echo "alter user ws with password 'ws1234'" | sudo -i -u postgres psql
 
@@ -298,8 +320,8 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
     then
         echo 'survey_definitions database does not exist'
         sudo -i -u postgres createdb -E UTF8 -O ws $sd
-        echo "CREATE EXTENSION postgis;" | sudo -i -u postgres psql -d $sd 
-        echo "CREATE EXTENSION pgcrypto;" | sudo -i -u postgres psql -d $sd 
+        echo "CREATE EXTENSION postgis;" | sudo -i -u postgres psql -d $sd
+        echo "CREATE EXTENSION pgcrypto;" | sudo -i -u postgres psql -d $sd
         echo "ALTER TABLE geometry_columns OWNER TO ws; ALTER TABLE spatial_ref_sys OWNER TO ws; ALTER TABLE geography_columns OWNER TO ws;" | sudo -i -u postgres psql -d $sd
         cat setupDb.sql | sudo -i -u postgres psql -d $sd | grep -v "skipping"
     else
@@ -343,81 +365,70 @@ sudo mkdir /smap_bin/resources/css
 echo '##### 13. Set up deployment script'
 chmod +x ../deploy/deploy.sh
 
-echo '##### 14. Add imagemagick,ffmpeg,exiftool to generate thumbnails'
-if [ $(cat /etc/*-release | grep "DISTRIB_CODENAME=" | cut -d "=" -f2) = "trusty" ];
-then
-sudo add-apt-repository ppa:mc3man/trusty-media  && sudo apt-get update -y
-fi
-
-sudo apt-get install imagemagick -y
-sudo apt-get install ffmpeg -y
-sudo apt-get install libimage-exiftool-perl -y
-#sudo apt-get install flvtool2 -y
+echo '##### 14. Add imagemagick,ffmpeg,exiftool to generate thumbnails, gdal for shape files, zip and fonts'
+platform_offer_media_repos
+# Only those the packages have, the version check has already warned about any that are missing
+optional=""
+for p in $PKG_MEDIA $PKG_UTILS
+do
+    [ -n "`pkg_candidate $p`" ] && optional="$optional $p"
+done
+[ -n "$optional" ] && pkg_install $optional
 
 if [ "$DBHOST" = "127.0.0.1" ]; then
     echo '##### 17. Backups'
-    sudo mkdir ~postgres/backups
-    sudo mkdir ~postgres/restore
+    # RHEL's postgres home already has a backups directory
+    sudo mkdir -p ~postgres/backups ~postgres/restore
     sudo chmod +x ~postgres/bu.sh ~postgres/re.sh
     sudo chown postgres ~postgres/bu.sh ~postgres/re.sh ~postgres/backups ~postgres/restore
 fi
 
 echo '##### 19. Update miscelaneous file configurations'
 
-sudo apt-get install mlocate -y
-
 echo '##### Add file location to tomcat configuration'
 
-BU_FILE=/var/lib/$TOMCAT_VERSION/conf/web.xml.bu
+BU_FILE=$TOMCAT_CONF_DIR/web.xml.bu
 if [ ! -f "$BU_FILE" ]; then
-	sudo cp /var/lib/$TOMCAT_VERSION/conf/web.xml $BU_FILE
+	sudo cp $TOMCAT_CONF_DIR/web.xml $BU_FILE
 fi
 
 sudo sed -i "/<\/web-app>/i \
 <context-param>\n\
    <param-name>au.com.smap.files<\/param-name>\n\
    <param-value>$filelocn</param-value>\n\
-<\/context-param>" /var/lib/$TOMCAT_VERSION/conf/web.xml
+<\/context-param>" $TOMCAT_CONF_DIR/web.xml
 
 echo '##### Add shared memory setting to sysctl.conf'
 
-if [ ! -f "/etc/sysctl.conf.bu" ]; then
+if [ ! -f "/etc/sysctl.conf.bu" ] && [ -f /etc/sysctl.conf ]; then
 	sudo cp /etc/sysctl.conf /etc/sysctl.conf.bu
 fi
-echo "kernel.shmmax=67068800" | sudo tee -a /etc/sysctl.conf 
+echo "kernel.shmmax=67068800" | sudo tee -a /etc/sysctl.conf
 # TODO add "-Djava.net.preferIPv4Stack=true" to JAVA_OPTS
 
 echo '##### Increase shared memory available to tomcat'
-if [ -f "/etc/default/$TOMCAT_VERSION" ]; then
-	if [ ! -f "/etc/default/$TOMCAT_VERSION.bu" ]; then
-		sudo cp /etc/default/$TOMCAT_VERSION /etc/default/$TOMCAT_VERSION.bu
+if [ -f "/etc/default/$TOMCAT_SERVICE" ]; then
+	if [ ! -f "/etc/default/$TOMCAT_SERVICE.bu" ]; then
+		sudo cp /etc/default/$TOMCAT_SERVICE /etc/default/$TOMCAT_SERVICE.bu
 	fi
-	sudo sed -i "s#-Xmx128m#-Xmx512m#g" /etc/default/$TOMCAT_VERSION
+	sudo sed -i "s#-Xmx128m#-Xmx512m#g" /etc/default/$TOMCAT_SERVICE
 fi
 
 if [ "$DBHOST" = "127.0.0.1" ]; then
     echo '##### Allow logon to postgres authenticated by md5 - used to export shape files'
-    # This could be better written as it is not idempotent, each time the install script is run an additional line will be changed
-    if [ ! -f "/etc/postgresql/$PGV/main/pg_hba.conf.bu" ]; then
-    	sudo mv /etc/postgresql/$PGV/main/pg_hba.conf /etc/postgresql/$PGV/main/pg_hba.conf.bu
-    fi
-    sudo awk 'BEGIN{doit=0;}/# "local"/{doit=1;isdone=0;}{if(doit==1){isdone=sub("peer","md5",$0);print;if(isdone==1){doit=0}}else{print}}' /etc/postgresql/$PGV/main/pg_hba.conf.bu > x
-    sudo mv x /etc/postgresql/$PGV/main/pg_hba.conf
+    pg_configure_logins
 fi
+
+platform_selinux
 
 echo '##### . Start the servers'
 if [ "$DBHOST" = "127.0.0.1" ]; then
-    sudo service postgresql start
+    sudo systemctl start $PG_SERVICE
 fi
 # Copy PostgreSQL JDBC driver to Tomcat shared lib before first startup
-cp ../deploy/version1/jdbc/* /var/lib/$TOMCAT_VERSION/lib/
-sudo service $TOMCAT_VERSION start
-sudo service apache2 start
-
-echo '##### 20. Enable export to shape files, kmz files and pdf files'
-sudo apt-get install zip -y
-sudo apt-get install gdal-bin -y
-sudo apt-get install ttf-dejavu -y
+cp ../deploy/version1/jdbc/* $TOMCAT_LIB/
+sudo systemctl start $TOMCAT_SERVICE
+sudo systemctl start $APACHE_SERVICE
 
 # Add a file containing the version number
 echo "2608" > /smap_bin/smap_version
@@ -426,7 +437,7 @@ echo '##### 21. Add postgres and apache to tomcat group'
 if [ "$DBHOST" = "127.0.0.1" ]; then
     sudo usermod -a -G $TOMCAT_USER postgres
 fi
-sudo usermod -a -G $TOMCAT_USER www-data
+sudo usermod -a -G $TOMCAT_USER $APACHE_USER
 
 echo '##### 22. Deploy Smap'
 cd ../deploy

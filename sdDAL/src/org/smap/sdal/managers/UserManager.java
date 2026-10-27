@@ -6,10 +6,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -64,6 +65,9 @@ public class UserManager {
 	private static Logger log =
 			Logger.getLogger(UserManager.class.getName());
 
+	// The day an expired password was last logged for each user, as the user is read on every page
+	private static ConcurrentHashMap<String, LocalDate> expiryLogged = new ConcurrentHashMap<>();
+
 	LogManager lm = new LogManager();		// Application log
 	
 	private ResourceBundle localisation;
@@ -91,6 +95,7 @@ public class UserManager {
 		int serverPasswordExpiry = 0;
 		int passwordExpiry = 0;
 		boolean noBasicPassword = false;
+		boolean mustChangePassword = false;
 		boolean resetTotalTasks = false;
 
 		try {
@@ -115,6 +120,7 @@ public class UserManager {
 					+ "u.total_tasks,"
 					+ "u.reset_total_tasks,"
 					+ "extract(year from age(now(), u.password_set)) * 12 + extract(month from age(now(), u.password_set)) as password_age,"
+					+ "coalesce(u.password_set = 'epoch', false) as must_change_password,"
 					+ "o.id as o_id, "
 					+ "o.name as organisation_name, "
 					+ "o.company_name as company_name, "
@@ -216,6 +222,7 @@ public class UserManager {
 				passwordAge = resultSet.getInt("password_age");
 				orgPasswordExpiry = resultSet.getInt("password_expiry");
 				noBasicPassword = resultSet.getString("basic_password") == null;
+				mustChangePassword = resultSet.getBoolean("must_change_password");
 			}
 
 			/*
@@ -329,9 +336,10 @@ public class UserManager {
 			getUserOrganisations(sd, user.orgs, user, user.id);
 
 			/*
-			 * Force password reset if there is no basic password set
+			 * Force password reset if there is no basic password set or the password has never been
+			 * set by the user, such as the initial admin / admin
 			 */
-			if(noBasicPassword) {
+			if(noBasicPassword || mustChangePassword) {
 				user.passwordExpired = true;
 			} else {
 				/*
@@ -357,7 +365,7 @@ public class UserManager {
 						}
 					}
 				}
-				if(user.passwordExpired) {
+				if(user.passwordExpired && firstToday(ident)) {
 					String msg = localisation.getString("ar_pwd_expiry");
 					msg = msg.replace("%s1", user.name);
 					msg = msg.replace("%s2", String.valueOf(passwordAge));
@@ -587,8 +595,8 @@ public class UserManager {
 				.append(serverName)
 				.append("/app/resetForgottonPassword.html?token=")
 				.append(uuid)
-				.append("\">")
-				.append("<button type='button' style='margin:auto;style:block'>").append(localisation.getString("c_s_p")).append("</button>")
+				.append("\" style=\"").append(EmailManager.LINK_BUTTON_STYLE).append("\">")
+				.append(localisation.getString("c_s_p"))
 				.append("</a>");
 				customTokens.put("${set_password_url}", passwordUrl.toString());
 				
@@ -609,7 +617,7 @@ public class UserManager {
 						null,
 						emailServer,
 						serverName,
-						subStatus.emailKey,
+						null,		// Account email, no unsubscribe link or header
 						localisation,
 						customTokens,
 						organisation.getAdminEmail(),
@@ -1052,6 +1060,14 @@ public class UserManager {
 		}
 	}
 
+	/*
+	 * True the first time this is called today for the user
+	 */
+	private static boolean firstToday(String ident) {
+		LocalDate today = LocalDate.now();
+		return !today.equals(expiryLogged.put(ident, today));
+	}
+
 	public Response setPassword(Connection sd, Locale locale, ResourceBundle localisation, 
 			String ident, String serverName, PasswordDetails pwd) {
 		
@@ -1069,8 +1085,12 @@ public class UserManager {
 			/*
 			 * Verify that the password is strong enough
 			 */
+			if(pwd == null || pwd.password == null || pwd.password.isEmpty()) {
+				throw new ApplicationException(localisation.getString("msg_wp"));
+			}
 			pwm = new PasswordManager(sd, locale, localisation, ident, serverName);
 			pwm.checkStrength(pwd.password);
+			pwm.checkNotCurrent(ident, pwd.password);
 
 			sql = "update users set "
 					+ "password = md5(?), "			// Digest HA1, still checked by the device locations

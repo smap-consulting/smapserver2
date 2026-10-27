@@ -1,22 +1,10 @@
 #!/bin/sh
 deploy_from="version1"
-# Set flag for ubuntu version
-u2204=`lsb_release -r | grep -c "22\.04"`
-u2404=`lsb_release -r | grep -c "24\.04"`
-u2604=`lsb_release -r | grep -c "26\.04"`
-
-if [ $u2604 -eq 0 ] && [ $u2404 -eq 0 ] && [ $u2204 -eq 0 ]; then
-    echo "ERROR: Unsupported Ubuntu version. This version of Smap requires Ubuntu 22.04 or later."
-    echo "Your server has not been changed."
-    exit 1
-fi
-
-# Detect installed Tomcat by checking for actual service/directory
-if [ -d /var/lib/tomcat10 ] || systemctl is-enabled tomcat10 2>/dev/null | grep -q "enabled"; then
-    TOMCAT_VERSION=tomcat10
-    TOMCAT_USER=tomcat
-else
-    echo "ERROR: Tomcat 10 installation not found. Run patchdb.sh first to migrate from Tomcat 9."
+# Where this server's components are, from /etc/smap/platform.conf, or detected and saved
+# there on a server installed before it existed.  Then check the installed versions
+. ../install/platform.sh
+if ! platform_setup; then
+    echo "Smap has not been deployed.  On a server still running Tomcat 9 run patchdb.sh first to migrate to Tomcat 10."
     exit 1
 fi
 
@@ -40,7 +28,14 @@ mv /etc/environment.temp /etc/environment
 echo "SESSPASS=\"`cat /dev/urandom | tr -dc '[:alnum:]' | head -c 10`\"" >> /etc/environment
 
 # Get location of database
-if [ $DBHOST = "127.0.0.1" ]
+# From /etc/environment if it is not in this environment, as on a new install, where install.sh has
+# only just written it there and sudo does not pass it on.  Without it this would be taken for a
+# remote database and the patches would not be applied
+if [ -z "$DBHOST" ]; then
+	DBHOST=`sed -n 's/^DBHOST=//p' /etc/environment | tr -d '"' | tail -1`
+fi
+DBHOST=${DBHOST:-127.0.0.1}; export DBHOST
+if [ "$DBHOST" = "127.0.0.1" ]
 then
         echo "local database"
         PSQL="psql"
@@ -55,22 +50,22 @@ cwd=`pwd`
 #
 # stop services
 #
-service apache2 stop
-service $TOMCAT_VERSION stop
+systemctl stop $APACHE_SERVICE
+systemctl stop $TOMCAT_SERVICE
 systemctl stop subscribers
 systemctl stop subscribers_fwd
-if [ $DBHOST = "127.0.0.1" ]; then
-    service postgresql stop
+if [ "$DBHOST" = "127.0.0.1" ]; then
+    systemctl stop $PG_SERVICE
 fi
 
 cd $deploy_from
 for f in `ls *.war`
 do
     echo "restarting:" $f
-    rm /var/lib/$TOMCAT_VERSION/webapps/$f
+    rm $TOMCAT_WEBAPPS/$f
     fdir=`echo $f | sed "s/\([a-zA-Z0-9]*\)\..*/\1/"`
     echo "deleting folder:" $fdir
-    rm -rf /var/lib/$TOMCAT_VERSION/webapps/$fdir
+    rm -rf $TOMCAT_WEBAPPS/$fdir
 done
 cd ..
 
@@ -136,11 +131,11 @@ cp $deploy_from/fpReader2.apk /var/www/smap
 cp $deploy_from/smapUploader.jar /var/www/smap
 cp $deploy_from/fieldTask.apk /var/www/default
 #cp -r $deploy_from/smapIcons/WebContent/* /var/www/smap/smapIcons
-cp $deploy_from/*.war /var/lib/$TOMCAT_VERSION/webapps
-chown -R $TOMCAT_USER /var/lib/$TOMCAT_VERSION/webapps
+cp $deploy_from/*.war $TOMCAT_WEBAPPS
+chown -R $TOMCAT_USER $TOMCAT_WEBAPPS
 
 # change owner for apache web directory
-chown -R www-data:www-data /var/www/smap
+chown -R $APACHE_USER: /var/www/smap
 chmod -R o-rwx /var/www/smap
 
 #
@@ -151,6 +146,7 @@ cp $deploy_from/codebook.jar /smap_bin
 cp -r $deploy_from/subscribers/default /smap_bin
 cp -r $deploy_from/resources /smap_bin
 cp -r $deploy_from/scripts/* /smap_bin
+mkdir -p /usr/share/fonts/truetype
 cp  $deploy_from/resources/fonts/* /usr/share/fonts/truetype
 chmod +x /smap_bin/*.sh
 chmod +r /usr/share/fonts/truetype/*
@@ -189,8 +185,8 @@ then
 fi
 
 # Restart Servers
-if [ $DBHOST = "127.0.0.1" ]; then
-    service postgresql start
+if [ "$DBHOST" = "127.0.0.1" ]; then
+    systemctl start $PG_SERVICE
     echo "Starting postgres"
 
 else
@@ -204,7 +200,7 @@ fi
 if [ "$WEBSITE" != "no" ]
 then
 	# Ensure PostgreSQL JDBC driver is in Tomcat's shared lib before startup
-	cp -r $deploy_from/jdbc/* /var/lib/$TOMCAT_VERSION/lib/
+	cp -r $deploy_from/jdbc/* $TOMCAT_LIB/
 
 	#
 	# Point Tomcat at the shared libraries installed in /smap_bin/lib above.  The shared
@@ -213,11 +209,7 @@ then
 	#
 	if [ -d /smap_bin/lib ]
 	then
-		CATALINA_PROPS=/var/lib/$TOMCAT_VERSION/conf/catalina.properties
-		if [ ! -f $CATALINA_PROPS ]
-		then
-			CATALINA_PROPS=/etc/$TOMCAT_VERSION/catalina.properties
-		fi
+		CATALINA_PROPS=$TOMCAT_CONF_DIR/catalina.properties
 		if grep -q '^shared.loader="/smap_bin/lib/\*.jar"' $CATALINA_PROPS
 		then
 			echo "...... shared libraries already configured in $CATALINA_PROPS"
@@ -228,11 +220,11 @@ then
 		fi
 
 		# Left behind by releases that kept the shared libraries under Tomcat
-		rm -rf /var/lib/$TOMCAT_VERSION/smaplib
+		rm -rf $TOMCAT_BASE_DIR/smaplib
 	fi
 
-	service $TOMCAT_VERSION start
-	service apache2 start
+	systemctl start $TOMCAT_SERVICE
+	systemctl start $APACHE_SERVICE
 fi
 
 if [ "$SUBSCRIBER" != "no" ]
@@ -242,6 +234,9 @@ then
 
     echo "...... starting subscriber"
     echo "go" > /smap/settings/subscriber
+    selinux_restore /smap_bin
+    # Clear any earlier failures, which would otherwise stop systemd starting them
+    systemctl reset-failed subscribers subscribers_fwd 2>/dev/null
     systemctl enable subscribers
     systemctl start subscribers
 

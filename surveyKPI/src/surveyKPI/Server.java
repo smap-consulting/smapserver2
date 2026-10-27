@@ -192,7 +192,8 @@ public class Server extends Application {
 				+ "wa_access_token = ?,"
 				+ "wa_app_secret = ?,"
 				+ "wa_verify_token = ?,"
-				+ "wa_api_version = ? ";
+				+ "wa_api_version = ?,"
+				+ "self_registration = ? ";
 
 		PreparedStatement pstmt = null;
 
@@ -203,8 +204,8 @@ public class Server extends Application {
 				+ "sharepoint_url, sharepoint_client_id, sharepoint_realm, sharepoint_cert_pem,"
 				+ "sharepoint_auth_type, sharepoint_username, sharepoint_password, sharepoint_domain,"
 				+ "mcp_enabled, mcp_client_registration, mcp_max_rows, mcp_token_ttl, mcp_allow_access,"
-				+ "wa_access_token, wa_app_secret, wa_verify_token, wa_api_version)"
-				+ " values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "wa_access_token, wa_app_secret, wa_verify_token, wa_api_version, self_registration)"
+				+ " values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement pstmtInsert = null;
 		
 		try {
@@ -252,6 +253,7 @@ public class Server extends Application {
 			pstmt.setString(35, data.wa_app_secret);
 			pstmt.setString(36, data.wa_verify_token);
 			pstmt.setString(37, data.wa_api_version);
+			pstmt.setBoolean(38, data.self_registration);
 			int count = pstmt.executeUpdate();
 
 			if(count == 0) {
@@ -293,6 +295,7 @@ public class Server extends Application {
 				pstmtInsert.setString(35, data.wa_app_secret);
 				pstmtInsert.setString(36, data.wa_verify_token);
 				pstmtInsert.setString(37, data.wa_api_version);
+				pstmtInsert.setBoolean(38, data.self_registration);
 				pstmtInsert.executeUpdate();
 			}
 			

@@ -1,16 +1,13 @@
 package utilities;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.logging.Logger;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
-import surveyKPI.Dashboard;
 
 /*
 This file is part of SMAP.

@@ -58,11 +58,10 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.BlockedException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.RequestIdentity;
-import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.ResultsDataSource;
+import org.smap.sdal.Utilities.TurnstileVerifier;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.legacy.GetHtml;
 import org.smap.sdal.legacy.SurveyTemplate;
@@ -107,7 +106,6 @@ public class WebForm extends Application {
 	private static Logger log = Logger.getLogger(WebForm.class.getName());
 	LogManager lm = new LogManager();		// Application log
 
-	private HtmlSanitise sanitise = new HtmlSanitise();
 	
 	public WebForm() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
@@ -877,7 +875,7 @@ public class WebForm extends Application {
 
 		// head
 		output.append("<head>\n");
-		output.append("<title>" + sanitise.sanitiseHtml(survey.getDisplayName()) + "</title>");
+		output.append("<title>" + GeneralUtilityMethods.esc(survey.getDisplayName()) + "</title>");
 		
 		output.append("<link rel='stylesheet' href='/css/bootstrap.v5.3.8.min.css' />\n");
 		if (surveyClass != null && surveyClass.trim().contains("theme-grid")) {
@@ -1186,32 +1184,7 @@ public class WebForm extends Application {
 	 * Call Cloudflare Turnstile siteverify API
 	 */
 	private boolean callTurnstileVerifyApi(String token, String secretKey, String remoteIp) {
-		try {
-			URL url = new URL("https://challenges.cloudflare.com/turnstile/v0/siteverify");
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			conn.setRequestMethod("POST");
-			conn.setDoOutput(true);
-			conn.setConnectTimeout(5000);
-			conn.setReadTimeout(5000);
-			conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-
-			String body = "secret=" + secretKey + "&response=" + token
-					+ (remoteIp != null ? "&remoteip=" + remoteIp : "");
-			try(OutputStream os = conn.getOutputStream()) {
-				os.write(body.getBytes(StandardCharsets.UTF_8));
-			}
-
-			StringBuilder sb = new StringBuilder();
-			try(BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
-				String line;
-				while((line = br.readLine()) != null) { sb.append(line); }
-			}
-			String response = sb.toString();
-			return response.contains("\"success\":true");
-		} catch(Exception e) {
-			log.log(Level.WARNING, "Turnstile API call failed", e);
-			return false;
-		}
+		return TurnstileVerifier.verify(token, secretKey, remoteIp);
 	}
 
 	/*

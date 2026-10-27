@@ -25,7 +25,6 @@ import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.smap.sdal.legacy.SurveyInstance;
-import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
@@ -55,7 +54,6 @@ public abstract class Subscriber {
 	private int duplicatePolicy = DUPLICATE_DROP;
 	
 	protected ArrayList<MediaChange> mediaChanges = new ArrayList<> ();
-	//protected ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
 	
 	Subscriber() {
 		

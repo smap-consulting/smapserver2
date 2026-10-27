@@ -1,6 +1,5 @@
 package model;
 
-import java.util.ArrayList;
 
 /*
 This file is part of SMAP.

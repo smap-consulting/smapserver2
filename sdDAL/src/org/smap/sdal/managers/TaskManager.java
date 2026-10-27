@@ -3654,9 +3654,13 @@ public class TaskManager {
 				 * Add details from the survey to the subject and email content
 				 */
 				log.fine("xxxxxxxxxxxxx1: " + msg.content);
+				/*
+				 * Task messages are only sent by email.  The subject is plain text, the content is
+				 * HTML so the values put into it are escaped
+				 */
 				if(survey != null) {
 					msg.subject = sm.fillStringTemplate(survey, msg.subject);
-					msg.content = sm.fillStringTemplate(survey, msg.content);
+					msg.content = sm.fillStringTemplate(survey, msg.content, true);
 				}
 				log.fine("xxxxxxxxxxxxx2: " + msg.content);
 				TextManager tm = new TextManager(localisation, tz);
@@ -3670,7 +3674,8 @@ public class TaskManager {
 							msg.user,
 							survey,
 							"none",
-							organisation.id);
+							organisation.id,
+							new boolean[] {false, true});
 				msg.subject = text.get(0);
 				msg.content = text.get(1);
 				log.fine("xxxxxxxxxxxxx3: " + msg.content);
@@ -3724,11 +3729,9 @@ public class TaskManager {
 								content.append("<p>")
 									.append(taskMsg)
 									.append("</p>")
-									.append(" <p><a href=\"").append(docURL)
-									.append("\">")
-									.append("<button type='button' style='margin:auto;style:block'>")
+									.append(" <p style=\"text-align:center;\"><a href=\"").append(docURL)
+									.append("\" style=\"").append(EmailManager.LINK_BUTTON_STYLE).append("\">")
 									.append(localisation.getString("ar_survey"))
-									.append("</button>")
 									.append("</a></p>");
 							}
 
@@ -4051,6 +4054,13 @@ public class TaskManager {
 	}
 	
 	public String fillStringTaskTemplate(TaskProperties task, SubmissionMessage msg, String in, String serverName) {
+		return fillStringTaskTemplate(task, msg, in, serverName, false);
+	}
+
+	/*
+	 * html: the result is HTML, such as the body of an email, so escape the values
+	 */
+	public String fillStringTaskTemplate(TaskProperties task, SubmissionMessage msg, String in, String serverName, boolean html) {
 		String out = in;
 
 		StringBuffer taskUrl = new StringBuffer("");
@@ -4065,15 +4075,22 @@ public class TaskManager {
 		}
 	
 		if(out != null && task != null) {
-			out = out.replaceAll("\\$\\{task_webform\\}", taskUrl.toString());
-			out = out.replaceAll("\\$\\{assignee_name\\}", task.assignee_name);
-			out = out.replaceAll("\\$\\{scheduled\\}", task.from.toString());
+			out = out.replace("${task_webform}", taskValue(taskUrl.toString(), html));
+			out = out.replace("${assignee_name}", taskValue(task.assignee_name, html));
+			out = out.replace("${scheduled}", taskValue(task.from == null ? null : task.from.toString(), html));
 
 		} else {
 			log.fine("Could not fill task template details for: " + out + " : " + ((task == null) ? "task is null" : "task not null" ));
 		}
 
 		return out;
+	}
+	
+	private String taskValue(String value, boolean html) {
+		if(value == null) {
+			return "";
+		}
+		return html ? GeneralUtilityMethods.htmlText(value) : value;
 	}
 	
 	/*

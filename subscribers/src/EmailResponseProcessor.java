@@ -1,14 +1,12 @@
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -34,11 +32,10 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Object;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.RecordEventManager;
+import org.smap.sdal.managers.ReplyTokenManager;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.EmailReplyData;
 
@@ -182,6 +179,14 @@ public class EmailResponseProcessor {
 	}
 
 	private void processInbound(DatabaseConnections dbc, S3Client s3, String bucket, String basePath) {
+
+		// Lapsed tokens can no longer place a reply, so there is no reason to keep them
+		try {
+			new ReplyTokenManager().deleteExpired(dbc.sd);
+		} catch(Exception e) {
+			log.log(Level.WARNING, "Could not delete lapsed reply tokens", e);
+		}
+
 		ListObjectsV2Request req = ListObjectsV2Request.builder()
 				.bucket(bucket)
 				.prefix(INBOUND_PREFIX)
@@ -204,34 +209,42 @@ public class EmailResponseProcessor {
 			Session session = Session.getDefaultInstance(new Properties());
 			MimeMessage mime = new MimeMessage(session, content);
 
-			// Extract the reply+{encoded} address from To/Delivered-To headers
-			String encodedPayload = findEncodedPayload(mime);
-			if(encodedPayload == null) {
+			/*
+			 * SES scans inbound mail when the receipt rule asks it to.  Anything it found to be
+			 * spam or a virus is not added to a record.  The headers are absent when scanning is
+			 * off, which is not a failure.
+			 */
+			String spamVerdict = extractHeader(mime, "X-SES-Spam-Verdict");
+			String virusVerdict = extractHeader(mime, "X-SES-Virus-Verdict");
+			if("FAIL".equalsIgnoreCase(trim(spamVerdict)) || "FAIL".equalsIgnoreCase(trim(virusVerdict))) {
+				log.warning("Inbound email failed the SES scan (spam " + spamVerdict + ", virus " + virusVerdict + "): " + key);
+				moveToError(s3, bucket, key);
+				return;
+			}
+
+			// Extract the reply+{token} address from To/Delivered-To headers
+			String token = findReplyToken(mime);
+			if(token == null) {
 				log.warning("No reply+ address found in: " + key);
 				moveToError(s3, bucket, key);
 				return;
 			}
 
-			// Decode JSON payload
-			JsonObject payload;
-			try {
-				String json = new String(Base64.getUrlDecoder().decode(encodedPayload), StandardCharsets.UTF_8);
-				payload = JsonParser.parseString(json).getAsJsonObject();
-			} catch(Exception e) {
-				log.warning("Failed to decode payload in: " + key + " error: " + e.getMessage());
+			/*
+			 * The token decides which record the reply goes to, so it must be one we issued.
+			 * This also turns away replies to emails sent before tokens, whose addresses carried
+			 * the record's ids where anyone could have written them.
+			 */
+			ReplyTokenManager.ReplyToken rt = new ReplyTokenManager().get(dbc.sd, token);
+			if(rt == null) {
+				log.warning("Unknown or lapsed reply token in: " + key);
 				moveToError(s3, bucket, key);
 				return;
 			}
 
-			String instanceId  = payload.has("ii") ? payload.get("ii").getAsString() : null;
-			String surveyIdent = payload.has("si") ? payload.get("si").getAsString() : null;
-			int    messageId   = payload.has("mi") ? payload.get("mi").getAsInt()    : 0;
-
-			if(instanceId == null || surveyIdent == null) {
-				log.warning("Payload missing fields in: " + key);
-				moveToError(s3, bucket, key);
-				return;
-			}
+			String instanceId  = rt.instanceId;
+			String surveyIdent = rt.surveyIdent;
+			int    messageId   = rt.messageId;
 
 			// Build reply data
 			EmailReplyData reply = new EmailReplyData();
@@ -264,14 +277,14 @@ public class EmailResponseProcessor {
 		}
 	}
 
-	// Find the reply+{encoded} local part in To or Delivered-To headers
-	private String findEncodedPayload(MimeMessage mime) throws MessagingException {
+	// Find the reply+{token} local part in To or Delivered-To headers
+	private String findReplyToken(MimeMessage mime) throws MessagingException {
 		// Check To recipients
 		Address[] toAddrs = mime.getRecipients(Message.RecipientType.TO);
 		if(toAddrs != null) {
 			for(Address a : toAddrs) {
 				String addr = a.toString();
-				String enc = extractReplyPlusPayload(addr);
+				String enc = extractReplyToken(addr);
 				if(enc != null) return enc;
 			}
 		}
@@ -279,16 +292,16 @@ public class EmailResponseProcessor {
 		String[] delivered = mime.getHeader("Delivered-To");
 		if(delivered != null) {
 			for(String h : delivered) {
-				String enc = extractReplyPlusPayload(h);
+				String enc = extractReplyToken(h);
 				if(enc != null) return enc;
 			}
 		}
 		return null;
 	}
 
-	private String extractReplyPlusPayload(String address) {
+	private String extractReplyToken(String address) {
 		if(address == null) return null;
-		// Match reply+{payload}@
+		// Match reply+{token}@
 		int plusIdx = address.indexOf("reply+");
 		if(plusIdx < 0) return null;
 		int atIdx = address.indexOf('@', plusIdx);
@@ -300,6 +313,10 @@ public class EmailResponseProcessor {
 		Address[] froms = mime.getFrom();
 		if(froms != null && froms.length > 0) return froms[0].toString();
 		return "";
+	}
+
+	private String trim(String s) {
+		return s == null ? null : s.trim();
 	}
 
 	private String extractHeader(MimeMessage mime, String name) {

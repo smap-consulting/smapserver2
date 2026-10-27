@@ -129,7 +129,7 @@ create TABLE server (
 	keep_erased_days integer default 0,
 	billing_enabled boolean default false,
 	css text,
-	password_strength decimal default 0.0,
+	password_strength decimal default 25.0,			-- Minimum entropy in bits, rejects admin / admin
 	rebuild_link_cache boolean default false,
 	password_expiry integer default 0,				-- password expiry in months
 	disable_ref_role_filters boolean default false,	-- If set true role filters will not be used for reference data
@@ -147,6 +147,7 @@ create TABLE server (
 	mcp_max_rows integer default 0,					-- Max rows an MCP tool may return, 0 means the built in default
 	mcp_token_ttl integer default 3600,				-- Lifetime in seconds of an MCP access token
 	mcp_allow_access boolean default false,			-- Whether MCP clients may ask for smap:access at all
+	self_registration boolean default false,		-- Whether anyone may register a new organisation
 	turnstile_site_key text,
 	turnstile_secret_key text,
 	sharepoint_url text,						-- SharePoint server base URL
@@ -161,6 +162,8 @@ create TABLE server (
 	two_factor_key text							-- Signs the two factor step up cookie, generated on first use
 	);
 ALTER TABLE server OWNER TO ws;
+-- The single server settings record, with the defaults, so these apply before the settings are first saved
+insert into server default values;
 
 DROP SEQUENCE IF EXISTS enterprise_seq CASCADE;
 CREATE SEQUENCE enterprise_seq START 1;
@@ -467,6 +470,21 @@ CREATE UNIQUE INDEX idx_api_token_hash ON api_token(token_hash);
 CREATE INDEX idx_api_token_u_scope ON api_token(u_id, scope) WHERE revoked IS NULL;
 ALTER TABLE api_token OWNER TO ws;
 
+-- The token in the reply+ address of a notification email, standing for the record a reply
+-- belongs to.  Random, so a reply cannot be addressed to a record by anyone not sent the email.
+-- Only the sha256 is stored.
+DROP TABLE IF EXISTS reply_token CASCADE;
+CREATE TABLE reply_token (
+	token_hash text CONSTRAINT pk_reply_token PRIMARY KEY,	-- sha256 of the token, hex
+	o_id integer REFERENCES organisation(id) ON DELETE CASCADE,
+	instanceid text,
+	survey_ident text,
+	message_id integer,
+	created timestamp with time zone DEFAULT now()
+	);
+CREATE INDEX idx_reply_token_created ON reply_token(created);
+ALTER TABLE reply_token OWNER TO ws;
+
 -- OAuth 2.1 authorization server, used by MCP clients
 --
 -- A client is anonymous at registration time, so oauth_client carries no organisation.  The
@@ -697,13 +715,14 @@ insert into enterprise(id, name, changed_by, changed_ts) values(1, 'Default', ''
 -- Create an organisation with communal ownership
 insert into organisation(id, name, e_id, can_edit, owner) values(1, 'Smap', 1, 'true', 0);
 
--- The initial administrator.  The password is 'admin' and must be changed on first use.
+-- The initial administrator.  The password is 'admin' and must be changed on first use, a
+-- password_set of 'epoch' marks it as expired whatever the expiry setting.
 -- Hashed here rather than pasted as literals so a new server starts on bcrypt for the
 -- console.  password is the MD5 digest HA1 that the device and API locations still check
 -- - see the section 5 comment in a24-smap-volatile.conf for why both are still needed.
-insert into users (id, ident, realm, password, basic_password, o_id, name, email)
+insert into users (id, ident, realm, password, basic_password, o_id, name, email, password_set)
 	values (1, 'admin', 'smap', md5('admin:smap:admin'), crypt('admin', gen_salt('bf', 10)),
-		1, 'Administrator', '');
+		1, 'Administrator', '', 'epoch');
 
 insert into groups(id,name) values(1,'admin');
 insert into groups(id,name) values(2,'analyst');
@@ -1387,7 +1406,7 @@ CREATE TABLE public.task_rejected (
 	ident text,		 -- user identifier
 	rejected_at timestamp with time zone
 );
-CREATE UNIQUE INDEX taskRejected ON task_rejected(a_id, ident);
+CREATE UNIQUE INDEX task_rejected_task_ident ON task_rejected(t_id, ident);
 ALTER TABLE public.task_rejected OWNER TO ws;
 
 -- Record sending of notification reminders
@@ -1859,9 +1878,12 @@ create TABLE people (
 	uuid text,								-- Uniquely identify this person
 	when_unsubscribed TIMESTAMP WITH TIME ZONE,
 	when_subscribed TIMESTAMP WITH TIME ZONE,
-	when_requested_subscribe TIMESTAMP WITH TIME ZONE		-- prevent spamming
+	when_requested_subscribe TIMESTAMP WITH TIME ZONE,		-- prevent spamming
+	subscribe_token text,					-- sha256 of the single use token in an opt in or re-subscribe link
+	subscribe_token_expiry TIMESTAMP WITH TIME ZONE
 	);
 create unique index idx_people on people(o_id, email);
+create index if not exists idx_people_subscribe_token on people(subscribe_token);
 create index if not exists opted_in_people_idx on people(opted_in);
 create index if not exists unsub_people_idx on people(unsubscribed);
 ALTER TABLE people OWNER TO ws;

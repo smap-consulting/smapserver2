@@ -39,6 +39,7 @@ public class ServerData {
 	public int mcp_max_rows;
 	public int mcp_token_ttl;
 	public boolean mcp_allow_access;
+	public boolean self_registration;
 	private int api_max_records;
 
 	public void setMaxRecords(int v) {

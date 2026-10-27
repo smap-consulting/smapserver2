@@ -20,10 +20,13 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.FormParam;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
@@ -32,16 +35,21 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RegistrationThrottle;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.TurnstileVerifier;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.ProjectManager;
+import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -66,12 +74,58 @@ public class Register extends Application {
 	}
 	
 	/*
+	 * Whether anyone may register on this server, so the console shows the register menu
+	 * and page only where a registration would be accepted.  The same check as register().
+	 * No authentication, the console asks before anyone has logged in.
+	 */
+	@GET
+	@Path("/enabled")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response isEnabled() {
+		Connection sd = SDDataSource.getConnection("surveyKPI-Register-enabled");
+		try {
+			boolean enabled = GeneralUtilityMethods.isSelfRegistrationEnabled(sd);
+			
+			/*
+			 * The Turnstile site key, so the page shows the challenge.  It is public.  Only when the
+			 * secret is set as well, as otherwise the challenge is not checked and passing it means nothing
+			 */
+			JsonObject resp = new JsonObject();
+			resp.addProperty("enabled", enabled);
+			if(enabled) {
+				ServerData serverData = new ServerManager().getServer(sd, null);
+				if(hasTurnstile(serverData)) {
+					resp.addProperty("turnstileSiteKey", serverData.turnstile_site_key.trim());
+				}
+			}
+			return Response.ok(resp.toString()).build();
+		} finally {
+			SDDataSource.closeConnection("surveyKPI-Register-enabled", sd);
+		}
+	}
+
+	/*
+	 * True if registrations must pass the Turnstile challenge, which needs both keys.  With only one
+	 * the challenge is not used, which an administrator may not have meant, so it is logged.
+	 */
+	private static boolean hasTurnstile(ServerData serverData) {
+		boolean site = serverData.turnstile_site_key != null && !serverData.turnstile_site_key.trim().isEmpty();
+		boolean secret = serverData.turnstile_secret_key != null && !serverData.turnstile_secret_key.trim().isEmpty();
+		if(site != secret) {
+			log.warning("Turnstile is not used for registration, only the " + (site ? "site" : "secret")
+					+ " key is set in the server settings");
+		}
+		return site && secret;
+	}
+
+	/*
 	 * Register a new organisation
 	 */
 	@POST
 	public Response register(
 			@Context HttpServletRequest request,
-			@FormParam("registrationDetails") String registrationDetails) { 
+			@FormParam("registrationDetails") String registrationDetails,
+			@FormParam("cfToken") String cfToken) { 
 		
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
@@ -80,15 +134,22 @@ public class Register extends Application {
 		} 
 		
 		Response response = null;
-		
-		GeneralUtilityMethods.assertSelfRegistrationServer(request.getServerName());
-		
-		RegistrationDetails rd = new Gson().fromJson(registrationDetails, RegistrationDetails.class);
-		
-		log.info("Registering a new user: " + rd.email + " : " + rd.admin_name);
-		
+
 		Connection sd = SDDataSource.getConnection("surveyKPI-Register");
-		
+		if(!GeneralUtilityMethods.isSelfRegistrationEnabled(sd)) {
+			log.info("Registration refused, self registration is not enabled on this server");
+			SDDataSource.closeConnection("surveyKPI-Register", sd);
+			throw new AuthorisationException();
+		}
+
+		RegistrationDetails rd = new Gson().fromJson(registrationDetails, RegistrationDetails.class);
+		if(rd == null || rd.email == null) {
+			SDDataSource.closeConnection("surveyKPI-Register", sd);
+			return Response.status(Status.BAD_REQUEST).build();
+		}
+
+		log.info("Registering a new user: " + rd.email + " : " + rd.admin_name);
+
 		PreparedStatement pstmt = null;
 		String newUserIdent = null;
 		try {
@@ -103,6 +164,24 @@ public class Register extends Application {
 			} 
 			Locale locale = new Locale(loc_code);
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			/*
+			 * Registration is public, creates an organisation, a user and a project, and emails
+			 * the address given.  Where the server has Turnstile keys the person must pass the
+			 * challenge, and there is a limit on how many can be made.  The challenge is checked
+			 * first so that requests failing it do not use up the limit for genuine ones.
+			 */
+			ServerData serverData = new ServerManager().getServer(sd, localisation);
+			if(hasTurnstile(serverData)) {
+				if(!TurnstileVerifier.verify(cfToken, serverData.turnstile_secret_key.trim(), request.getRemoteAddr())) {
+					log.info("Registration refused, Turnstile check failed for " + request.getRemoteAddr());
+					throw new ApplicationException(localisation.getString("reg_captcha"));
+				}
+			}
+			if(!RegistrationThrottle.tryRegister(request)) {
+				log.warning("Registration refused, too many registrations, client " + request.getRemoteAddr());
+				throw new ApplicationException(localisation.getString("reg_too_many"));
+			}
 			
 			String requestUrl = request.getRequestURL().toString();
 			String userIdent = request.getRemoteUser();

@@ -1,9 +1,7 @@
 package org.smap.sdal.Utilities;
 
 import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
 
 public class ServerException extends WebApplicationException {
 	

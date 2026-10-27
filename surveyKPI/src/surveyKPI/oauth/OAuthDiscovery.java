@@ -18,7 +18,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import java.sql.Connection;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;

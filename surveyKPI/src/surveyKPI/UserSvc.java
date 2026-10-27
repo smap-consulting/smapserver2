@@ -27,7 +27,6 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
@@ -48,9 +47,7 @@ import org.smap.sdal.model.ApiToken;
 import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.Utilities.TwoFactorSession;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.UserManager;
-import org.smap.sdal.model.ConsoleSettings;
 import org.smap.sdal.model.GroupSurvey;
 import org.smap.sdal.model.PasswordDetails;
 import org.smap.sdal.model.User;
@@ -63,7 +60,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -399,8 +395,6 @@ public class UserSvc extends Application {
 
 			UserManager um = new UserManager(localisation);
 			response = um.setPassword(sd, locale, localisation, request.getRemoteUser(), request.getServerName(), pwd);
-					
-			response = Response.ok().build();
 			
 			
 		} catch (Exception e) {

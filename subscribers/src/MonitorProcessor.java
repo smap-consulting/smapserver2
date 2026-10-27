@@ -1,5 +1,3 @@
-import java.io.File;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -9,7 +7,6 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.QueueManager;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.Queue;

@@ -35,7 +35,6 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.RequestIdentity;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.FileManager;

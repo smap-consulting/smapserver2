@@ -1,18 +1,14 @@
 package org.smap.sdal.managers;
 
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import com.google.gson.JsonObject;
 
 import jakarta.mail.internet.InternetAddress;
 import org.smap.sdal.Utilities.ApplicationException;
@@ -57,6 +53,13 @@ public class EmailManager {
 	private ResourceBundle localisation;
 	
 	private HtmlSanitise sanitise = new HtmlSanitise();
+
+	/*
+	 * Style for a link shown as a button.  A button element inside a link is not valid HTML,
+	 * email clients handle it inconsistently and the sanitiser removes it.
+	 */
+	public static final String LINK_BUTTON_STYLE = "display:inline-block;padding:10px 20px;background-color:#337ab7;"
+			+ "color:#ffffff;text-decoration:none;border-radius:4px;";
 
 	/*
 	 * Largest total attachment we will put on an email.  Relays reject anything bigger, and
@@ -247,13 +250,13 @@ public class EmailManager {
 				if(docURL != null) {
 					String url = scheme + "://" + serverName + docURL;
 					if(content.toString().contains("${url}")) {					
-						content = new StringBuilder(content.toString().replaceAll("\\$\\{url\\}", url));
+						content = new StringBuilder(content.toString().replace("${url}", url));
 					} else {
 						content.append("<p style=\"color:blue;text-align:center;\">")
 						.append("<a href=\"")
 						.append(url)
 						.append("\">")
-						.append(surveyName)
+						.append(GeneralUtilityMethods.htmlText(surveyName))
 						.append("</a>")
 						.append("</p>");
 					}
@@ -301,14 +304,11 @@ public class EmailManager {
 							if(rc != null) {
 								String senderName = GeneralUtilityMethods.getUserNameFromIdent(sd, user);
 								if(senderName == null || senderName.trim().isEmpty()) senderName = (user != null) ? user : "";
-								JsonObject payload = new JsonObject();
-								payload.addProperty("ii", msg.instanceId);
-								payload.addProperty("si", msg.survey_ident);
-								payload.addProperty("mi", messageId);
-								String encoded = Base64.getUrlEncoder().withoutPadding()
-										.encodeToString(payload.toString().getBytes(StandardCharsets.UTF_8));
+								// A random token, not the record's ids, see ReplyTokenManager
+								ReplyTokenManager rtm = new ReplyTokenManager();
+								String token = rtm.create(sd, organisation.id, msg.instanceId, msg.survey_ident, messageId);
 								replyTo = "\"" + senderName.replace("\"", "'") + "\" <reply+"
-										+ encoded + "@" + rc[1] + ">";
+										+ token + "@" + rc[1] + ">";
 							}
 						} catch(Exception e) {
 							log.log(Level.WARNING, "Failed to generate reply-to address", e);
@@ -321,13 +321,15 @@ public class EmailManager {
 					for(InternetAddress ia : emailArray) {
 						SubscriptionStatus subStatus = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());
 						/*
-						 * If this email address is unsubscribed and we care if they are unsubscribed,
-						 * which is shown by the unsubscribed list not being null, then we just record that they
-						 * are unsubscribed
+						 * Never email an address that has unsubscribed.  The list, when the caller
+						 * passes one, only records who was skipped.  A caller without one used to send
+						 * regardless, so case assignment emails ignored the unsubscribe.
 						 */
-						if(subStatus.unsubscribed && unsubscribedList != null) {
+						if(subStatus.unsubscribed) {
 							log.fine("#########: Email " + ia.getAddress() + " User has unsubscribed");
-							unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
+							if(unsubscribedList != null) {
+								unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
+							}
 						} else {
 							log.fine("#########: Email " + ia.getAddress() + " Opted in: " + subStatus.optedIn + "org:  " + !organisation.send_optin);
 							if(subStatus.optedIn || !organisation.send_optin) {
@@ -499,89 +501,125 @@ public class EmailManager {
 			String emailId,
 			String replyTo) throws Exception  {
 
+		/*
+		 * Attachment names go into the mail headers, and some come from a submission: the
+		 * names of files sent with a webform notification, and the instance name a pdf is
+		 * named after.  The mail library writes a line break in one through, so it would start
+		 * a header of the sender's choosing, such as a content type that shows the file as the
+		 * body of the email.
+		 */
+		ArrayList<String> safeFilenames = null;
+		if(filenames != null) {
+			safeFilenames = new ArrayList<>();
+			for(String name : filenames) {
+				safeFilenames.add(safeAttachmentName(name));
+			}
+		}
+
 		/* 
 		 * Create the content
 		 */
-		StringBuilder content = new StringBuilder(template);
+		/*
+		 * Sanitise the HTML
+		 * Everything users can write: the template, the footer and the token values.  Each part
+		 * on its own and before our own text is added, so the sanitiser closes any tag left open
+		 * in it and an unclosed hidden element cannot swallow the rest of the email, such as the
+		 * unsubscribe link.
+		 */
+		String contentString = sanitise.sanitiseHtml(replaceTokens(template, tokens));
 		if(adminEmail != null) {
-			content.append("</p>")
-				.append("<p>")
-				.append(localisation.getString("email_dnr"))
-				.append("</p>");
+			// Only mention unsubscribing when there is a link to do it, account emails have none
+			contentString += "<p>" + localisation.getString(emailKey != null ? "email_dnr" : "email_dnr_nl") + "</p>";
 		}
 		if(orgFooter != null) {
-			content.append(" ").append(orgFooter);
+			contentString += " " + sanitise.sanitiseHtml(replaceTokens(orgFooter, tokens));
 		}
 		
-		// Add source
+		// Add source, the names are text
 		StringBuilder source = new StringBuilder();
 		source.append("<p>").append(localisation.getString("c_sent_from")).append("</p>");
 		
 		if(tgName != null) {
 			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("t_tg"))
-					.append(": ").append(tgName).append("</p>");
+					.append(": ").append(GeneralUtilityMethods.esc(tgName)).append("</p>");
 		}
 		if(notificationName != null) {
 			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("c_notify"))
-					.append(": ").append(notificationName).append("</p>");
+					.append(": ").append(GeneralUtilityMethods.esc(notificationName)).append("</p>");
 		}
 		if(projectName != null) {
 			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("ar_project"))
-					.append(": ").append(projectName).append("</p>");
+					.append(": ").append(GeneralUtilityMethods.esc(projectName)).append("</p>");
 		}
 		if(orgName != null) {
 			source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("bill_org"))
-					.append(": ").append(orgName).append("</p>");
+					.append(": ").append(GeneralUtilityMethods.esc(orgName)).append("</p>");
 		}
 		
 		source.append("<p style=\"margin-left: 25px;\">").append(localisation.getString("c_server"))
-					.append(": ").append(serverName).append("</p>");
-		content.append(source.toString());
+					.append(": ").append(GeneralUtilityMethods.esc(serverName)).append("</p>");
+		contentString += source.toString();
 		
 		// Add unsubscribe
-		StringBuilder unsubscribe = new StringBuilder();
 		if(emailKey != null) {
+			StringBuilder unsubscribe = new StringBuilder();
 			unsubscribe.append("<br/><p style=\"color:blue;text-align:center;\">")
 					.append("<a href=\"https://")
-					.append(serverName)
+					.append(GeneralUtilityMethods.esc(serverName))
 					.append("/app/subscriptions.html?token=")
-					.append(emailKey)
+					.append(GeneralUtilityMethods.esc(emailKey))
 					.append("\">")
 					.append(localisation.getString("c_unsubscribe"))
 					.append("</a>")
 					.append("</p>");		
 					
-			content.append(unsubscribe.toString());
+			contentString += unsubscribe.toString();
 		} 
 		
 		/*
-		 * Perform custom token replacements
+		 * Send the email
 		 */
-		String contentString = content.toString();
-		if(tokens != null) {
+		/*
+		 * One click unsubscribe for the mail client's own button.  A POST, as link checkers and
+		 * previews fetch urls with GET, and that must not unsubscribe anyone.
+		 */
+		String unsubscribeUrl = null;
+		if(emailKey != null) {
+			unsubscribeUrl = "https://" + serverName + "/surveyKPI/subscriptions/unsubscribe/" + emailKey;
+		}
+		
+		return emailServer.send(email, ccType, subject,
+						emailId,
+						contentString,
+						filePaths,
+						safeFilenames,
+						replyTo,
+						unsubscribeUrl);
+	}
+	
+	/*
+	 * An attachment name without control characters, which includes line breaks
+	 */
+	static String safeAttachmentName(String name) {
+		String safe = name == null ? "" : name.replaceAll("\\p{Cntrl}", " ").trim();
+		return safe.isEmpty() ? "attachment" : safe;
+	}
+	
+	/*
+	 * Perform custom token replacements
+	 */
+	private String replaceTokens(String in, HashMap<String, String> tokens) {
+		String out = in;
+		if(out != null && tokens != null) {
 			for(String token : tokens.keySet()) {
 				String val = tokens.get(token);
 				if(val == null) {
 					val = "";
 				}
-				contentString = contentString.replace(token, val);
+				out = out.replace(token, val);
 			}
 		}
-		
-		/*
-		 * Sanitise the HTML
-		 */
-		sanitise.sanitiseHtml(contentString);
-		
-		/*
-		 * Send the email
-		 */
-		return emailServer.send(email, ccType, subject,
-						emailId,
-						contentString,
-						filePaths,
-						filenames,
-						replyTo);
+		return out;
 	}
 	
 	boolean alertEmailSent(Connection sd, int oId, String type) throws SQLException {

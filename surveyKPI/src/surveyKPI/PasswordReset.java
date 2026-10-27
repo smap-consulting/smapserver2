@@ -32,16 +32,15 @@ import jakarta.ws.rs.core.Response.Status;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RequestLimiter;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PasswordManager;
-import org.smap.sdal.managers.PeopleManager;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.SubscriptionStatus;
 
 import com.google.gson.Gson;
 
@@ -63,6 +62,9 @@ public class PasswordReset extends Application {
 			Logger.getLogger(PasswordReset.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
+
+	// One request every 10 minutes for each address entered
+	private static final RequestLimiter limiter = new RequestLimiter(10 * 60 * 1000L);
 
 	/*
 	 * Send an email with a link for a one time logon
@@ -96,14 +98,16 @@ public class PasswordReset extends Application {
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 				/*
-				 * Check to see if there is a one time password has been sent within the last 10 mins
+				 * Allow one request every 10 minutes for each address entered, whether or not an
+				 * account has it.  This used to be checked against the account, so being asked to
+				 * wait told anyone that the address had one.
 				 */
-				int minutesSinceSent = UtilityMethodsEmail.hasOnetimePasswordBeenSent(sd, pstmt, email, "600 seconds");
-				if(minutesSinceSent > 0) {
+				int minutesToWait = limiter.minutesToWait(email);
+				if(minutesToWait > 0) {
 					// Potential spam
 					log.info("warning: email: " + email + " multiple password reset requests");
 					String msg = localisation.getString("email_pas");
-					msg = msg.replaceAll("%s1", String.valueOf(10 - minutesSinceSent));
+					msg = msg.replace("%s1", String.valueOf(minutesToWait));
 					throw new ApplicationException(msg);
 				}
 
@@ -116,14 +120,17 @@ public class PasswordReset extends Application {
 
 					EmailServer emailServer = UtilityMethodsEmail.getEmailServer(sd, localisation, email, request.getRemoteUser(), 0);
 
-					PeopleManager pm = new PeopleManager(localisation);
-					SubscriptionStatus subStatus = pm.getEmailKey(sd, 0, email);
-					if(subStatus.unsubscribed) {
-						// Person has unsubscribed
-						String msg = localisation.getString("email_us");
-						msg = msg.replaceFirst("%s1", email);
-						throw new ApplicationException(msg);
-					}
+					/*
+					 * Sent whether or not the address has unsubscribed, the person asked for it.  It
+					 * has no unsubscribe link, unsubscribing from a reset email blocked later resets.
+					 */
+
+					/*
+					 * Send to the address on the account, not the one entered.  They match apart
+					 * from case, sending to what was entered is what let a lookalike address
+					 * receive another account's reset when the match used wildcards
+					 */
+					String sendTo = UtilityMethodsEmail.getStoredEmail(sd, email);
 
 					if(emailServer != null) {
 
@@ -142,14 +149,13 @@ public class PasswordReset extends Application {
 						StringBuilder content = new StringBuilder(); 
 						String info = localisation.getString("c_rp_info");
 						info = info.replace("%s1", request.getServerName());
-						content.append("<p>").append(info).append("</p><p>")
+						content.append("<p>").append(info).append("</p><p style=\"text-align:center;\">")
 						.append("<a href=\"").append("https").append("://").append(request.getServerName())
 						.append("/app/resetForgottonPassword.html?token=")
 						.append(uuid)
-						.append("\">")
-						.append("<button type='button' style='margin:auto;style:block'>").append(localisation.getString("c_r_p"))
-						.append("</button>")
-						.append("</a> ")				
+						.append("\" style=\"").append(EmailManager.LINK_BUTTON_STYLE).append("\">")
+						.append(localisation.getString("c_r_p"))
+						.append("</a>")
 						.append("</p>");
 
 						// User ident
@@ -177,7 +183,7 @@ public class PasswordReset extends Application {
 						.append("</p>");
 
 						content.append("<p>")
-						.append(localisation.getString("email_dnr"))
+						.append(localisation.getString("email_dnr_nl"))
 						.append("</p>");
 
 						em.sendEmailHtml(
@@ -185,7 +191,7 @@ public class PasswordReset extends Application {
 								null,		// organisation name
 								null,
 								null,
-								email,
+								sendTo,
 								"bcc",
 								subject,
 								content.toString(),
@@ -193,7 +199,7 @@ public class PasswordReset extends Application {
 								null,
 								emailServer,
 								request.getServerName(),
-								subStatus.emailKey,
+								null,		// Account email, no unsubscribe link or header
 								localisation,
 								null,
 								null,
@@ -298,6 +304,7 @@ public class PasswordReset extends Application {
 				if(pd.password != null) {
 					pwm = new PasswordManager(sd, locale, localisation,ident, request.getServerName());
 					pwm.checkStrength(pd.password);
+					pwm.checkNotCurrent(ident, pd.password);
 				}
 
 				sql = "update users "
@@ -338,6 +345,15 @@ public class PasswordReset extends Application {
 				}
 
 			} else {
+				/*
+				 * The link works once.  The token was left in place, so the link could set the
+				 * password again until it expired, an hour for a reset and two days for a new user.
+				 */
+				sql = "update users set one_time_password = null, one_time_password_expiry = null where one_time_password = ?";
+				pstmtDel = sd.prepareStatement(sql);
+				pstmtDel.setString(1, pd.onetime);
+				pstmtDel.executeUpdate();
+
 				response = Response.status(Status.OK).entity("").build();
 			}
 

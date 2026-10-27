@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Question;
@@ -67,7 +68,25 @@ public class TextManager {
 			String remoteUser,
 			Survey survey,
 			String language,
-			int oId) {		
+			int oId) {
+		return createTextOutput(sd, cResults, text, basePath, remoteUser, survey, language, oId, null);
+	}
+
+	/*
+	 * html: one entry per text, true where that text is HTML, such as the body of an email.
+	 * The values put into those are escaped so an answer shows as written rather than adding
+	 * links, images or layout to the email.  Null means none are HTML.
+	 */
+	public ArrayList<String> createTextOutput(
+			Connection sd,
+			Connection cResults,
+			ArrayList<String> text,
+			String basePath, 
+			String remoteUser,
+			Survey survey,
+			String language,
+			int oId,
+			boolean[] html) {		
 
 		try {
 			
@@ -89,7 +108,7 @@ public class TextManager {
 				}		
 				
 				for(int i = 0; i < survey.surveyData.instance.results.size(); i++) {
-					replaceTextParameters(sd, cResults, remoteUser, gv, text, survey.surveyData.instance.results.get(i), basePath, null, i, survey, languageIdx, oId);
+					replaceTextParameters(sd, cResults, remoteUser, gv, text, survey.surveyData.instance.results.get(i), basePath, null, i, survey, languageIdx, oId, html);
 				}
 			} else {
 				// Perhaps the survey has been deleted
@@ -172,7 +191,8 @@ public class TextManager {
 			int repeatIndex,
 			Survey survey,
 			int languageIdx,
-			int oId) throws IOException, DocumentException {
+			int oId,
+			boolean[] html) throws IOException, DocumentException {
 		try {
 			
 			for(Result r : record) {
@@ -186,7 +206,7 @@ public class TextManager {
 				 */
 				if(r.type.equals("form")) {
 					for(int k = 0; k < r.subForm.size(); k++) {
-						replaceTextParameters(sd, cResults, user, gv, text, r.subForm.get(k), basePath, fieldName, k, survey, languageIdx, oId);
+						replaceTextParameters(sd, cResults, user, gv, text, r.subForm.get(k), basePath, fieldName, k, survey, languageIdx, oId, html);
 					} 
 				} else if(r.type.equals("select1")) {
 					Form form = survey.surveyData.forms.get(r.fIdx);
@@ -251,12 +271,19 @@ public class TextManager {
 						String s = text.get(i);
 						if(s != null) {
 							/*
+							 * The value is inserted literally.  As a regex replacement a $ or \ in an
+							 * answer was read as a group reference and the fill failed.
+							 */
+							String v = (html != null && i < html.length && html[i]) ? GeneralUtilityMethods.htmlText(value) : value;
+							v = Matcher.quoteReplacement(v);
+							
+							/*
 							 * Try a specific replacement including path and then a general replacement with just the name
 							 */
-							s = s.replaceAll("\\$\\{" + fieldName + "\\}", value);
+							s = s.replaceAll("\\$\\{" + fieldName + "\\}", v);
 							String [] fArray = fieldName.split("\\]\\.");
 							if(fArray.length > 0) {
-								s = s.replaceAll("\\$\\{" + fArray[fArray.length - 1] + "\\}", value);
+								s = s.replaceAll("\\$\\{" + fArray[fArray.length - 1] + "\\}", v);
 							}
 							
 							text.set(i, s);

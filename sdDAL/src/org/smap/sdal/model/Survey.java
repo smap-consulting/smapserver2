@@ -900,7 +900,7 @@ public class Survey {
 			} else {
 				pstmt.setBoolean(30, true);
 			}
-			pstmt.setString(31,  sanitise.sanitiseHtml(q.display_name));
+			pstmt.setString(31,  sanitise.cleanText(q.display_name));
 			pstmt.setString(32,  q.intent);
 			pstmt.setInt(33,  q.style_id);
 			

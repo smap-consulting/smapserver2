@@ -23,7 +23,6 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.channels.FileChannel;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -39,7 +38,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,7 +52,6 @@ import org.smap.sdal.legacy.FormDesc;
 import org.smap.sdal.legacy.TableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.FileDescription;
-import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.TableColumn;
@@ -1187,9 +1184,6 @@ public class ExchangeManager {
 		String threadCreated = null;
 		boolean writeRecord = true;
 		
-		//LinkageManager linkMgr = new LinkageManager(localisation); Disabled
-		//ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
-		
 		eh.pstmtInsert.setString(index++, importSource);
 		eh.pstmtInsert.setTimestamp(index++, importTime);
 		if(form.parent == 0) {	
@@ -1344,8 +1338,6 @@ public class ExchangeManager {
 					}
 					eh.pstmtInsert.setString(index++, value);
 					
-					// linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);  disabled
-					
 				} else if(col.type.equals("int")) {
 					int iVal = 0;
 					if(notEmpty(value)) {
@@ -1436,8 +1428,6 @@ public class ExchangeManager {
 						value = null;
 					}
 					eh.pstmtInsert.setString(index++, value);
-					
-					// linkMgr.addDataitemToList(linkageItems, value, col.appearance, col.parameters, sIdent, col.name);  Disabled
 				}
 				
 			}
@@ -1453,15 +1443,6 @@ public class ExchangeManager {
 			if(rs.next()) {
 				form.keyMap.put(prikey, rs.getString(1));		// mapping between the in-sheet prikey and the value added to the database
 			}
-			
-			/*
-			 * Write linkage items, fingerprints etc
-			 * Disabled
-			if(linkageItems.size() > 0) {
-				log.info("----- Applying " + linkageItems.size() + " linkage items");
-				linkMgr.writeItems(sd, oId, user, instanceId, linkageItems);
-			}
-			*/
 			count++;
 		}
 		

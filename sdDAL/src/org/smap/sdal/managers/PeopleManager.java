@@ -1,18 +1,19 @@
 package org.smap.sdal.managers;
 
+import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.HtmlSanitise;
-import org.smap.sdal.model.OrganisationLite;
 import org.smap.sdal.model.People;
 import org.smap.sdal.model.SubscriptionStatus;
 
@@ -40,6 +41,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  * Assume emails are case insensitive
  */
 public class PeopleManager {
+
+	private static final SecureRandom random = new SecureRandom();
 	
 	private static Logger log =
 			 Logger.getLogger(PeopleManager.class.getName());
@@ -271,29 +274,56 @@ public class PeopleManager {
 	public String subscribeStep2(Connection sd, 
 			String key) throws SQLException, ApplicationException {
 		
+		/*
+		 * A subscribe token from an opt in or re-subscribe email.  Used once, and only for
+		 * SUBSCRIBE_DAYS.  This is the only way back for an address that has unsubscribed.
+		 */
 		String sql = "update people "
 				+ "set unsubscribed = false,"
 				+ "opted_in = true, "
+				+ "when_subscribed = now(), "
+				+ "subscribe_token = null, "
+				+ "subscribe_token_expiry = null "
+				+ "where subscribe_token = ? "
+				+ "and subscribe_token_expiry > now() "
+				+ "returning o_id, email";
+		
+		/*
+		 * The address's unsubscribe key, which opt in emails sent before subscribe tokens used.
+		 * It is in every email sent to the address, so anyone with an old or forwarded one has it,
+		 * and it must not undo an unsubscribe.  It can still confirm an address that has not.
+		 */
+		String sqlKey = "update people "
+				+ "set opted_in = true, "
 				+ "when_subscribed = now() "
-				+ "where uuid = ? ";
+				+ "where uuid = ? "
+				+ "and not unsubscribed "
+				+ "returning o_id, email";
 		PreparedStatement pstmt = null;
 		
 		try {
 			
 			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, key);			
-			int count = pstmt.executeUpdate();
-			if(count == 0) {
-				throw new ApplicationException(localisation.getString("c_error"));
+			pstmt.setString(1, ApiTokenManager.hash(key));			
+			ResultSet rs = pstmt.executeQuery();
+			if(!rs.next()) {
+				try {pstmt.close();} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sqlKey);
+				pstmt.setString(1, key);
+				rs = pstmt.executeQuery();
+				if(!rs.next()) {
+					throw new ApplicationException(localisation.getString("subs_link_invalid"));
+				}
 			}
+			int oId = rs.getInt(1);
+			String email = rs.getString(2);
 
 			/*
 			 * Log the event
 			 */
-			People person = getPersonFromSubscriberKey(sd,key);
 			String note = localisation.getString("optin_subscribed");
-			note = note.replace("%s1", person.email);
-			lm.writeLogOrganisation(sd, person.oId, person.email, LogManager.OPTIN, note, 0);
+			note = note.replace("%s1", email);
+			lm.writeLogOrganisation(sd, oId, email, LogManager.OPTIN, note, 0);
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -301,6 +331,38 @@ public class PeopleManager {
 		
 		return key;
 
+	}
+	
+	// How long the link in an opt in or re-subscribe email works for
+	public static final int SUBSCRIBE_DAYS = 30;
+	
+	/*
+	 * A single use token for the link in an opt in or re-subscribe email to an address.  Only its
+	 * sha256 is kept, and a new one replaces the last.  Null if the address is not a contact of
+	 * the organisation.
+	 */
+	public String createSubscribeToken(Connection sd, int oId, String email) throws SQLException {
+		
+		byte[] bytes = new byte[16];
+		random.nextBytes(bytes);
+		String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+		
+		String sql = "update people "
+				+ "set subscribe_token = ?, "
+				+ "subscribe_token_expiry = now() + interval '" + SUBSCRIBE_DAYS + " days' "
+				+ "where o_id = ? "
+				+ "and email = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, ApiTokenManager.hash(token));
+			pstmt.setInt(2, oId);
+			pstmt.setString(3, email == null ? null : email.trim().toLowerCase());
+			int count = pstmt.executeUpdate();
+			return count > 0 ? token : null;
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
 	}
 	
 	/*
@@ -420,6 +482,24 @@ public class PeopleManager {
 				+ "name = ? "
 				+ "where id = ?";
 		
+		/*
+		 * A new address is a new person.  Their consent belongs to the old address, so start
+		 * again: not opted in, no opt in sent, and a new key.  Otherwise a contact could be
+		 * opted in at one address and then moved to another that never agreed.
+		 */
+		String sqlNewAddress = "update people "
+				+ "set email = ?,"
+				+ "name = ?,"
+				+ "opted_in = false,"
+				+ "opted_in_sent = null,"
+				+ "opted_in_count = 0,"
+				+ "opted_in_status = null,"
+				+ "opted_in_status_msg = null,"
+				+ "when_subscribed = null,"
+				+ "when_requested_subscribe = null,"
+				+ "uuid = ? "
+				+ "where id = ?";
+		
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -427,10 +507,28 @@ public class PeopleManager {
 			if(email != null) {
 				email = email.toLowerCase();
 			}
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1,  HtmlSanitise.checkCleanName(email, localisation));
-			pstmt.setString(2, HtmlSanitise.checkCleanName(person.name, localisation));	
-			pstmt.setInt(3, person.id);
+			email = HtmlSanitise.checkCleanName(email, localisation);
+			String name = HtmlSanitise.checkCleanName(person.name, localisation);
+			
+			ContactStatus current = getPerson(sd, person.id);
+			boolean newAddress = current != null && current.email != null && !current.email.equals(email);
+			if(newAddress && current.unsubscribed) {
+				// The record of the unsubscribe is what stops emails to that address
+				throw new ApplicationException(localisation.getString("contact_uns_email").replace("%s1", current.email));
+			}
+			
+			if(newAddress) {
+				pstmt = sd.prepareStatement(sqlNewAddress);
+				pstmt.setString(1, email);
+				pstmt.setString(2, name);
+				pstmt.setString(3, UUID.randomUUID().toString());
+				pstmt.setInt(4, person.id);
+			} else {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, email);
+				pstmt.setString(2, name);	
+				pstmt.setInt(3, person.id);
+			}
 			
 			log.fine("Update person: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -440,39 +538,103 @@ public class PeopleManager {
 	}
 	
 	/*
-	 * Get all organisations where the specified email is unsubscribed
+	 * The email address of a contact and whether they have unsubscribed
 	 */
-	public ArrayList<OrganisationLite> getUnsubOrganisationsFromEmail(Connection sd, String email) throws SQLException {
+	private static class ContactStatus {
+		String email;
+		boolean unsubscribed;
+	}
+	
+	/*
+	 * Null if there is no such contact
+	 */
+	private ContactStatus getPerson(Connection sd, int id) throws SQLException {
+		ContactStatus person = null;
+		String sql = "select email, unsubscribed from people where id = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				person = new ContactStatus();
+				person.email = rs.getString(1);
+				person.unsubscribed = rs.getBoolean(2);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+		return person;
+	}
+	
+	/*
+	 * An organisation an email address has unsubscribed from, and the key that re-subscribes it
+	 */
+	public static class Unsubscribed {
+		public int oId;
+		public String orgName;
+		public String key;
+	}
+
+	/*
+	 * Get all organisations where the specified email is unsubscribed, with the key for each
+	 * Only for sending to that address.  The key is also the address's unsubscribe key, and the
+	 * list says which organisations it belongs to.
+	 */
+	public ArrayList<Unsubscribed> getUnsubscribed(Connection sd, String email) throws SQLException {
 		
-		String sql = "select o.id, o.name from people p, organisation o "
+		String sql = "select p.id, o.id, o.name, p.uuid from people p, organisation o "
 				+ "where p.o_id = o.id "
 				+ "and p.email = ? "
 				+ "and p.unsubscribed";
-		
 		PreparedStatement pstmt = null;
 		
-		ArrayList<OrganisationLite> oList = new ArrayList<> ();
+		String sqlKey = "update people set uuid = ? where id = ? and uuid is null";
+		PreparedStatement pstmtKey = null;
+		
+		ArrayList<Unsubscribed> list = new ArrayList<> ();
 		try {
 			if(email != null) {
-				email = email.toLowerCase();
+				email = email.trim().toLowerCase();
 			}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, email);
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
-				oList.add(new OrganisationLite(rs.getInt(1), rs.getString(2)));
+				Unsubscribed u = new Unsubscribed();
+				u.oId = rs.getInt(2);
+				u.orgName = rs.getString(3);
+				u.key = rs.getString(4);
+				if(u.key == null) {
+					// Unsubscribed before keys were kept, give it one
+					u.key = UUID.randomUUID().toString();
+					if(pstmtKey == null) {
+						pstmtKey = sd.prepareStatement(sqlKey);
+					}
+					pstmtKey.setString(1, u.key);
+					pstmtKey.setInt(2, rs.getInt(1));
+					pstmtKey.executeUpdate();
+				}
+				list.add(u);
 			}
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			try {if (pstmtKey != null) {pstmtKey.close();} } catch (SQLException e) {	}
 		}
-		return oList;
+		return list;
 	}
 	
 	/*
 	 * Remove a contact
 	 */
-	public void deletePerson(Connection sd, int id) throws SQLException {
+	public void deletePerson(Connection sd, int id) throws SQLException, ApplicationException {
+		
+		// The record of an unsubscribe is what stops emails to that address, so it stays
+		ContactStatus current = getPerson(sd, id);
+		if(current != null && current.unsubscribed) {
+			throw new ApplicationException(localisation.getString("contact_uns_del").replace("%s1", current.email));
+		}
 		
 		String sql = "delete from people "
 				+ "where id = ?";

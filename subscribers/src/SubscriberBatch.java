@@ -24,7 +24,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.commons.io.FileUtils;
 import org.smap.notifications.interfaces.S3AttachmentUpload;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.Tables;
 import org.smap.sdal.legacy.IE;
 import org.smap.sdal.legacy.SurveyInstance;
 import org.smap.sdal.legacy.SurveyTemplate;
@@ -50,8 +49,6 @@ import org.smap.sdal.model.Action;
 import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.DatabaseConnections;
 import org.smap.sdal.model.Instance;
-import org.smap.sdal.model.KeyValueSimp;
-import org.smap.sdal.model.LinkageItem;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
@@ -240,7 +237,6 @@ public class SubscriberBatch {
 			}
 			serverName = GeneralUtilityMethods.getSubmissionServer(dbc.sd);
 
-			//LinkageManager linkMgr = new LinkageManager(localisation);  Disable
 			Date timeNow = new Date();
 			
 			if(subscriberType.equals("upload")) {
@@ -502,131 +498,6 @@ public class SubscriberBatch {
 					infrequentRefreshInterval = 2000;	// Every 2,000 times through these operations will be done, about 1.5 days
 				}
 				
-				/*
-				 * Initialise the linkage table if that has been requested
-				 * Linkage is any arbitrary connection between survey instances 
-				 * Currently it is only used with fingerprints
-				 * Disable due to issues with accuracy of fingerprint linking
-				if(rebuildLinkageTable(dbc.sd)) {
-					log.fine("%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Rebuild Linkage ");
-					
-					String sqlInst = "select table_name, f_id from form where s_id = ? and parentform = 0";
-					
-					String sqlClear = "truncate linkage";
-					
-					String sql = "select q.q_id, q.column_name, q.appearance, q.parameters, s.ident, s.s_id, f.table_name, f.f_id, f.parentform, p.o_id "
-							+ "from question q, form f, survey s, project p "
-							+ "where q.f_id = f.f_id "
-							+ "and f.s_id = s.s_id "
-							+ "and p.id = s.p_id "
-							+ "and not q.soft_deleted "
-							+ "and not s.deleted "
-							+ "and (q.appearance like '%keppel%' or q.appearance like '%fingerprintreader%')";
-					
-					PreparedStatement pstmt = null;
-					PreparedStatement pstmtClear = null;
-					PreparedStatement pstmtRebuild = null;
-					PreparedStatement pstmtData = null;
-					PreparedStatement pstmtInst = null;
-
-					ResultSet rsData = null;
-					
-					try {
-						pstmtInst = dbc.sd.prepareStatement(sqlInst);
-						
-						pstmtClear = dbc.sd.prepareStatement(sqlClear);
-						pstmtClear.executeUpdate();
-						
-						pstmtRebuild = dbc.sd.prepareStatement(sql);
-						ResultSet rs = pstmtRebuild.executeQuery();
-							
-						while(rs.next()) {
-							
-							String appearance = rs.getString("appearance");
-							if(linkMgr.isLinkageItem(rs.getString("appearance"))) {
-										
-								int sId = rs.getInt("s_id");
-								int fId = rs.getInt("f_id");
-								int parentForm = rs.getInt("parentform");
-								String sIdent = rs.getString("ident");
-								String colName = rs.getString("column_name");
-								String tableName = rs.getString("table_name");
-								int oId = rs.getInt("o_id");
-								ArrayList<KeyValueSimp> params = GeneralUtilityMethods.convertParametersToArray(rs.getString("parameters"));
-								log.fine("------ " + sIdent + " : " + colName + " : " + tableName);
-								
-								Tables tables = new Tables(sId);
-								tables.add(tableName, fId, parentForm);
-								
-								// Add instance id table if it is not this one
-								if(parentForm != 0) {
-									try {
-										pstmtInst.setInt(1, sId);
-
-										log.fine("Getting main form: " + pstmt.toString());
-										ResultSet rsInst = pstmtInst.executeQuery();
-										if (rsInst.next()) {
-											String mainTable = rs.getString(1);
-											int mainForm = rs.getInt(2);
-											tables.add(mainTable, mainForm, 0);
-										}
-
-									} catch (Exception e) {
-										log.log(Level.SEVERE, "Exception", e);
-									}
-								}
-								
-								tables.addIntermediateTables(dbc.sd);
-								
-								String sqlTables = tables.getTablesSQL();
-								String sqlTableJoin = tables.getTableJoinSQL();
-								String sqlNoBad = tables.getNoBadClause();
-								
-								// Get the data for each column
-								StringBuilder sqlData = new StringBuilder("select instanceid, ")
-										.append(colName)
-										.append(" from ")
-										.append(sqlTables)
-										.append(" where ").append(sqlNoBad)
-										.append(" and ")
-										.append(colName)
-										.append(" is not null ")
-										.append(" and ")
-										.append(colName)
-										.append(" != '' ");
-								if(sqlTableJoin.trim().length() > 0) {
-									sqlData.append("and ").append(sqlTableJoin);
-								}
-								 
-								if(pstmtData != null) try {pstmtData.close();} catch (Exception e) {}
-								if(rsData != null) try {rsData.close();} catch (Exception e) {}
-								pstmtData = dbc.results.prepareStatement(sqlData.toString());
-								
-								log.fine("Get values: " + pstmtData.toString());
-								rsData = pstmtData.executeQuery();
-								while(rsData.next()) {
-									ArrayList<LinkageItem> linkageItems = new ArrayList<> ();
-									log.fine("  Value: " + rsData.getString(1));
-									linkMgr.addDataitemToList(linkageItems, rsData.getString(colName), appearance, params, sIdent, colName);
-									linkMgr.writeItems(dbc.sd, oId, "rebuild", rsData.getString("instanceid"), linkageItems);
-								}
-								
-							}
-							
-						}
-					} finally {
-						if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
-						if(pstmtClear != null) try {pstmtClear.close();} catch(Exception e) {}
-						if(pstmtRebuild != null) try {pstmtRebuild.close();} catch(Exception e) {}
-						if(pstmtData != null) try {pstmtData.close();} catch (Exception e) {}
-						if(pstmtInst != null) try {pstmtInst.close();} catch (Exception e) {}
-					}
-					
-					rebuildLinkageTableComplete(dbc.sd);
-				}
-				*/
-				// Set fingerprint templates for new fingerprint images
-				//linkMgr.setFingerprintTemplates(dbc.sd, basePath, serverName);  TODO disable for performance
 			}
 
 
@@ -2532,37 +2403,6 @@ public class SubscriberBatch {
 		}
 	}
 	
-	private boolean rebuildLinkageTable(Connection sd) throws SQLException {
-		boolean reload = false;
-		
-		String sql = "select rebuild_link_cache from server";
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = sd.prepareStatement(sql);
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				reload = rs.getBoolean(1);
-			}
-		} finally {
-			if(pstmt != null) try{pstmt.close();} catch(Exception e){}
-		}
-		return reload;
-	}
-
-	private boolean rebuildLinkageTableComplete(Connection sd) throws SQLException {
-		boolean reload = false;
-		
-		String sql = "update server set rebuild_link_cache = false";
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.executeUpdate();
-		} finally {
-			if(pstmt != null) try{pstmt.close();} catch(Exception e){}
-		}
-		return reload;
-	}
-
 	private boolean isValidPeriod(String period) {
 		boolean valid = false;
 		

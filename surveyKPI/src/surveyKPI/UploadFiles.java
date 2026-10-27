@@ -19,11 +19,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Application;
@@ -33,23 +31,11 @@ import jakarta.ws.rs.core.Response;
 import org.smap.sdal.managers.SurveyTemplateManager;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.MediaInfo;
-import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SharedResourceManager;
-import org.smap.sdal.model.MediaResponse;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
-import java.io.File;
 import java.io.IOException;
-import java.sql.*;
 import java.util.ArrayList;
-import java.util.Locale;
-import java.util.ResourceBundle;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Path("/upload")

@@ -74,7 +74,8 @@ public class EmitAwsSES {
 			String content,
 			ArrayList<String> filePaths,
 			ArrayList<String> filenames,
-			String replyTo) throws Exception  {
+			String replyTo,
+			String unsubscribeUrl) throws Exception  {
 
 		// Add email ID to make subject unique and to allow replies
 		String subject2 = subject + " " + emailId;
@@ -83,7 +84,8 @@ public class EmitAwsSES {
         String messageId = send(client, "Cases Smap Server <smap@server.smap.com.au>", recipients, subject2, content,
         		filePaths,
         		filenames,
-        		replyTo);
+        		replyTo,
+        		unsubscribeUrl);
         log.info("Done Email Sent");
         return messageId;
 	}
@@ -95,7 +97,8 @@ public class EmitAwsSES {
             String bodyHTML,
             ArrayList<String> filePaths,
 			ArrayList<String> filenames,
-			String replyTo) throws Exception {
+			String replyTo,
+			String unsubscribeUrl) throws Exception {
 
         Session session = Session.getDefaultInstance(new Properties());
         MimeMessage msg = new MimeMessage(session);
@@ -104,6 +107,11 @@ public class EmitAwsSES {
         msg.setRecipients(Message.RecipientType.TO, recipients);
         if(replyTo != null) {
         	msg.setReplyTo(InternetAddress.parse(replyTo));
+        }
+        // One click unsubscribe (RFC 2369, RFC 8058), Gmail and Yahoo require it of bulk senders
+        if(unsubscribeUrl != null) {
+        	msg.setHeader("List-Unsubscribe", "<" + unsubscribeUrl + ">");
+        	msg.setHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
         }
 
         MimeMultipart mmp = new MimeMultipart("mixed");

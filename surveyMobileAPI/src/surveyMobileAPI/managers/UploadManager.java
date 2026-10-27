@@ -1,7 +1,6 @@
 package surveyMobileAPI.managers;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Locale;

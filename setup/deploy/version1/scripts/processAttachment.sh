@@ -20,8 +20,12 @@ export PATH="$PATH:/usr/local/bin:/usr/bin:/bin:/snap/bin:/opt/homebrew/bin"
 # Resolve exiftool location (varies by OS / install method: apt, snap, brew)
 exiftool=`command -v exiftool`
 if [ -z "$exiftool" ]; then
-	echo "WARNING: exiftool not found on PATH ($PATH) - exif data will not be preserved. Install with: apt-get install libimage-exiftool-perl"
+	echo "WARNING: exiftool not found on PATH ($PATH) - exif data will not be preserved. Install the exiftool package"
 fi
+
+# ImageMagick 7 is called magick, convert is the version 6 name and is deprecated in 7.
+# The input file comes first in each command, which both versions accept
+im=`command -v magick || echo convert`
 
 # If content type is "image" create a thumbnail
 type=`echo $contenttype | cut -c 1-5`
@@ -40,10 +44,10 @@ if [ x"$type" = ximage ]; then
 	case `echo $ext | tr A-Z a-z` in
 	jpg|jpeg)
 		echo "$ext needs no iText hack or exif copy, orienting thumbnail in place"
-		sh -c "convert $destfile -auto-orient -thumbnail 100 -background white -alpha remove $destthumbnail"
+		sh -c "$im $destfile -auto-orient -thumbnail 100 -background white -alpha remove $destthumbnail"
 		;;
 	*)
-		sh -c "convert -thumbnail 100 -background white -alpha remove $destfile $destthumbnail"
+		sh -c "$im $destfile -thumbnail 100 -background white -alpha remove $destthumbnail"
 
 		if [ -n "$exiftool" ]; then
 			echo "Preserve exif data in thumbnail"
@@ -51,7 +55,7 @@ if [ x"$type" = ximage ]; then
 		fi
 
 		echo "processing image file for iText hack also set background white"
-		sh -c "convert -background white -alpha remove $destfile $destfile"
+		sh -c "$im $destfile -background white -alpha remove $destfile"
 
 		if [ -n "$exiftool" ]; then
 			echo "Preserving exif data in main file"

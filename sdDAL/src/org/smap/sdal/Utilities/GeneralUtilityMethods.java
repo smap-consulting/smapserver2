@@ -262,6 +262,18 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * Text, such as an answer from a submission, placed in HTML
+	 * Escaped so it shows as written rather than as markup, with its line breaks kept
+	 */
+	static public String htmlText(String in) {
+		if(in == null) {
+			return "";
+		}
+		return esc(in).replace("\"", "&quot;").replace("'", "&#39;")
+				.replace("\r\n", "\n").replace("\n", "<br/>");
+	}
+
+	/*
 	 * Escape characters reserved for HTML
 	 */
 	static public String esc(String in) {
@@ -401,23 +413,28 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Throw a 404 exception if this is not a self registration server
+	 * True if anyone may register a new organisation on this server
+	 *
+	 * A server setting rather than the host name of the request.  The host name is whatever the
+	 * client sends in the Host header, so a list of permitted names let anyone register on any
+	 * server by sending one of them, or "localhost".
 	 */
-	static public void assertSelfRegistrationServer(String host) {
-		log.fine("Self registration check: " + host);
-
-		if (!host.equals("sg.smap.com.au") 
-				&& !host.equals("localhost") 
-				&& !host.endsWith("reachnettechnologies.com")
-				&& !host.endsWith("datacollect.icanreach.com") 
-				&& !host.endsWith("encontactone.com")
-				&& !host.equals("app.kontrolid.com")
-				&& !host.equals("kontrolid.smap.com.au")) {
-
-			log.fine("Self registration check failed: " + host);
-			throw new AuthorisationException();
+	static public boolean isSelfRegistrationEnabled(Connection sd) {
+		boolean enabled = false;
+		String sql = "select self_registration from server";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				enabled = rs.getBoolean(1);
+			}
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Error checking self registration", e);	// Refuse
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
-
+		return enabled;
 	}
 
 	/*
@@ -3490,7 +3507,7 @@ public class GeneralUtilityMethods {
 						// 4. Insert this translation value
 						pstmtInsertMedia.setString(2, type);
 						pstmtInsertMedia.setString(3, text_id);
-						pstmtInsertMedia.setString(4, sanitise.sanitiseHtml(value));
+						pstmtInsertMedia.setString(4, sanitise.cleanText(value));
 						pstmtInsertMedia.setString(5, languageName);
 
 						log.fine("SQL insert media: " + pstmtInsertMedia.toString());

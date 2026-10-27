@@ -41,13 +41,10 @@ import jakarta.ws.rs.core.Response.Status;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.model.MediaItem;
 import org.smap.sdal.model.Queue;
 import org.smap.sdal.model.QueueTime;
-import org.smap.sdal.model.Survey;
 
 
 /*

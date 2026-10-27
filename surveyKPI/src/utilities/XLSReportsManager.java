@@ -20,7 +20,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URLDecoder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -36,9 +35,6 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.model.ChartColumn;
-import org.smap.sdal.model.ChartData;
-import org.smap.sdal.model.ChartRow;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.TableColumn;
 

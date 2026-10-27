@@ -2,7 +2,14 @@
 deploy_from="version1"
 
 # Get location of database
-if [ $DBHOST = "127.0.0.1" ]
+# From /etc/environment if it is not in this environment, as on a new install, where install.sh has
+# only just written it there and sudo does not pass it on.  Without it this would be taken for a
+# remote database and the patches would not be applied
+if [ -z "$DBHOST" ]; then
+	DBHOST=`sed -n 's/^DBHOST=//p' /etc/environment | tr -d '"' | tail -1`
+fi
+DBHOST=${DBHOST:-127.0.0.1}; export DBHOST
+if [ "$DBHOST" = "127.0.0.1" ]
 then
         echo "local database"
         PSQL="psql"
@@ -11,28 +18,15 @@ else
         PSQL="PGPASSWORD=keycar08 psql -h $DBHOST -U postgres"
 fi
 
-# Set flag for ubuntu version
-u2204=`lsb_release -r | grep -c "22\.04"`
-u2404=`lsb_release -r | grep -c "24\.04"`
-u2604=`lsb_release -r | grep -c "26\.04"`
+# Which Linux this is.  The settings for where its components are, from platform.conf, are
+# loaded by platform_setup below, after an Ubuntu server still on Tomcat 9 has been migrated
+. ../install/platform.sh
+platform_detect || exit 1
 
-if [ $u2604 -eq 0 ] && [ $u2404 -eq 0 ] && [ $u2204 -eq 0 ]; then
-    echo "ERROR: Unsupported Ubuntu version. This version of Smap requires Ubuntu 22.04 or later."
-    echo "Your server has not been changed."
-    exit 1
-fi
-
-# Detect installed Tomcat by checking for actual service/directory
-if [ -d /var/lib/tomcat10 ] || systemctl is-enabled tomcat10 2>/dev/null | grep -q "enabled"; then
-    TOMCAT_VERSION=tomcat10
-    TOMCAT_USER=tomcat
-elif [ -d /var/lib/tomcat9 ] || systemctl is-enabled tomcat9 2>/dev/null | grep -q "enabled"; then
-    TOMCAT_VERSION=tomcat9
-    TOMCAT_USER=tomcat
-    NEEDS_TOMCAT_UPGRADE=true
-else
-    echo "ERROR: No supported Tomcat installation found (expected tomcat9 or tomcat10)"
-    exit 1
+if [ $SMAP_FAMILY = "debian" ] && [ ! -d /var/lib/tomcat10 ] && ! systemctl is-enabled tomcat10 2>/dev/null | grep -q "enabled"; then
+    if [ -d /var/lib/tomcat9 ] || systemctl is-enabled tomcat9 2>/dev/null | grep -q "enabled"; then
+        NEEDS_TOMCAT_UPGRADE=true
+    fi
 fi
 
 # Migrate Tomcat 9 -> 10 if needed (runs once; subsequent deploys skip this block)
@@ -50,7 +44,7 @@ if [ "$NEEDS_TOMCAT_UPGRADE" = "true" ]; then
     systemctl stop tomcat9
     systemctl disable tomcat9
 
-    TC10_VER=10.1.40
+    TC10_VER=$SMAP_TOMCAT_TARBALL_VERSION
     TC10_URL=https://archive.apache.org/dist/tomcat/tomcat-10/v${TC10_VER}/bin/apache-tomcat-${TC10_VER}.tar.gz
     wget -q $TC10_URL -O /tmp/tomcat10.tar.gz
     mkdir -p /var/lib/tomcat10
@@ -89,17 +83,22 @@ if [ "$NEEDS_TOMCAT_UPGRADE" = "true" ]; then
     echo "=== Tomcat 10 migration complete ==="
 fi
 
-CATALINA_HOME=/var/lib/$TOMCAT_VERSION
+if ! platform_setup; then
+    echo "Your server has not been patched."
+    exit 1
+fi
+TOMCAT_VERSION=$TOMCAT_SERVICE
+CATALINA_HOME=$TOMCAT_BASE_DIR
 
 # Copy postgres driver
-cp -r $deploy_from/jdbc/* $CATALINA_HOME/lib/
+cp -r $deploy_from/jdbc/* $TOMCAT_LIB/
 
 # version 26.06 - ensure the JDBC connection pool validates connections so a
 # connection dropped by the database during an idle period is detected and
 # replaced instead of being handed to the application (caused intermittent 500s
 # after a page was left idle for a long time). Patched in place so the existing
 # datasource url/username/password are preserved.
-CONTEXT_FILE=$CATALINA_HOME/conf/context.xml
+CONTEXT_FILE=$TOMCAT_CONF_DIR/context.xml
 if [ -f "$CONTEXT_FILE" ] && ! grep -q "testWhileIdle" "$CONTEXT_FILE"; then
     echo "Adding JDBC connection pool validation to $CONTEXT_FILE"
     sudo cp "$CONTEXT_FILE" "$CONTEXT_FILE.bak.`date +%Y%m%d%H%M%S`"
@@ -130,15 +129,8 @@ PYEOF
     echo "JDBC pool validation added - Tomcat restart required to take effect"
 fi
 
-echo '##### 0. check configuration'
-# Set flag if this is apache2.4
-a24=`sudo apachectl -version | grep -c "2\.4"`
-a_config_dir="/etc/apache2/sites-available"
-if [ $a24 -eq 0 ]; then	
-	echo "%%%%%% Warning: Apache configuration files for Apache 2.4 will be installed. "
-	echo "PLease install Apache 2.4 prior to upgrading"
-	exit 1;
-fi
+# The Apache version was checked by platform_setup
+a_config_dir=$APACHE_SITE_DIR
 
 version=2608
 if [ -e /smap_bin/smap_version ]; then
@@ -160,7 +152,7 @@ echo "Current Smap Version is $version"
 #
 # A remote database (RDS) cannot be changed this way - ALTER SYSTEM is blocked and the
 # setting belongs in a DB parameter group.  See RDS_TUNING.md.
-if [ $DBHOST = "127.0.0.1" ]; then
+if [ "$DBHOST" = "127.0.0.1" ]; then
     preload_now=`echo "show shared_preload_libraries" | sudo -i -u postgres $PSQL -tA -d survey_definitions 2>/dev/null`
     preload_set=`echo "$preload_now" | grep -c pg_stat_statements`
     if [ "$preload_set" -eq 0 ]; then
@@ -172,6 +164,12 @@ if [ $DBHOST = "127.0.0.1" ]; then
         fi
         echo "Enabling pg_stat_statements (takes effect when postgres restarts)"
         echo "alter system set shared_preload_libraries = '$preload_new'" | sudo -i -u postgres $PSQL -q -d survey_definitions
+    fi
+
+    # Its settings are only recognised once it is loaded, before PostgreSQL 17, so are set on
+    # the deploy after the restart that loads it
+    stat_max=`echo "show pg_stat_statements.max" | sudo -i -u postgres $PSQL -tA -d survey_definitions 2>/dev/null`
+    if [ -n "$stat_max" ] && [ "$stat_max" != "10000" ]; then
         echo "alter system set pg_stat_statements.max = 10000" | sudo -i -u postgres $PSQL -q -d survey_definitions
         echo "alter system set pg_stat_statements.track = 'top'" | sudo -i -u postgres $PSQL -q -d survey_definitions
         echo "alter system set pg_stat_statements.track_utility = off" | sudo -i -u postgres $PSQL -q -d survey_definitions
@@ -286,12 +284,12 @@ cd ../install
 if [ ! -f "$a_config_dir/smap.conf.bu" ]; then
     sudo cp  $a_config_dir/smap.conf $a_config_dir/smap.conf.bu
 fi
-sudo cp config_files/a24-smap.conf $a_config_dir/smap.conf
+platform_template config_files/a24-smap.conf $a_config_dir/smap.conf
 
 if [ ! -f "$a_config_dir/smap-ssl.conf.bu" ]; then
     sudo cp $a_config_dir/smap-ssl.conf $a_config_dir/smap-ssl.conf.bu
 fi
-sudo cp config_files/a24-smap-ssl.conf $a_config_dir/smap-ssl.conf
+platform_template config_files/a24-smap-ssl.conf $a_config_dir/smap-ssl.conf
 
 sudo a2ensite  smap.conf
 sudo a2ensite  smap-ssl.conf
@@ -364,9 +362,9 @@ if [ $version -lt "1612" ]
 then
 	echo '# copy subscriber service files'
 	service_dir="/etc/systemd/system"
-	sudo cp ../install/config_files/subscribers.service $service_dir/subscribers.service
+	platform_template ../install/config_files/subscribers.service $service_dir/subscribers.service
 	sudo chmod 664 $service_dir/subscribers.service
-	sudo cp ../install/config_files/subscribers_fwd.service $service_dir/subscribers_fwd.service
+	platform_template ../install/config_files/subscribers_fwd.service $service_dir/subscribers_fwd.service
 	sudo chmod 664 $service_dir/subscribers_fwd.service
 fi
 
@@ -411,6 +409,13 @@ then
         # usermod cannot change the home of a user that owns running processes.
         # patchdb.sh otherwise leaves them up, so stop every service that runs
         # as $TOMCAT_USER (tomcat plus the subscriber processes) for the change.
+        # Note which were running, so only those are started again.  On a new install the
+        # subscribers are not set up yet, deploy.sh starts them
+        was_running=""
+        for svc in $TOMCAT_VERSION subscribers subscribers_fwd
+        do
+            systemctl is-active --quiet $svc && was_running="$was_running $svc"
+        done
         sudo systemctl stop $TOMCAT_VERSION subscribers subscribers_fwd
         sudo usermod -d $CATALINA_HOME $TOMCAT_USER
         TOMCAT_HOME=$CATALINA_HOME
@@ -422,8 +427,8 @@ then
     sudo cp $deploy_from/resources/properties/credentials $TOMCAT_HOME/.aws/credentials
     sudo chown -R $TOMCAT_USER $TOMCAT_HOME/.aws
     # Restart with the corrected home and credentials already in place
-    if [ "$NEEDS_HOME_FIX" = "true" ]; then
-        sudo systemctl start $TOMCAT_VERSION subscribers subscribers_fwd
+    if [ "$NEEDS_HOME_FIX" = "true" ] && [ -n "$was_running" ]; then
+        sudo systemctl start $was_running
     fi
     # update any other existing credential files
     for f in `locate .aws/credentials 2>/dev/null`
@@ -433,10 +438,10 @@ then
     done
 fi
 sudo cp  $deploy_from/resources/properties/setcredentials.sh /smap_bin
-if [ -f /var/lib/$TOMCAT_VERSION/bin/setenv.sh ]; then
-	envset=`cat /var/lib/$TOMCAT_VERSION/bin/setenv.sh | grep -c "setcredentials"`
+if [ -f $TOMCAT_BASE_DIR/bin/setenv.sh ]; then
+	envset=`cat $TOMCAT_BASE_DIR/bin/setenv.sh | grep -c "setcredentials"`
 	if [ $envset -eq 0 ]; then
-		echo ". /smap_bin/setcredentials.sh" | sudo tee -a /var/lib/$TOMCAT_VERSION/bin/setenv.sh 
+		echo ". /smap_bin/setcredentials.sh" | sudo tee -a $TOMCAT_BASE_DIR/bin/setenv.sh 
 	fi
 fi
 
@@ -445,8 +450,8 @@ cd ../install
 chmod +x apacheConfig.sh
 ./apacheConfig.sh
 
-mkdir -p /etc/systemd/system/tomcat10.service.d
-cp config_files/override.conf /etc/systemd/system/tomcat10.service.d/override.conf
+mkdir -p /etc/systemd/system/$TOMCAT_SERVICE.service.d
+cp config_files/override.conf /etc/systemd/system/$TOMCAT_SERVICE.service.d/override.conf
 
 # Make sure there is a logging properties file in the settings directory
 if [ ! -f "/smap/settings/smap-logging.properties" ]; then
@@ -457,7 +462,7 @@ fi
 # Make sure exiftool is installed (used by processAttachment.sh to preserve exif data)
 if ! command -v exiftool >/dev/null 2>&1; then
     echo "installing exiftool"
-    sudo apt-get install libimage-exiftool-perl -y
+    pkg_install $PKG_EXIFTOOL
 fi
 
 systemctl daemon-reload

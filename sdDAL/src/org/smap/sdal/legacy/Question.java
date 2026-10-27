@@ -27,13 +27,11 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.UUID;
 import java.util.Vector;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapQuestionTypes;
-import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.SetValue;
 

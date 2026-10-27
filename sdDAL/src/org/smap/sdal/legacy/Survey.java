@@ -21,9 +21,7 @@ package org.smap.sdal.legacy;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
 
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.MetaItem;
 
 import com.google.gson.Gson;

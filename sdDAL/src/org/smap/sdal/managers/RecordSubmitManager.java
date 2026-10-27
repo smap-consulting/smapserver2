@@ -3,7 +3,6 @@ package org.smap.sdal.managers;
 import java.io.File;
 import java.sql.Connection;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.UUID;

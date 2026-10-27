@@ -961,3 +961,39 @@ create index if not exists message_ordering_key_idx on message(ordering_key, id)
 alter table mailout_people add column if not exists submissions integer;
 update mailout_people set submissions = case when status = 'complete' then 1 else 0 end where submissions is null;
 alter table mailout_people alter column submissions set default 0;
+
+-- Whether anyone may register a new organisation on this server.  This used to be decided by the
+-- host name the request arrived with, which is whatever the client puts in the Host header.  Off
+-- unless a server owner turns it on.
+alter table server add column if not exists self_registration boolean default false;
+
+-- The token in the reply+ address of a notification email, standing for the record a reply
+-- belongs to.  The address used to carry the record's ids in plain base64, so anyone who knew
+-- them could add a reply to any record.  Only the sha256 is stored.
+create table if not exists reply_token (
+	token_hash text constraint pk_reply_token primary key,	-- sha256 of the token, hex
+	o_id integer references organisation(id) on delete cascade,
+	instanceid text,
+	survey_ident text,
+	message_id integer,
+	created timestamp with time zone default now()
+);
+alter table reply_token owner to ws;
+create index if not exists idx_reply_token_created on reply_token(created);
+
+-- The token in an opt in or re-subscribe link.  These used the address's unsubscribe key, which is
+-- in every email sent to it, so anyone with an old or forwarded email could subscribe someone again
+-- after they had unsubscribed.  Single use and lapses after 30 days.  Only the sha256 is stored.
+alter table people add column if not exists subscribe_token text;
+alter table people add column if not exists subscribe_token_expiry timestamp with time zone;
+create index if not exists idx_people_subscribe_token on people(subscribe_token);
+
+-- The initial admin / admin, if still in use, must be changed when the user next logs on to the console,
+-- and until then devices and the API refuse it.  A password_set of 'epoch' marks this whatever the expiry
+-- setting.  Only that account, other users who have never set a password, such as enumerators, are left alone.
+update users set password_set = 'epoch' where ident = 'admin' and password = md5('admin:smap:admin');
+
+-- A user who rejects a self assigned task is recorded once.  The unique index was on a_id, which tasks
+-- no longer set since they moved to t_id, so it never applied and new installs failed to create it
+delete from task_rejected a using task_rejected b where a.t_id = b.t_id and a.ident = b.ident and a.id > b.id;
+create unique index if not exists task_rejected_task_ident on task_rejected(t_id, ident);
