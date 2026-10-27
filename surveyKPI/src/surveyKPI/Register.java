@@ -50,6 +50,7 @@ import org.smap.sdal.model.UserGroup;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -142,7 +143,13 @@ public class Register extends Application {
 			throw new AuthorisationException();
 		}
 
-		RegistrationDetails rd = new Gson().fromJson(registrationDetails, RegistrationDetails.class);
+		// Parsed before the try, so malformed details must not leave the connection open
+		RegistrationDetails rd = null;
+		try {
+			rd = new Gson().fromJson(registrationDetails, RegistrationDetails.class);
+		} catch (JsonSyntaxException e) {
+			log.info("Registration refused, invalid registration details");
+		}
 		if(rd == null || rd.email == null) {
 			SDDataSource.closeConnection("surveyKPI-Register", sd);
 			return Response.status(Status.BAD_REQUEST).build();
