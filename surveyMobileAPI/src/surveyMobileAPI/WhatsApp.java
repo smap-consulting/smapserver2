@@ -155,10 +155,6 @@ public class WhatsApp extends Application {
 		String instanceId = null;
 		if(m.id != null) {
 			instanceId = "uuid:" + UUID.nameUUIDFromBytes(m.id.getBytes(StandardCharsets.UTF_8));
-			if(sim.messageExists(sd, ourNumber, instanceId)) {
-				log.info("WhatsApp message " + m.id + " already received");
-				return;
-			}
 		}
 
 		Timestamp ts = new Timestamp(System.currentTimeMillis());
@@ -172,7 +168,35 @@ public class WhatsApp extends Application {
 				ourNumber, m.text.body, true,
 				ConversationItemDetails.WHATSAPP_CHANNEL,
 				ts);
-		sim.saveMessage(sd, msg, serverName, instanceId, SMSManager.SMS_TYPE, null);
+
+		if(instanceId == null) {
+			sim.saveMessage(sd, msg, serverName, instanceId, SMSManager.SMS_TYPE, null);
+			return;
+		}
+
+		/*
+		 * Meta can deliver the same message twice at once.  The check and the save are made
+		 * under a lock on the message, held until commit, so the second delivery waits and
+		 * then finds the first
+		 */
+		sd.setAutoCommit(false);
+		try {
+			try (PreparedStatement pstmt = sd.prepareStatement("select pg_advisory_xact_lock(hashtext(?))")) {
+				pstmt.setString(1, "whatsapp:" + ourNumber + ":" + instanceId);
+				pstmt.executeQuery();
+			}
+			if(sim.messageExists(sd, ourNumber, instanceId)) {
+				log.info("WhatsApp message " + m.id + " already received");
+			} else {
+				sim.saveMessage(sd, msg, serverName, instanceId, SMSManager.SMS_TYPE, null);
+			}
+			sd.commit();
+		} catch (SQLException e) {
+			try {sd.rollback();} catch (Exception ex) {}
+			throw e;
+		} finally {
+			sd.setAutoCommit(true);
+		}
 	}
 
 	/*
