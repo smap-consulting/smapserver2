@@ -44,12 +44,10 @@ if [ "$NEEDS_TOMCAT_UPGRADE" = "true" ]; then
     systemctl stop tomcat9
     systemctl disable tomcat9
 
-    TC10_VER=$SMAP_TOMCAT_TARBALL_VERSION
-    TC10_URL=https://archive.apache.org/dist/tomcat/tomcat-10/v${TC10_VER}/bin/apache-tomcat-${TC10_VER}.tar.gz
-    wget -q $TC10_URL -O /tmp/tomcat10.tar.gz
+    tomcat_download /tmp || exit 1
     mkdir -p /var/lib/tomcat10
-    tar -xzf /tmp/tomcat10.tar.gz -C /var/lib/tomcat10 --strip-components=1
-    rm /tmp/tomcat10.tar.gz
+    tar -xzf $TOMCAT_TARBALL_FILE -C /var/lib/tomcat10 --strip-components=1
+    rm $TOMCAT_TARBALL_FILE
 
     cp ../install/config_files/server.xml.tomcat10 /var/lib/tomcat10/conf/server.xml
     cp /tmp/context.xml.bak /var/lib/tomcat10/conf/context.xml

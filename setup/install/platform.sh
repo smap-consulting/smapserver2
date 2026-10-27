@@ -396,6 +396,29 @@ tomcat_use_tarball() {
 	TOMCAT_LIB=/var/lib/tomcat10/lib
 }
 
+# Download the Tomcat tarball into directory $1 and check it against Apache's sha512.
+# Sets TOMCAT_TARBALL_FILE.  Returns 1, with nothing left behind, if either fails, so a
+# partial or corrupt download is never unpacked
+tomcat_download() {
+	_tc_url=https://archive.apache.org/dist/tomcat/tomcat-10/v${SMAP_TOMCAT_TARBALL_VERSION}/bin/apache-tomcat-${SMAP_TOMCAT_TARBALL_VERSION}.tar.gz
+	TOMCAT_TARBALL_FILE=$1/apache-tomcat-${SMAP_TOMCAT_TARBALL_VERSION}.tar.gz
+	if ! wget -q $_tc_url -O $TOMCAT_TARBALL_FILE || ! wget -q $_tc_url.sha512 -O $TOMCAT_TARBALL_FILE.sha512; then
+		echo "ERROR: Could not download Tomcat $SMAP_TOMCAT_TARBALL_VERSION from $_tc_url"
+		rm -f $TOMCAT_TARBALL_FILE $TOMCAT_TARBALL_FILE.sha512
+		return 1
+	fi
+	# The checksum file is "{sha512} *{file name}", compare the hash only
+	_tc_expected=`cut -d' ' -f1 $TOMCAT_TARBALL_FILE.sha512`
+	_tc_actual=`sha512sum $TOMCAT_TARBALL_FILE | cut -d' ' -f1`
+	rm -f $TOMCAT_TARBALL_FILE.sha512
+	if [ -z "$_tc_expected" ] || [ "$_tc_expected" != "$_tc_actual" ]; then
+		echo "ERROR: The Tomcat download does not match its sha512 checksum"
+		rm -f $TOMCAT_TARBALL_FILE
+		return 1
+	fi
+	return 0
+}
+
 java_home() {
 	readlink -f `command -v java` | sed "s:/bin/java$::"
 }

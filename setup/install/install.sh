@@ -123,11 +123,10 @@ else
     sudo groupadd tomcat 2>/dev/null || true
     sudo useradd -s /bin/false -g tomcat -d /var/lib/tomcat10 tomcat 2>/dev/null || true
     echo 'get tomcat'
-    TC10_VER=$SMAP_TOMCAT_TARBALL_VERSION
-    wget https://archive.apache.org/dist/tomcat/tomcat-10/v${TC10_VER}/bin/apache-tomcat-${TC10_VER}.tar.gz
+    tomcat_download . || exit 1
     sudo mkdir -p /var/lib/tomcat10
-    sudo tar xzf apache-tomcat-10*tar.gz -C /var/lib/tomcat10 --strip-components=1
-    rm apache-tomcat-10*tar.gz
+    sudo tar xzf $TOMCAT_TARBALL_FILE -C /var/lib/tomcat10 --strip-components=1 || exit 1
+    rm $TOMCAT_TARBALL_FILE
     echo 'Tomcat service'
     cp config_files/tomcat10.service /usr/lib/systemd/system
     JAVA_HOME=`java_home`
