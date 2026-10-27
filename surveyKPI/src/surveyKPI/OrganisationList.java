@@ -92,6 +92,7 @@ public class OrganisationList extends Application {
 	Authorise aAdminAnalyst = null;
 	Authorise aAdminOrg = null;
 	Authorise aSecurity = null;
+	Authorise aAdminOrgSecurity = null;
 
 	private static Logger log =
 			 Logger.getLogger(OrganisationList.class.getName());
@@ -115,6 +116,12 @@ public class OrganisationList extends Application {
 		aAdminAnalyst = new Authorise(authorisations, null);
 		
 		aSecurity = new Authorise(null, Authorise.SECURITY);
+		
+		authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ORG);
+		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.SECURITY);
+		aAdminOrgSecurity = new Authorise(authorisations, null);
 	}
 	
 	@GET
@@ -474,7 +481,7 @@ public class OrganisationList extends Application {
 		String connectionString = "surveyKPI-updateOtherData";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminOrg.isAuthorised(sd, request, request.getRemoteUser());
+		aAdminOrgSecurity.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 
 		try {
@@ -485,6 +492,17 @@ public class OrganisationList extends Application {
 			if(otherData == null) {
 				throw new ApplicationException("No settings sent");
 			}
+			/*
+			 * A security manager who is not an administrator can only set the password strength,
+			 * everything else is left as it is
+			 */
+			if(!GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ADMIN_ID)
+					&& !GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser(), Authorise.ORG_ID)) {
+				Integer strength = otherData.password_strength;
+				otherData = new OtherOrgData();
+				otherData.password_strength = strength;
+			}
+			
 			if(otherData.timeZone != null && !otherData.timeZone.equals("UTC")
 					&& !GeneralUtilityMethods.isValidTimezone(sd, otherData.timeZone)) {
 				throw new ApplicationException("Invalid Timezone: " + otherData.timeZone);
