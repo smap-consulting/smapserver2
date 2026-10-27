@@ -482,6 +482,9 @@ public class OrganisationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			OtherOrgData otherData = new Gson().fromJson(other, OtherOrgData.class);	
+			if(otherData == null) {
+				throw new ApplicationException("No settings sent");
+			}
 			if(otherData.timeZone != null && !otherData.timeZone.equals("UTC")
 					&& !GeneralUtilityMethods.isValidTimezone(sd, otherData.timeZone)) {
 				throw new ApplicationException("Invalid Timezone: " + otherData.timeZone);
@@ -582,6 +585,9 @@ public class OrganisationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			OrgAccessData accessData = new Gson().fromJson(access, OrgAccessData.class);	
+			if(accessData == null) {
+				throw new ApplicationException("No settings sent");
+			}
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());		
 			OrganisationManager om = new OrganisationManager(localisation);
 			om.updateOrganisationAccess(sd, oId, accessData, request.getRemoteUser(), request.getServerName());		

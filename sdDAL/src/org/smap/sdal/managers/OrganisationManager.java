@@ -98,6 +98,18 @@ public class OrganisationManager {
 
 			// Get the current settings in case we need to notify the administrator of a change
 			Organisation originalOrg = GeneralUtilityMethods.getOrganisation(sd, oId);
+			if(originalOrg == null) {
+				throw new ApplicationException("Organisation not found: " + oId);
+			}
+
+			// A setting the client did not send keeps its current value
+			if(a.can_notify == null) a.can_notify = originalOrg.can_notify;
+			if(a.can_use_api == null) a.can_use_api = originalOrg.can_use_api;
+			if(a.can_submit == null) a.can_submit = originalOrg.can_submit;
+			if(a.can_sms == null) a.can_sms = originalOrg.can_sms;
+			if(a.email_task == null) a.email_task = originalOrg.email_task;
+			if(a.refresh_rate == null) a.refresh_rate = originalOrg.refresh_rate;
+			if(a.limits == null) a.limits = originalOrg.limits;
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setBoolean(1, a.can_notify);
@@ -113,9 +125,7 @@ public class OrganisationManager {
 			log.fine("Update organisation access: " + pstmt.toString());
 			pstmt.executeUpdate();
 
-			if(originalOrg != null) {
-				notifyAccessChange(sd, originalOrg, a, userIdent, serverName);
-			}
+			notifyAccessChange(sd, originalOrg, a, userIdent, serverName);
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -583,6 +593,20 @@ public class OrganisationManager {
 			boolean setPasswordStrength,
 			String userIdent) throws SQLException, ApplicationException {
 		
+		// A setting the client did not send keeps its current value
+		Organisation current = GeneralUtilityMethods.getOrganisation(sd, oId);
+		if(current == null) {
+			throw new ApplicationException("Organisation not found: " + oId);
+		}
+		if(otherData.locale == null) otherData.locale = current.locale;
+		if(otherData.timeZone == null) otherData.timeZone = current.timeZone;
+		if(otherData.map_source == null) otherData.map_source = current.map_source;
+		if(otherData.can_edit == null) otherData.can_edit = current.can_edit;
+		if(otherData.send_optin == null) otherData.send_optin = current.send_optin;
+		if(otherData.enable_redact == null) otherData.enable_redact = current.enable_redact;
+		if(otherData.notification_webform == null) otherData.notification_webform = current.notification_webform;
+		if(otherData.password_strength == null) setPasswordStrength = false;
+
 		String sql = "update organisation set "
 				+ "locale = ?, "
 				+ "timezone = ?, "
@@ -596,9 +620,8 @@ public class OrganisationManager {
 				+ "changed_ts = now() "
 				+ "where id = ?";
 		PreparedStatement pstmt = null;
-		
+
 		try {
-			
 			int idx = 1;
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(idx++, HtmlSanitise.checkCleanName(otherData.locale, localisation));

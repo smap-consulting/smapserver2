@@ -4,13 +4,15 @@ import java.util.HashMap;
 
 /*
  * Organisation settings only an organisation administrator may change
+ * Boxed so that a field the client did not send is null, and left as it is, rather than
+ * read as false or 0
  */
 public class OrgAccessData {
-	public boolean can_notify;
-	public boolean can_use_api;
-	public boolean can_submit;
-	public boolean can_sms;
-	public boolean email_task;
-	public int refresh_rate;
+	public Boolean can_notify;
+	public Boolean can_use_api;
+	public Boolean can_submit;
+	public Boolean can_sms;
+	public Boolean email_task;
+	public Integer refresh_rate;
 	public HashMap<String, Integer> limits;
 }
