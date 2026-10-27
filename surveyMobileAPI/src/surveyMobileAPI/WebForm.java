@@ -1246,8 +1246,9 @@ public class WebForm extends Application {
 		html = html.replaceAll("&gt;", ">");
 		html = html.replaceAll("&lt;", "<");
 		html = html.replaceAll("&amp;", "&");
-		html = html.replaceAll("\\\\\\\\", "\\\\");
-		
+		// Backslashes are left as they are.  Halving them broke expressions that match a
+		// literal backslash, such as regex(., '^a\\b$'), and markdown has already handled labels
+
 		return html;
 	}
 
