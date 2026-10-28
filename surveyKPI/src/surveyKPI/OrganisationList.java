@@ -45,6 +45,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.Secrets;
 import org.smap.sdal.managers.CssManager;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
@@ -249,7 +250,7 @@ public class OrganisationList extends Application {
 				org.smtp_host = resultSet.getString("smtp_host");
 				org.email_domain = resultSet.getString("email_domain");
 				org.email_user = resultSet.getString("email_user");
-				org.email_password = resultSet.getString("email_password");
+				org.email_password = Secrets.hide(resultSet.getString("email_password"));		// Never sent to the browser
 				org.email_port = resultSet.getInt("email_port");
 				org.default_email_content = resultSet.getString("default_email_content");
 				org.website = resultSet.getString("website");
@@ -331,6 +332,7 @@ public class OrganisationList extends Application {
 					// New organisation
 						
 					o.e_id = GeneralUtilityMethods.getEnterpriseId(sd, request, request.getRemoteUser());
+					o.email_password = Secrets.keep(o.email_password, null);		// A placeholder copied from another organisation is not a password
 
 					/*
 					 * An administrator who is not an organisation administrator creates a personal organisation.
@@ -753,7 +755,7 @@ public class OrganisationList extends Application {
 				e.smtp_host = rs.getString("smtp_host");
 				e.email_domain = rs.getString("email_domain");
 				e.email_user = rs.getString("email_user");
-				e.email_password = rs.getString("email_password");
+				e.email_password = Secrets.hide(rs.getString("email_password"));		// Never sent to the browser
 				e.email_port = rs.getInt("email_port");
 				e.default_email_content  = rs.getString("default_email_content");
 				e.server_description = rs.getString("server_description");
@@ -1112,6 +1114,9 @@ public class OrganisationList extends Application {
 			
 			EmailSettings e = new Gson().fromJson(settings, EmailSettings.class);
 			
+			// The browser only has a placeholder for a password that it did not change
+			Organisation stored = GeneralUtilityMethods.getOrganisation(sd, oId);
+			e.email_password = Secrets.keep(e.email_password, stored == null ? null : stored.email_password);
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, e.email_type);
@@ -1127,7 +1132,7 @@ public class OrganisationList extends Application {
 			pstmt.setString(11, request.getRemoteUser());
 			pstmt.setInt(12, oId);
 					
-			log.info("Update organisation with email details: " + pstmt.toString());
+			log.info("Update organisation " + oId + " email details");		// Not the statement, it has the password
 			pstmt.executeUpdate();
 			
 			String orgName = GeneralUtilityMethods.getOrganisationName(sd, oId);

@@ -94,6 +94,7 @@ public class Server extends Application {
 			
 			ServerManager sm = new ServerManager();
 			ServerData data = sm.getServer(sd, localisation);
+			data.hideSecrets();		// Never sent to the browser
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(data);
@@ -213,6 +214,9 @@ public class Server extends Application {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			// The browser only has a placeholder for a secret that it did not change
+			data.keepSecrets(new ServerManager().getServer(sd, localisation));
 			
 			// Add the updated data
 			pstmt = sd.prepareStatement(sql);

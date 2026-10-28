@@ -1,5 +1,7 @@
 package org.smap.sdal.model;
 
+import org.smap.sdal.Utilities.Secrets;
+
 public class ServerData {
 	public String email_type;
 	public String aws_region;
@@ -52,5 +54,31 @@ public class ServerData {
 		} else {
 			return api_max_records;
 		}
+	}
+
+	/*
+	 * Replace the secrets with a placeholder before the settings are sent to the browser
+	 */
+	public void hideSecrets() {
+		email_password = Secrets.hide(email_password);
+		vonage_webhook_secret = Secrets.hide(vonage_webhook_secret);
+		turnstile_secret_key = Secrets.hide(turnstile_secret_key);
+		sharepoint_cert_pem = Secrets.hide(sharepoint_cert_pem);
+		sharepoint_password = Secrets.hide(sharepoint_password);
+		wa_access_token = Secrets.hide(wa_access_token);
+		wa_app_secret = Secrets.hide(wa_app_secret);
+	}
+
+	/*
+	 * Settings sent back from the browser keep the stored secret where it sent the placeholder
+	 */
+	public void keepSecrets(ServerData stored) {
+		email_password = Secrets.keep(email_password, stored.email_password);
+		vonage_webhook_secret = Secrets.keep(vonage_webhook_secret, stored.vonage_webhook_secret);
+		turnstile_secret_key = Secrets.keep(turnstile_secret_key, stored.turnstile_secret_key);
+		sharepoint_cert_pem = Secrets.keep(sharepoint_cert_pem, stored.sharepoint_cert_pem);
+		sharepoint_password = Secrets.keep(sharepoint_password, stored.sharepoint_password);
+		wa_access_token = Secrets.keep(wa_access_token, stored.wa_access_token);
+		wa_app_secret = Secrets.keep(wa_app_secret, stored.wa_app_secret);
 	}
 }
