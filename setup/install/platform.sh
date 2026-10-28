@@ -29,7 +29,7 @@ SMAP_MIN_POSTGIS=3
 # 10.1.  Each entry is release:end of standard support (year and month).  Remove a release
 # once its support ends.
 SMAP_TOMCAT_TARBALL_RELEASES="22.04:202704 24.04:202904 26.04:203104"
-SMAP_TOMCAT_TARBALL_VERSION=10.1.40
+SMAP_TOMCAT_TARBALL_VERSION=10.1.61
 
 # Apache modules that Smap's configuration uses
 SMAP_APACHE_MODULES="auth_digest expires dbd authn_dbd proxy proxy_ajp ssl headers request auth_form session session_cookie session_crypto"
