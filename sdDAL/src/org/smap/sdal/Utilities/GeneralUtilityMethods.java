@@ -11009,6 +11009,8 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Get a safe text value, escape html if this is destined for an html page
+	 * The console, record view, log, contacts and campaign pages show these values as markup
+	 * without encoding them again, so isForHtml must stay true for the DataTables (dt) formats
 	 */
 	public static String getSafeText(String input, boolean isForHtml) {
 		if(input == null) {
