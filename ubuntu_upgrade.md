@@ -2,12 +2,12 @@
 
 ## Ubuntu 26.04 Default Packages
 
-| Package | 20.04 | 22.04 | 24.04 | 26.04 |
-|---|---|---|---|---|
-| OpenJDK | 11 | 11 | 21 | **25** |
-| PostgreSQL | 12 | 14 | 16 | **18** |
-| Tomcat (apt) | tomcat9 | tomcat9 | tomcat10 | **tomcat10** |
-| Apache | 2.4.x | 2.4.x | 2.4.x | 2.4.x |
+| Package | 22.04 | 24.04 | 26.04 |
+|---|---|---|---|
+| OpenJDK | 11 | 21 | **25** |
+| PostgreSQL | 14 | 16 | **18** |
+| Tomcat (apt) | tomcat9 | tomcat10 | **tomcat10** |
+| Apache | 2.4.x | 2.4.x | 2.4.x |
 
 **Root cause**: Tomcat 10+ requires Jakarta EE 9+ (`jakarta.*` namespace). Jersey 2.40 uses the old `javax.*` namespace — incompatible.
 
@@ -17,7 +17,7 @@
 
 Maintain one codebase targeting the Jakarta namespace. For Ubuntu 22.04 (which ships Tomcat 9), the install script will manually download Tomcat 10 — the same pattern already used for 24.04 with Tomcat 9.
 
-Ubuntu 20.04 is EOL (April 2025) and will be dropped from the support matrix.
+Ubuntu 20.04 is not supported (standard support ended April 2025).
 
 ---
 
@@ -162,7 +162,7 @@ Copy from `postgresql.conf.16` — PG 18 does not break backwards-compatible con
 
 ### Subscriber service file
 
-The subscriber service file uses `User=tomcat` which is the same for both Tomcat 9 and Tomcat 10 packages. Review whether the existing `subscribers.service.u2004` variant needs a 26.04-specific copy or whether the user/path is already generic enough.
+The subscriber service file uses `User=tomcat` which is the same for both Tomcat 9 and Tomcat 10 packages. The single `subscribers.service` is used on all supported releases.
 
 ---
 
@@ -170,7 +170,7 @@ The subscriber service file uses `User=tomcat` which is the same for both Tomcat
 
 ### Problem
 
-`deploy.sh` currently infers the Tomcat version from the Ubuntu version and hardcodes `tomcat9` for 24.04, 22.04, and 20.04. After the Jakarta migration, deploying new WARs to a server still running Tomcat 9 will fail silently — Tomcat 9 will refuse to load `jakarta.*` WARs with `ClassNotFoundException`.
+`deploy.sh` currently infers the Tomcat version from the Ubuntu version and hardcodes `tomcat9` for 24.04 and 22.04. After the Jakarta migration, deploying new WARs to a server still running Tomcat 9 will fail silently — Tomcat 9 will refuse to load `jakarta.*` WARs with `ClassNotFoundException`.
 
 ### Solution: Detect Actual Installed Tomcat, Auto-Migrate If Needed
 
