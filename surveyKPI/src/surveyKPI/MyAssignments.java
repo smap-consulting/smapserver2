@@ -216,7 +216,7 @@ public class MyAssignments extends Application {
 			}
 			log.info("Device:" + tr.deviceId + " for user " + userName);
 
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userName));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			CaseManager cm = new CaseManager(localisation);
@@ -227,15 +227,15 @@ public class MyAssignments extends Application {
 			pstmtEvents = am.getPreparedStatementEvents(sd);
 
 			sd.setAutoCommit(false);
-			for (TaskResponseAssignment ta : tr.taskAssignments) {
+			for (TaskResponseAssignment ta : tr.taskAssignments != null ? tr.taskAssignments : new ArrayList<TaskResponseAssignment>()) {
 
 				if (ta.task != null && ta.task.type != null && ta.task.type.equals("case")) {
 					if (ta.assignment.assignment_status != null && ta.assignment.assignment_status.equals("rejected")) {
 						String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults,
 								ta.task.form_id);
 						cm.assignRecord(sd, cResults, localisation, tableName, ta.task.update_id,
-								request.getRemoteUser(), "release", null, ta.assignment.task_comment,
-								request.getRemoteUser());
+								userName, "release", null, ta.assignment.task_comment,
+								userName);
 					}
 				} else if (ta.task != null && ta.task.type != null && ta.task.type.equals("reference")) {
 					// Device dereferenced a read only record - remove this user's reference link
@@ -244,7 +244,7 @@ public class MyAssignments extends Application {
 								ta.task.form_id);
 						ReferenceManager refMgr = new ReferenceManager(localisation);
 						refMgr.dereferenceByThread(sd, cResults, tableName, ta.task.update_id,
-								request.getRemoteUser(), request.getRemoteUser());
+								userName, userName);
 					}
 				} else if (ta.assignment.assignment_id > 0) {
 					log.info("Task Assignment: " + ta.assignment.assignment_status);
@@ -276,7 +276,7 @@ public class MyAssignments extends Application {
 					}
 
 				} else {   // If assignment Id is zero then this could be a self assign task being rejected
-					am.updateTaskRejected(sd, ta.task.id, request.getRemoteUser());
+					am.updateTaskRejected(sd, ta.task.id, userName);
 					log.info("Error: assignment id is zero mark task as rejected: TaskId: " + ta.task.id);
 				}
 			}
