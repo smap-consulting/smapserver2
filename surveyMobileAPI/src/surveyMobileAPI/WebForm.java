@@ -58,7 +58,6 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.BlockedException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.TurnstileVerifier;
@@ -83,13 +82,11 @@ import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.CaseConversation;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.SurveyData;
 import org.smap.sdal.model.TempUserFinal;
 import org.smap.sdal.model.WebformOptions;
 import org.smap.sdal.managers.GetXForm;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import surveyMobileAPI.managers.WebFormManager;
 
@@ -119,17 +116,9 @@ public class WebForm extends Application {
 		
 	}
 	
-	class JsonResponse {
-		List<ManifestValue> manifestList;
-		SurveyData surveyData = new SurveyData();
-		String main;
-	}
-	
 	// Globals
 	private ServerData serverData = null;
 	private List<ManifestValue> manifestList = null;
-	private String mimeType = null;
-	private JsonResponse jr = null;
 	SurveyTemplate template = null;
 	ResourceBundle localisation = null;
 	String tz = "UTC";
@@ -150,46 +139,6 @@ public class WebForm extends Application {
 	ArrayList<String> gNotificationTypes = new ArrayList<>();
 	CaseConversation gConversation = null;			// Conversation of the case being edited
 	boolean gNotificationWebform = false;
-
-	/*
-	 * Get instance data Respond with JSON
-	 */
-	@GET
-	@Path("/key/instance/{ident}/{updateid}/{key}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response getInstanceJson(@Context HttpServletRequest request, @PathParam("ident") String formIdent,
-			@PathParam("updateid") String updateid, // Unique id of instance data
-			@PathParam("key") String authorisationKey) throws IOException {
-
-		log.info("Requesting json instance");
-
-		Response resp = null;
-		String requester = "surveyMobileAPI-Webform";
-		Connection sd = SDDataSource.getConnection(requester);
-
-		try {
-			// Resolve the user from the key first - REMOTE_USER is null here, the link is
-			// granted by Apache, so the locale has to come from whoever the key names
-			userIdent = GeneralUtilityMethods.getDynamicUser(sd, authorisationKey);
-
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userIdent));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			WebFormManager wfm = new WebFormManager(localisation, "UTC");
-			resp = wfm.getInstanceData(sd, request, formIdent, updateid, 0, userIdent, false);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			SDDataSource.closeConnection(requester, sd);
-		}
-
-		if (userIdent == null) {
-			log.info("User not found for key");
-			throw new JsonAuthorisationException();
-		}
-
-		return resp;
-	}
 
 	/*
 	 * Get instance data. Respond with JSON
@@ -266,56 +215,6 @@ public class WebForm extends Application {
 	}
 
 	/*
-	 * Get form data Respond with JSON
-	 */
-	@GET
-	@Path("/key/{ident}/{key}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response getFormJson(
-			@Context HttpServletRequest request, 
-			@PathParam("ident") String formIdent,
-			@PathParam("key") String authorisationKey, 
-			@QueryParam("datakey") String datakey, // Optional keys to instance data
-			@QueryParam("datakeyvalue") String datakeyvalue, 
-			@QueryParam("assignment_id") int assignmentId,
-			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
-			@QueryParam("readonly") boolean readOnly) throws IOException {
-
-		Response response;
-		
-		log.info("Requesting json");
-
-		String requester = "WebForm - getFormJson";
-		Connection sd = SDDataSource.getConnection(requester);
-
-		try {
-			userIdent = GeneralUtilityMethods.getDynamicUser(sd, authorisationKey);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			SDDataSource.closeConnection(requester, sd);
-		}
-
-		if (userIdent == null) {
-			log.info("User not found for key");
-			throw new JsonAuthorisationException();
-		}
-
-		mimeType = "json";
-		isTemporaryUser = false;
-		response = getWebform(request, "none", null, formIdent, datakey, datakeyvalue, 
-				assignmentId, taskKey, false, false, 
-				false, 
-				null,		// initial data
-				false,		// show done page
-				readOnly,
-				null		// initial values
-				);
-		
-		return response;
-	}
-
-	/*
 	 * Get webform identified by logon credentials
 	 */
 	@GET
@@ -334,7 +233,6 @@ public class WebForm extends Application {
 
 		Response response = null;
 		
-		mimeType = "html";
 		viewOnly = vo;
 		debug = d;
 		isApp = app;
@@ -412,7 +310,6 @@ public class WebForm extends Application {
 			@QueryParam("viewOnly") boolean vo,
 			@QueryParam("debug") String d) throws IOException {
 
-		mimeType = "html";
 		viewOnly = vo;
 		debug = d;
 		
@@ -447,7 +344,6 @@ public class WebForm extends Application {
 		Response response = null;
 		
 		userIdent = ident;
-		mimeType = "html";
 		String requester = "surveyMobileAPI-webform task";
 		debug = d;
 		
@@ -735,45 +631,11 @@ public class WebForm extends Application {
 				}
 			}
 
-			if (mimeType.equals("json")) {
-				jr = new JsonResponse();
-				jr.manifestList = new ArrayList<ManifestValue>();
-			}
-
-			// Convert to HTML / Json
-			if (mimeType.equals("json")) {
-
-				jr.surveyData.modelStr = getModelStr(request);
-				if (instanceXML != null) {
-					jr.surveyData.instanceStrToEdit = instanceXML.replace("\n", "").replace("\r", "");
-				}
-				jr.surveyData.instanceStrToEditId = instanceStrToEditId;
-
-				// Add the assignment id if this was set
-				if (assignmentId != 0) {
-					jr.surveyData.assignmentId = assignmentId;
-				}
-
-				// Add access key for authentication
-				if (accessKey != null) {
-					jr.surveyData.accessKey = accessKey;
-				}
-
-				// Add survey class's - used for paging
-				jr.surveyData.surveyClass = survey.surveyData.surveyClass;
-
-				jr.main = addMain(request, instanceStrToEditId, orgId, true, surveyClass, superUser, survey.surveyData.readOnlySurvey || readonly).toString();
-
-				Gson gsonResp = new GsonBuilder().disableHtmlEscaping().create();
-				outputString.append(gsonResp.toJson(jr));
-
-			} else {
-				// MAIN ENTRY POINT - XXXX
-				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
-						survey.surveyData.surveyClass, orgId, accessKey, superUser, 
-						survey.surveyData.readOnlySurvey || readonly,
-						survey));
-			}
+			// Convert to HTML
+			outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
+					survey.surveyData.surveyClass, orgId, accessKey, superUser,
+					survey.surveyData.readOnlySurvey || readonly,
+					survey));
 			
 			response = Response.status(Status.OK).entity(outputString.toString()).build();
 
@@ -848,17 +710,8 @@ public class WebForm extends Application {
 			}
 			
 			if (url != null) {
-				if (mimeType.equals("json")) {
-					ManifestValue mv = new ManifestValue(); // Create a new version of the manifest to send to a
-															// client that doesn't have unneeded data
-					mv.type = type;
-					mv.fileName = name;
-					mv.url = url;
-					jr.manifestList.add(mv);
-				} else {
-					url = url.replaceFirst("/surveyKPI/file", "/surveyKPI/file" + dynamic);
-					html = html.replace("jr://" + type + "/" + name, url);
-				}
+				url = url.replaceFirst("/surveyKPI/file", "/surveyKPI/file" + dynamic);
+				html = html.replace("jr://" + type + "/" + name, url);
 			}
 		}
 		return html;
@@ -1223,7 +1076,7 @@ public class WebForm extends Application {
 		output.append(getAside());
 		output.append("<div class='smap-layout'>\n");
 		output.append(getSidePanel());
-		output.append(addMain(request, dataToEditId, orgId, false, surveyClass, superUser, readOnly));
+		output.append(addMain(request, dataToEditId, orgId, surveyClass, superUser, readOnly));
 		output.append("</div>\n");
 		output.append(getDialogs());
 
@@ -1256,11 +1109,11 @@ public class WebForm extends Application {
 	 * Get the "Main" element of an web form
 	 */
 	private StringBuffer addMain(HttpServletRequest request, String dataToEditId, int orgId,
-			boolean minimal, String surveyClass, boolean superUser, boolean readOnly)
+			String surveyClass, boolean superUser, boolean readOnly)
 			throws TransformerFactoryConfigurationError, SQLException, Exception {
 
 		StringBuffer output = new StringBuffer();
-		output.append(openMain(orgId, minimal));
+		output.append(openMain(orgId));
 
 		GetHtml getHtml = new GetHtml(localisation);
 		String html = getHtml.get(request, template.getSurvey().getId(), superUser, userIdent, 
@@ -1268,9 +1121,7 @@ public class WebForm extends Application {
 
 		output.append(html);
 
-		if (!minimal) {
-			output.append(closeMain(dataToEditId, surveyClass, readOnly));
-		}
+		output.append(closeMain(dataToEditId, surveyClass, readOnly));
 
 		return output;
 	}
@@ -1532,7 +1383,7 @@ public class WebForm extends Application {
 		return output;
 	}
 
-	private StringBuffer openMain(int orgId, boolean minimal) {
+	private StringBuffer openMain(int orgId) {
 		StringBuffer output = new StringBuffer();
 
 		output.append("<main class='main' aria-labelledby='form-title'>\n");
@@ -1548,49 +1399,47 @@ public class WebForm extends Application {
 			"<div class='spinner-border text-primary' style='width:5rem;height:5rem;' role='status'>" +
 			"<span class='visually-hidden'>Loading...</span></div></div>");
 		output.append("<article class='paper' style='display:none;'>\n");
-		if (!minimal) {
-			output.append("<div class='form-progress'></div>\n");
-			output.append("<header class='navbar navbar-expand-sm navbar-light bg-white border-bottom shadow-sm fixed-top py-1' aria-label='Form navigation'>\n");
-			output.append("<div class='container-fluid px-3'>\n");
+		output.append("<div class='form-progress'></div>\n");
+		output.append("<header class='navbar navbar-expand-sm navbar-light bg-white border-bottom shadow-sm fixed-top py-1' aria-label='Form navigation'>\n");
+		output.append("<div class='container-fluid px-3'>\n");
 
-			// Brand / logo
-			output.append("<span class='navbar-brand py-0 me-2'>\n");
-			output.append(addNoScriptWarning());
-			output.append("<img class='banner_logo' src='/custom/banner/")
-				.append(orgId)
-				.append("' alt=''>\n");
-			output.append("</span>\n");
+		// Brand / logo
+		output.append("<span class='navbar-brand py-0 me-2'>\n");
+		output.append(addNoScriptWarning());
+		output.append("<img class='banner_logo' src='/custom/banner/")
+			.append(orgId)
+			.append("' alt=''>\n");
+		output.append("</span>\n");
 
-			// Always-visible: back button, hourglass
-			output.append("<div class='d-flex align-items-center gap-2 me-auto'>\n");
-			if(isApp) {
-				output.append("<button onclick='window.history.back();' class='btn btn-sm btn-link p-0' aria-label='Go back'><i class='fa fa-arrow-left' aria-hidden='true'></i></button>\n");
-			}
-			output.append("<img id='hour_glass' src='/images/ajax-loader.gif' style='display:none;' alt='' height='24' width='24'>\n");
-			output.append("</div>\n");
-
-			// Toggler for mobile
-			output.append("<button class='navbar-toggler' type='button' data-bs-toggle='collapse' data-bs-target='#wf-navbar' aria-controls='wf-navbar' aria-expanded='false' aria-label='Toggle navigation'>\n");
-			output.append("<span class='navbar-toggler-icon'></span>\n");
-			output.append("</button>\n");
-
-			// Collapsible nav items
-			output.append("<div class='collapse navbar-collapse' id='wf-navbar'>\n");
-			output.append("<ul class='navbar-nav ms-auto align-items-sm-center'>\n");
-			output.append("<li class='nav-item'><span class='form-language-selector'><span class='lang' data-lang='form.chooseLanguage'>language</span></span></li>\n");
-			output.append("<li class='nav-item'><button class='nav-link' data-action='open-queue'><span class='lang' data-lang='record-list.title'>Queue</span> (<span class='queue-length'>0</span>)</button></li>\n");
-			if(showFormIndex) {
-				output.append("<li class='nav-item'><button class='nav-link lang' data-action='toggle-index' data-lang='form.index'>Index</button></li>\n");
-			}
-			output.append("<li id='smap-notif-menu-item' class='nav-item' hidden><button class='nav-link' data-action='toggle-notification'>Notification</button></li>\n");
-			output.append("<li class='nav-item'><a class='nav-link lang' href='/app/myWork/history.html' target='_blank' data-lang='record-list.history'>History</a></li>\n");
-			output.append("<li class='nav-item'><button class='print nav-link' onclick='return false;' aria-label='Print form'><i class='fa fa-print me-1' aria-hidden='true'></i>Print</button></li>\n");
-			output.append("</ul>\n");
-			output.append("</div>\n");
-
-			output.append("</div>\n");
-			output.append("</header>\n");
+		// Always-visible: back button, hourglass
+		output.append("<div class='d-flex align-items-center gap-2 me-auto'>\n");
+		if(isApp) {
+			output.append("<button onclick='window.history.back();' class='btn btn-sm btn-link p-0' aria-label='Go back'><i class='fa fa-arrow-left' aria-hidden='true'></i></button>\n");
 		}
+		output.append("<img id='hour_glass' src='/images/ajax-loader.gif' style='display:none;' alt='' height='24' width='24'>\n");
+		output.append("</div>\n");
+
+		// Toggler for mobile
+		output.append("<button class='navbar-toggler' type='button' data-bs-toggle='collapse' data-bs-target='#wf-navbar' aria-controls='wf-navbar' aria-expanded='false' aria-label='Toggle navigation'>\n");
+		output.append("<span class='navbar-toggler-icon'></span>\n");
+		output.append("</button>\n");
+
+		// Collapsible nav items
+		output.append("<div class='collapse navbar-collapse' id='wf-navbar'>\n");
+		output.append("<ul class='navbar-nav ms-auto align-items-sm-center'>\n");
+		output.append("<li class='nav-item'><span class='form-language-selector'><span class='lang' data-lang='form.chooseLanguage'>language</span></span></li>\n");
+		output.append("<li class='nav-item'><button class='nav-link' data-action='open-queue'><span class='lang' data-lang='record-list.title'>Queue</span> (<span class='queue-length'>0</span>)</button></li>\n");
+		if(showFormIndex) {
+			output.append("<li class='nav-item'><button class='nav-link lang' data-action='toggle-index' data-lang='form.index'>Index</button></li>\n");
+		}
+		output.append("<li id='smap-notif-menu-item' class='nav-item' hidden><button class='nav-link' data-action='toggle-notification'>Notification</button></li>\n");
+		output.append("<li class='nav-item'><a class='nav-link lang' href='/app/myWork/history.html' target='_blank' data-lang='record-list.history'>History</a></li>\n");
+		output.append("<li class='nav-item'><button class='print nav-link' onclick='return false;' aria-label='Print form'><i class='fa fa-print me-1' aria-hidden='true'></i>Print</button></li>\n");
+		output.append("</ul>\n");
+		output.append("</div>\n");
+
+		output.append("</div>\n");
+		output.append("</header>\n");
 		return output;
 	}
 
