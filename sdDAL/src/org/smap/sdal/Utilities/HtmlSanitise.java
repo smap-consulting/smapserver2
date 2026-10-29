@@ -74,6 +74,18 @@ public class HtmlSanitise {
 	}
 
 	/*
+	 * Sanitise a label that is going to be used as HTML, such as in a web form.  Only the label
+	 * markup is kept and text stays escaped, "a < b" comes back as "a &lt; b", so text that
+	 * only looks like markup, such as "&lt;script&gt;", can never become a tag.
+	 */
+	public String sanitiseLabelHtml(String in) {
+		if(in == null) {
+			return null;
+		}
+		return policy.sanitize(in);
+	}
+
+	/*
 	 * Remove unsafe markup from text that is stored or placed in a DOM text node, where the
 	 * reader escapes it.  The escaping the sanitiser adds is reversed so that "a < b" and "A & B"
 	 * stay as they were rather than showing as "&lt;" and "&amp;".

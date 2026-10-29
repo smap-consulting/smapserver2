@@ -22,6 +22,7 @@ package org.smap.sdal.legacy;
 import java.util.HashMap;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 
 public class Translation {
 
@@ -89,7 +90,7 @@ public class Translation {
 		 * styling elements need to be escaped for use in odk.  Hence we escape before converting the xls name to an 
 		 * output element.
 		 */
-		String frag = GeneralUtilityMethods.esc(value);
+		String frag = GeneralUtilityMethods.esc(value == null ? null : new HtmlSanitise().cleanText(value));	// Sanitised again here, as it is for web forms, in case it was stored unsafe
 
 		return "<t>" 
 			+ UtilityMethods.convertAllxlsNames(frag, true, questionPaths, f_id, false, "an sql fragment", false) 

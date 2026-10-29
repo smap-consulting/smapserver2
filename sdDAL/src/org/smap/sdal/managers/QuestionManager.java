@@ -1168,7 +1168,7 @@ public class QuestionManager {
 				pstmtInsertOption.setString(4, o.value );
 				pstmtInsertOption.setString(5, GeneralUtilityMethods.cleanName(o.value, false, false, false) );
 				pstmtInsertOption.setString(6, gson.toJson(o.cascade_filters));	
-				pstmtInsertOption.setString(7, o.display_name);	
+				pstmtInsertOption.setString(7, o.display_name == null ? null : sanitise.cleanText(o.display_name));
 
 				log.fine("###### Insert option: " + pstmtInsertOption.toString());
 				pstmtInsertOption.executeUpdate();
@@ -1454,8 +1454,8 @@ public class QuestionManager {
 
 						pstmtOtherProperties = sd.prepareStatement(sql);
 
-						// Update the option
-						pstmtOtherProperties.setString(1, p.newVal );
+						// Update the option, the display name is shown like a label
+						pstmtOtherProperties.setString(1, property.equals("display_name") && p.newVal != null ? sanitise.cleanText(p.newVal) : p.newVal );
 						pstmtOtherProperties.setInt(2, listId );
 						pstmtOtherProperties.setString(3, p.name );
 

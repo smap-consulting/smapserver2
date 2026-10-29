@@ -2363,6 +2363,8 @@ public class SurveyManager {
 									ci.property.newVal = "0";
 								}
 								pstmtProperty2.setInt(1, Integer.parseInt(ci.property.newVal));
+							} else if(property.equals("display_name") && ci.property.newVal != null) {
+								pstmtProperty2.setString(1, sanitise.cleanText(ci.property.newVal));	// Shown like a label, sanitised as it is when the question is added
 							} else {
 								pstmtProperty2.setString(1, ci.property.newVal);
 							}

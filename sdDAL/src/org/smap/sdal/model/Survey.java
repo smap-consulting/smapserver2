@@ -425,7 +425,7 @@ public class Survey {
 					pstmtOption.setString(3, gson.toJson(o.cascade_filters));
 					pstmtOption.setBoolean(4, false);
 					pstmtOption.setString(5, o.columnName);
-					pstmtOption.setString(6, o.display_name);
+					pstmtOption.setString(6, o.display_name == null ? null : sanitise.cleanText(o.display_name));
 					pstmtOption.setInt(7, ol.id);
 					pstmtOption.setBoolean(8, o.published);
 					pstmtOption.executeUpdate();

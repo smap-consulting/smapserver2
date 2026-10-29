@@ -36,6 +36,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.CSVParser;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.constants.SmapQuestionTypes;
@@ -88,6 +89,7 @@ public class GetXForm {
 	private ArrayList<Question> gLastSavedQuestions = new ArrayList <> ();
 	private boolean modelInstanceOnly = false;
 	private boolean isWebForms = false;
+	private HtmlSanitise sanitise = new HtmlSanitise();	// Labels are sanitised as they are written out, as they are for web forms
 	private boolean useNodesets = false;
 	private ResourceBundle localisation = null;
 	String remoteUser = null;
@@ -415,7 +417,7 @@ public class GetXForm {
 							valueElement.setTextContent("jr://" + base + "/" + filename);
 	
 						} else if (type.equals("guidance")) { 
-							valueElement.setTextContent(trans.getValue());
+							valueElement.setTextContent(trans.getValue() == null ? null : sanitise.cleanText(trans.getValue()));
 						} else {
 							// The text could be an xml fragment
 							try {
@@ -449,7 +451,7 @@ public class GetXForm {
 					languageElement.appendChild(textElement);
 					
 					Element valueElement = outputDoc.createElement("value");
-					valueElement.setTextContent(t.getValue());
+					valueElement.setTextContent(t.getValue() == null ? null : sanitise.cleanText(t.getValue()));
 					textElement.appendChild(valueElement);
 				}
 			}
