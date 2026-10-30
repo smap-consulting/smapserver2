@@ -152,11 +152,21 @@ public class RegionManager {
 		boolean sdAutoCommit = sd.getAutoCommit();
 		boolean resultsAutoCommit = cResults.getAutoCommit();
 		try {
-			// Check the size of the grid before creating anything
-			pstmt = cResults.prepareStatement("select count(*) from " + sqlGrid);
-			setGridParams(pstmt, 1, cellSize, extent);
+			/*
+			 * Check the size of the grid before creating anything.  The number of cells is estimated from
+			 * the areas, generating the cells to count them can need more temporary disk than the server has
+			 */
+			pstmt = cResults.prepareStatement("select ST_XMax(e) - ST_XMin(e), ST_YMax(e) - ST_YMin(e) "
+					+ "from (select ST_Transform(ST_MakeEnvelope(?, ?, ?, ?, 4326), 3857) as e) as env");
+			pstmt.setDouble(1, extent[0]);
+			pstmt.setDouble(2, extent[1]);
+			pstmt.setDouble(3, extent[2]);
+			pstmt.setDouble(4, extent[3]);
 			ResultSet rs = pstmt.executeQuery();
-			int count = rs.next() ? rs.getInt(1) : 0;
+			rs.next();
+			double edge = gridCellSize(cellSize, extent);
+			double hexArea = 1.5 * Math.sqrt(3) * edge * edge;
+			long count = Math.round(rs.getDouble(1) * rs.getDouble(2) / hexArea);
 			if(count > MAX_CELLS) {
 				throw new ApplicationException(localisation.getString("rg_many")
 						.replace("%s1", String.valueOf(count))
@@ -202,7 +212,7 @@ public class RegionManager {
 
 			cResults.commit();
 			sd.commit();
-			log.info("Created grid " + tableName + " of " + count + " cells for " + groupIdent);
+			log.info("Created grid " + tableName + " of about " + count + " cells for " + groupIdent);
 			return id;
 
 		} catch (Exception e) {
@@ -274,8 +284,12 @@ public class RegionManager {
 	 * The grid is made in web mercator whose units stretch away from the equator, scale the
 	 * cell size at the centre of the extent so the cells there are the requested size on the ground
 	 */
+	private double gridCellSize(int cellSize, double [] extent) {
+		return cellSize / Math.cos(Math.toRadians((extent[1] + extent[3]) / 2));
+	}
+
 	private void setGridParams(PreparedStatement pstmt, int idx, int cellSize, double [] extent) throws SQLException {
-		pstmt.setDouble(idx++, cellSize / Math.cos(Math.toRadians((extent[1] + extent[3]) / 2)));
+		pstmt.setDouble(idx++, gridCellSize(cellSize, extent));
 		pstmt.setDouble(idx++, extent[0]);
 		pstmt.setDouble(idx++, extent[1]);
 		pstmt.setDouble(idx++, extent[2]);

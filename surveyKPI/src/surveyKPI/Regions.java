@@ -134,6 +134,7 @@ public class Regions extends Application {
 					+ "and not s.hidden "
 					+ "and q.qtype = 'geoshape' "
 					+ "and not q.soft_deleted "
+					+ "and q.published "			// Its column is only in the results table once data has been submitted
 					+ "and s.p_id = up.p_id "
 					+ "and up.u_id = u.id "
 					+ "and u.ident = ? ");
