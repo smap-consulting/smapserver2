@@ -19,7 +19,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.GET;
@@ -27,355 +26,227 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 
-import model.GenRegion;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.RegionManager;
+import org.smap.sdal.model.RegionGrid;
 
 import com.google.gson.Gson;
-import java.sql.*;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/*
+ * The regions a map panel can group a survey's records by: hexagonal grids made for the survey
+ * bundle and the polygons recorded by the survey's geoshape questions
+ */
 @Path("/regions")
 public class Regions extends Application {
-	
-	Authorise a = null;
-	
+
+	Authorise aView = null;		// List the regions
+	Authorise aEdit = null;		// Create and delete grids
+
 	private static Logger log =
 			 Logger.getLogger(Regions.class.getName());
 
+	private class Shape {
+		String question;
+		String form;
+	}
+
+	private class RegionList {
+		ArrayList<RegionGrid> grids;
+		ArrayList<Shape> shapes = new ArrayList<> ();
+	}
+
+	private class NewGrid {
+		int sId;
+		String name;
+		int cellSize;
+		double [] extent;		// minLon, minLat, maxLon, maxLat
+	}
+
 	public Regions() {
-		
-		ArrayList<String> authorisations = new ArrayList<String> ();	
+
+		ArrayList<String> authorisations = new ArrayList<String> ();
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.VIEW_DATA);
 		authorisations.add(Authorise.ADMIN);
-		a = new Authorise(authorisations, null);
-		
+		aView = new Authorise(authorisations, null);
+
+		authorisations = new ArrayList<String> ();
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
+		aEdit = new Authorise(authorisations, null);
 	}
-	
-	// JSON
+
+	/*
+	 * Get the grids and polygon questions available to a survey
+	 */
 	@GET
 	@Produces("application/json")
-	public String getEvents(@Context HttpServletRequest request) { 
-		
-		String connectionString = "surveyKPI-Regions";
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request, request.getRemoteUser());
-		// End Authorisation
-		
-		JSONArray ja = new JSONArray();	
+	public Response getRegions(@Context HttpServletRequest request,
+			@QueryParam("sId") int sId) {
 
-		ResultSet resultSet = null;
+		String connectionString = "surveyKPI-Regions";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aView.isAuthorised(sd, request, request.getRemoteUser());
+		aView.isValidSurvey(sd, request.getRemoteUser(), sId, false, isSuperUser(sd, request));
+
+		Response response = null;
 		PreparedStatement pstmt = null;
 		try {
-		
-			String sql = "SELECT r.region_name, r.table_name FROM regions r, users u " +
-					" WHERE u.ident = ? " +
-					" AND u.o_id = r.o_id " +
-					"ORDER BY region_name;";
-		
-			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, request.getRemoteUser());
-			resultSet = pstmt.executeQuery();
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
+			String groupIdent = RegionManager.getBundleIdent(sd, sId);
 
-			while (resultSet.next()) {								
+			RegionList list = new RegionList();
+			list.grids = new RegionManager(getLocalisation(sd, request)).getGrids(sd, oId, groupIdent);
 
-				JSONObject jp = new JSONObject();
-				jp.put("name", resultSet.getString(1));
-				jp.put("table", resultSet.getString(2));
+			String sql = "select q.qname, f.name from question q, form f "
+					+ "where q.f_id = f.f_id "
+					+ "and f.s_id = ? "
+					+ "and q.qtype = 'geoshape' "
+					+ "and not q.soft_deleted "
+					+ "order by f.f_id, q.seq";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				Shape shape = new Shape();
+				shape.question = rs.getString(1);
+				shape.form = rs.getString(2);
+				list.shapes.add(shape);
+			}
 
-				ja.put(jp);
-			} 
+			response = Response.ok(new Gson().toJson(list)).build();
 
-			
-		} catch (SQLException e) {
-		    log.log(Level.SEVERE,"Error: ", e);
-		} catch (JSONException e) {
-			log.log(Level.SEVERE,"Error: ", e);
-		} catch(Exception e) {
-			log.log(Level.SEVERE,"Error: ", e);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
-			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 
-		return ja.toString();
+		return response;
 	}
-	
+
 	/*
-	 * Create a region
+	 * Create a grid for the survey's bundle over an area of the map
 	 */
 	@POST
-	@Consumes("application/json")
-	public Response createRegion(@Context HttpServletRequest request,
-			@FormParam("settings") String settings) { 
-		
+	@Produces("application/json")
+	public Response createGrid(@Context HttpServletRequest request,
+			@FormParam("grid") String gridString) {
+
 		// Check for Ajax and reject if not
 		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
 			log.info("Error: Non ajax request");
-	        throw new AuthorisationException();   
-		} 
-		
-		Response response = null;
-		
-		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Regions");
-		a.isAuthorised(connectionSD, request, request.getRemoteUser());
-		// End Authorisation
-		
-		// Escape any quotes
-		if(settings != null) {
-			settings = settings.replace("'", "''"); 
-		} 
-				
-		GenRegion region = new Gson().fromJson(settings, GenRegion.class);
-		PreparedStatement pstmt = null;
-
-		Connection connection = null; 
-		try {
-			
-			// Get the organisation id
-			String sql = "SELECT u.o_id " +
-					" FROM users u " +  
-					" WHERE u.ident = ?;";				
-						
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, request.getRemoteUser());
-			log.info("SQL: " + sql + ":" + request.getRemoteUser());
-			ResultSet resultSet = pstmt.executeQuery();
-			
-			int o_id = 0;
-			if(resultSet.next()) {
-				o_id = resultSet.getInt(1);
-			}
-			pstmt.close();
-
-			// Clean the name so that it is suitable as a table name
-			String tableName = "r_" + o_id + "_" + region.name;
-			tableName = tableName.toLowerCase().replace(" ", "");
-			if(!isValidRegionTable(tableName)) {
-				// The name becomes a table name in the sql so only allow letters, digits and underscores
-				return Response.status(Response.Status.BAD_REQUEST)
-						.entity("Region names can only contain letters, numbers, spaces and underscores").build();
-			}
-			
-			connection = ResultsDataSource.getConnection("surveyKPI-Regions");
-			connection.setAutoCommit(false);
-			connectionSD.setAutoCommit(false);
-			
-			// Create the table
-			sql = "CREATE TABLE " + tableName + " (gid serial not null primary key, name text);";
-			log.info(sql);
-			try {
-				pstmt = connection.prepareStatement(sql);
-				pstmt.executeUpdate();
-			} catch (SQLException e) {
-				try { connection.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
-				try { connectionSD.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
-				log.log(Level.SEVERE,"Exception", e);
-				String resp = e.getMessage();		
-				response = Response.ok(resp).build();		// Most likely message is that table already exists.  Return this to the user
-				return response;
-			}
-			
-			
-			// Add the geometry column
-			sql = "SELECT addgeometrycolumn(?,'the_geom', 4326, 'POLYGON', 2)";		// keep this
-			log.info(sql);
-			pstmt = connection.prepareStatement(sql);
-			pstmt.setString(1, tableName);
-			pstmt.executeQuery();
-			
-			int hr = (int) Math.ceil(region.width / 4);	// Half the radius
-			int r = hr *2;
-			int w = hr * 4;	// Adjusted width to keep everyting proportional
-			int cx = region.centre_x;
-			int cy = region.centre_y;
-			int llx = region.lower_left_x;
-			int lly = region.lower_left_y;
-			int urx = region.upper_right_x;
-			int ury = region.upper_right_y;
-			
-			// Starting x position is an even number of cells from the centre that is just outside the bounds
-			int startX = cx - w * ((int) Math.ceil((cx - llx) / w));
-			int startY = cy - w * ((int) Math.ceil((cy - lly) / w));
-			int stopX = cx + w * ((int) Math.ceil((urx - cx) / w));
-			int stopY = cy + w * ((int) Math.ceil((ury - cy) / w));
-			
-			// Generate the grid using the function from http://trac.osgeo.org/postgis/wiki/UsersWikiGenerateHexagonalGrid
-			String polygon = "0 0," + hr + " " +  hr + "," + hr + " " + r + ", 0 " + (hr*3) + "," + (-hr) + " " + r + "," + (-hr) + " " + hr + ",0 0";
-			sql = "INSERT INTO " + tableName + " (the_geom) " +		// keep this
-					" SELECT st_transform(st_translate(the_geom, x_series, y_series), 4326)" +	// keep this
-					" from generate_series(" + (startX - r) + "," + (stopX + r) + "," + r + ") as x_series," +
-					" generate_series(" + (startY - r) + "," + (stopY + r) + "," + w + ") as y_series, " + 
-						" (" +
-						" SELECT ST_GeomFromEWKT('srid=900913;POLYGON((" + polygon + "))') as the_geom" +	// keep this
-						" UNION" +
-						" SELECT st_translate(ST_GeomFromEWKT('srid=900913;POLYGON((" + polygon + "))'), " + hr + ", " + r + ")  as the_geom" +		// keep this
-						" ) as two_hex;";
-			
-			log.info(sql);
-			pstmt = connection.prepareStatement(sql);
-			pstmt.executeUpdate();	
-			
-			sql = "update " + tableName + " set name = gid;";
-			log.info(sql);
-			pstmt = connection.prepareStatement(sql);
-			pstmt.executeUpdate();
-			pstmt.close();
-			
-			/*
-			 * Add the new table to the tables available for aggregation
-			 */
-			sql = "insert into regions (o_id, table_name, region_name) values (?,?,?);";
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setInt(1, o_id);
-			pstmt.setString(2, tableName);
-			pstmt.setString(3, region.name);
-			pstmt.executeUpdate();
-			
-			connection.commit();
-			connectionSD.commit();
-			response = Response.ok().build();
-				
-		} catch (Exception e) {
-			response = Response.serverError().build();
-			log.log(Level.SEVERE,"Error", e);
-			try { connection.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
-			try { connectionSD.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
-		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-			
-			SDDataSource.closeConnection("surveyKPI-Regions", connectionSD);
-			
-			ResultsDataSource.closeConnection("surveyKPI-Regions", connection);
+	        throw new AuthorisationException();
 		}
-		
+
+		NewGrid grid = new Gson().fromJson(gridString, NewGrid.class);
+		if(grid == null) {
+			return Response.status(Response.Status.BAD_REQUEST).build();
+		}
+
+		String connectionString = "surveyKPI-Regions";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aEdit.isAuthorised(sd, request, request.getRemoteUser());
+		aEdit.isValidSurvey(sd, request.getRemoteUser(), grid.sId, false, isSuperUser(sd, request));
+
+		Connection cResults = null;
+		Response response = null;
+		try {
+			cResults = ResultsDataSource.getConnection(connectionString);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
+			String groupIdent = RegionManager.getBundleIdent(sd, grid.sId);
+
+			int id = new RegionManager(getLocalisation(sd, request)).createGrid(sd, cResults, oId, groupIdent,
+					grid.name, grid.cellSize, grid.extent, request.getRemoteUser());
+
+			HashMap<String, Integer> created = new HashMap<> ();
+			created.put("id", id);
+			response = Response.ok(new Gson().toJson(created)).build();
+
+		} catch (ApplicationException e) {
+			response = Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+		}
+
 		return response;
 	}
-	
+
 	/*
-	 * A region table is named r_{organisation id}_{name} and the name is used directly in sql
-	 */
-	private boolean isValidRegionTable(String tableName) {
-		return tableName != null && tableName.length() <= 63 && tableName.matches("r_[0-9]+_[a-z0-9_]+");
-	}
-	
-	/*
-	 * Delete a region
+	 * Delete a grid of the survey's bundle
 	 */
 	@DELETE
-	@Path("/{region}")
-	public Response deleteRegion(@Context HttpServletRequest request,
-			@PathParam("region") String region) { 
-		
-		Response response = null;
-		
-		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Regions");
-		a.isAuthorised(connectionSD, request, request.getRemoteUser());
-		// End Authorisation
-		
-		// Escape any quotes
-		if(region != null) {
-			region = region.replace("'", "''"); 
-		} 
+	@Path("/{id}")
+	public Response deleteGrid(@Context HttpServletRequest request,
+			@PathParam("id") int id,
+			@QueryParam("sId") int sId) {
 
-		Connection connection = null; 
-		PreparedStatement pstmt = null;
+		String connectionString = "surveyKPI-Regions";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aEdit.isAuthorised(sd, request, request.getRemoteUser());
+		aEdit.isValidSurvey(sd, request.getRemoteUser(), sId, false, isSuperUser(sd, request));
+
+		Connection cResults = null;
+		Response response = null;
 		try {
-			
-			connection = ResultsDataSource.getConnection("surveyKPI-Regions");
-			connection.setAutoCommit(false);
-			connectionSD.setAutoCommit(false);
-				
-			// Get the organisation id
-			String sql = "SELECT u.o_id " +
-					" FROM users u " +  
-					" WHERE u.ident = ?;";				
-			
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, request.getRemoteUser());
-			ResultSet resultSet = pstmt.executeQuery();
-			
-			int o_id = 0;
-			if(resultSet.next()) {
-				o_id = resultSet.getInt(1);
+			cResults = ResultsDataSource.getConnection(connectionString);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
+			String groupIdent = RegionManager.getBundleIdent(sd, sId);
+
+			if(new RegionManager(getLocalisation(sd, request)).deleteGrid(sd, cResults, oId, groupIdent, id)) {
+				response = Response.ok().build();
+			} else {
+				response = Response.status(Response.Status.NOT_FOUND).build();
 			}
-			pstmt.close();
-			
-			// Get the table name, only for a region in the user's organisation
-			sql = "SELECT r.table_name " +
-					" FROM regions r " +  
-					" WHERE r.region_name = ? " +
-					" AND r.o_id = ?;";				
-			
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, region);
-			pstmt.setInt(2, o_id);
-			resultSet = pstmt.executeQuery();
-			
-			String tableName = null;
-			if(resultSet.next()) {
-				tableName = resultSet.getString(1);
-			}
-			pstmt.close();
-			
-			if(tableName == null || !isValidRegionTable(tableName)) {
-				return Response.status(Response.Status.NOT_FOUND).build();
-			}
-			
-			// delete the tables entry in the geometry table
-			sql = "delete from regions r " +
-					" WHERE table_name = ? " +
-					" AND o_id = ?;";
-			
-			log.info(sql);
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, tableName);
-			pstmt.setInt(2, o_id);
-			int count = pstmt.executeUpdate();
-				
-			// delete the table
-			sql = "drop table if exists " + tableName + ";";		// Ignore errors if table does nto exist
-			log.info(sql);
-			pstmt = connection.prepareStatement(sql);
-			pstmt.executeUpdate();
-						
-			connection.commit();
-			connectionSD.commit();
-			response = Response.ok().build();
-				
+
 		} catch (Exception e) {
-			response = Response.serverError().build();
-			log.log(Level.SEVERE,"Error", e);
-			try { connection.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
-			try { connectionSD.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+			log.log(Level.SEVERE, "Error", e);
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			
-			SDDataSource.closeConnection("surveyKPI-Regions", connectionSD);
-			ResultsDataSource.closeConnection("surveyKPI-Regions", connection);
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
-		
+
 		return response;
 	}
 
-}
+	private boolean isSuperUser(Connection sd, HttpServletRequest request) {
+		try {
+			return GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+		} catch (Exception e) {
+			return false;
+		}
+	}
 
+	private ResourceBundle getLocalisation(Connection sd, HttpServletRequest request) throws SQLException {
+		Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+		return ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+	}
+}

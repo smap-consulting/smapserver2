@@ -326,9 +326,14 @@ create TABLE regions (
 	o_id INTEGER REFERENCES organisation(id) ON DELETE CASCADE,
 	table_name text,
 	region_name text,
-	geometry_column text
+	geometry_column text,
+	group_survey_ident text,			-- survey bundle a map grid belongs to
+	cell_size integer,				-- metres, the length of a hexagon's edge
+	created_by text,
+	created timestamp with time zone default now()
 	);
 ALTER TABLE regions OWNER TO ws;
+CREATE INDEX regions_group_survey_ident ON regions(group_survey_ident);
 
 DROP SEQUENCE IF EXISTS map_seq CASCADE;
 CREATE SEQUENCE map_seq START 1;

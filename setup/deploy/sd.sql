@@ -997,3 +997,10 @@ update users set password_set = 'epoch' where ident = 'admin' and password = md5
 -- no longer set since they moved to t_id, so it never applied and new installs failed to create it
 delete from task_rejected a using task_rejected b where a.t_id = b.t_id and a.ident = b.ident and a.id > b.id;
 create unique index if not exists task_rejected_task_ident on task_rejected(t_id, ident);
+
+-- Map grids belong to a survey bundle, they are deleted with its last survey
+alter table regions add column if not exists group_survey_ident text;
+alter table regions add column if not exists cell_size integer;
+alter table regions add column if not exists created_by text;
+alter table regions add column if not exists created timestamp with time zone default now();
+create index if not exists regions_group_survey_ident on regions(group_survey_ident);

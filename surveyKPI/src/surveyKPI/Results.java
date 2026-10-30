@@ -43,6 +43,7 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.Tables;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.RegionManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.SqlFrag;
@@ -125,7 +126,9 @@ public class Results extends Application {
 			@QueryParam("qId") int qId,				// Question
 			@QueryParam("qId_is_calc") boolean qId_is_calc,	// Server Side Calculate Question
 			@QueryParam("lang") String lang,		// Language
-			@QueryParam("geoTable") String geoTable,		// Name of external geo-table to get  geometries from
+			@QueryParam("regionId") int regionId,			// Group a map's records by the cells of this grid
+			@QueryParam("regionShape") String regionShape,	// Or by the polygons of this geoshape question
+			@QueryParam("regionLabel") String regionLabel,	// Question that labels those polygons
 			@QueryParam("geomname") boolean geomname,	// If true return the name of the geometry instead of geojson
 			@QueryParam("rId") int rId,				// Restrict results to a single record
 			@QueryParam("startDate") Date startDate,
@@ -142,7 +145,8 @@ public class Results extends Application {
 		boolean hasGroup = false;
 		boolean hasTimeGroup = false;
 		boolean hasGeo = true;
-		boolean externalGeom = false;
+		String regionSource = null;		// Sub query giving the polygons to group by
+		HashMap<String, String> regionLabels = new HashMap<> ();
 		QuestionInfo date = null;
 		QuestionInfo group = null;
 		QuestionInfo fQ = null;
@@ -176,11 +180,6 @@ public class Results extends Application {
 		} else {
 			group_t = "normal";	// Default to no geometry data and no group
 			hasGeo = false;
-		}
-		
-		if(geoTable != null) {
-			geoTable = geoTable.replace("'", "''"); 
-			externalGeom = true;
 		}
 		
 		if(timeGroup != null) {
@@ -242,13 +241,6 @@ public class Results extends Application {
 				tables.add(group.getTableName(), group.getFId(), group.getParentFId());
 			}
 			
-			// Get the geo table data
-			if(geoTable != null) {
-				q.add(new QuestionInfo(geoTable, "the_geom", true, "the_geom"));		// keep this for now
-				q.add(new QuestionInfo(geoTable, "name", true, "name"));
-				tables.add(geoTable, -1, -1);
-			}
-			
 			if(selectedGeomQuestion != null) {
 				// Add geom question
 				try {
@@ -262,6 +254,41 @@ public class Results extends Application {
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
+				}
+			}
+
+			/*
+			 * Regions to group a map's records by, the tables and columns come from the database not the request
+			 */
+			if(regionId > 0 || (regionShape != null && regionShape.length() > 0)) {
+				if(group == null || !GeneralUtilityMethods.isGeometry(group.getType())) {
+					throw new ApplicationException(localisation.getString("rg_shape").replace("%s1", GeneralUtilityMethods.getSafeText(selectedGeomQuestion, true)));
+				}
+				tables.add(group.getTableName(), group.getFId(), group.getParentFId());
+				if(regionId > 0) {
+					String gridTable = new RegionManager(localisation).getGridTable(sd, oId,
+							RegionManager.getBundleIdent(sd, sId), regionId);
+					if(gridTable == null) {
+						throw new ApplicationException(localisation.getString("rg_not_found"));
+					}
+					regionSource = "(select gid::text as region_key, name as region_label, the_geom as region_geom from " + gridTable + ")";
+				} else {
+					QuestionInfo shape = getRegionQuestion(sd, cResults, sId, regionShape, localisation, tz, request.getRemoteUser(), lang, urlprefix, oId);
+					if(shape == null || !"geoshape".equals(shape.getType())) {
+						throw new ApplicationException(localisation.getString("rg_shape").replace("%s1", GeneralUtilityMethods.getSafeText(regionShape, true)));
+					}
+					String shapeTable = shape.getTableName();
+					String labelColumn = shapeTable + ".prikey::text";
+					if(regionLabel != null && regionLabel.length() > 0) {
+						QuestionInfo label = getRegionQuestion(sd, cResults, sId, regionLabel, localisation, tz, request.getRemoteUser(), lang, urlprefix, oId);
+						if(label == null || !shapeTable.equals(label.getTableName())) {
+							throw new ApplicationException(localisation.getString("rg_label").replace("%s1", GeneralUtilityMethods.getSafeText(regionLabel, true)));
+						}
+						labelColumn = "coalesce(" + shapeTable + "." + label.getColumnName() + "::text, " + labelColumn + ")";
+					}
+					regionSource = "(select " + shapeTable + ".prikey::text as region_key, " + labelColumn + " as region_label, "
+							+ shapeTable + "." + shape.getColumnName() + " as region_geom from " + shapeTable
+							+ " where not " + shapeTable + "._bad and " + shapeTable + "." + shape.getColumnName() + " is not null)";
 				}
 			}
 	
@@ -379,8 +406,14 @@ public class Results extends Application {
 			 * Create the sql statement
 			 */	
 			boolean doneWhere = false;
-			String sqlSelect = getSelect(q, externalGeom);
+			String sqlSelect = getSelect(q);
+			if(regionSource != null) {
+				sqlSelect += ", rg.region_key, rg.region_label, ST_AsGeoJSON(rg.region_geom) as region_geom";
+			}
 			String sqlTables = tables.getTablesSQL();
+			if(regionSource != null) {
+				sqlTables += ", " + regionSource + " rg";
+			}
 			String sqlTableJoin = tables.getTableJoinSQL();
 			String sqlGeom = null;
 			String sqlNoBad = tables.getNoBadClause();
@@ -389,8 +422,8 @@ public class Results extends Application {
 			if(date != null) {
 				sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startTime, endTime, date.getColumnName());
 			} 
-			if(externalGeom) {
-				sqlGeom = getGeometryJoin(q);
+			if(regionSource != null) {
+				sqlGeom = "ST_Intersects(" + group.getTableName() + "." + group.getColumnName() + ", rg.region_geom)";
 			}
 	
 			StringBuffer sql = new StringBuffer("select ").append(sqlSelect).append(" from ").append(sqlTables);
@@ -610,8 +643,10 @@ public class Results extends Application {
 						}
 					} else if(GeneralUtilityMethods.isGeometry(group.getType())) {
 						theGeom = resultSet.getString(group.getColumnName());
-						if(externalGeom) {
-							groupValue = resultSet.getString(geoTable + "_name");
+						if(regionSource != null) {
+							theGeom = resultSet.getString("region_geom");
+							groupValue = resultSet.getString("region_key");
+							regionLabels.put(groupValue, resultSet.getString("region_label"));
 						} else {
 							String table = aQ.getTableName();			
 							groupValue = table.substring(table.indexOf('_') + 1) + " " + totalRecordCount;
@@ -676,7 +711,10 @@ public class Results extends Application {
 							 nonPeriodGroupValue = groupValue;
 						}
 						if(group != null) {
-							if(GeneralUtilityMethods.isGeometry(group.getType()) && !externalGeom) {
+							if(regionSource != null) {
+								groupName = "region" + nonPeriodGroupValue;
+								groupLabel = regionLabels.get(nonPeriodGroupValue);
+							} else if(GeneralUtilityMethods.isGeometry(group.getType())) {
 								groupName = "geom" + featureIndex;	// Make up a dummy geometry name
 							} else if(group.getType().startsWith("select")) {
 								groupName = nonPeriodGroupValue;
@@ -959,51 +997,36 @@ public class Results extends Application {
 		}
 	}
 
-	private String getSelect(ArrayList<QuestionInfo> q, boolean externalGeom) {
+	private String getSelect(ArrayList<QuestionInfo> q) {
 		String sqlFrag = "";
 		
 		log.info("getSelect length is:" + q.size());
 		int count = 0;
 		for(int i = 0; i < q.size(); i++) {
 			QuestionInfo aQuestion = q.get(i);
-			if(externalGeom && GeneralUtilityMethods.isGeometry(aQuestion.getType()) )  {
-				// Skip the internal geometry question if geometry is being sourced from an external table
-			} else {
-				if(count++ > 0) {
-					sqlFrag += ",";
-				}
-				sqlFrag += aQuestion.getSelect();
+			if(count++ > 0) {
+				sqlFrag += ",";
 			}
+			sqlFrag += aQuestion.getSelect();
 		}
 		return sqlFrag;
 	}
-	
-
 
 	/*
-	 * Returns the SQL fragment that joins geometry tables
+	 * Get a question of the survey that defines or labels the regions, null if it does not exist
 	 */
-	private String getGeometryJoin(ArrayList<QuestionInfo> q) {
-		String sqlFrag = null;
-		String geomInternalTable = null;
-		String geomInternalColumn = null;
-		String geomExternalTable = null;
-		
-		for(int i = 0; i < q.size(); i++) {
-			QuestionInfo aQuestion = q.get(i);
-			if(GeneralUtilityMethods.isGeometry(aQuestion.getType())) {
-				geomInternalTable = aQuestion.getTableName();
-				geomInternalColumn = aQuestion.getColumnName();
-			} else if(aQuestion.isGeom()) {
-				geomExternalTable = aQuestion.getTableName();
-			}
+	private QuestionInfo getRegionQuestion(Connection sd, Connection cResults, int sId, String name, ResourceBundle localisation,
+			String tz, String user, String lang, String urlprefix, int oId) throws Exception {
+		int id = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, name);
+		if(id <= 0) {
+			return null;
 		}
-		if(geomInternalTable != null && geomExternalTable != null) {
-			sqlFrag = "ST_Within(" + geomInternalTable + "." + geomInternalColumn + ", " + geomExternalTable + ".the_geom)"; 
-		}
-		return sqlFrag;
+		QuestionInfo qi = new QuestionInfo(localisation, tz, sId, id, sd, cResults, user, false, lang, urlprefix, oId);
+		return (qi.getTableName() == null || qi.getColumnName() == null) ? null : qi;
 	}
 	
+
+
 	/*
 	 * Returns the SQL fragment that restricts results to a specific record
 	 */

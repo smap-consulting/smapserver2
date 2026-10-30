@@ -77,7 +77,7 @@ public class ReviewQuestionsOther extends Application {
 	}
 	
 	private static Logger log =
-			 Logger.getLogger(Region.class.getName());
+			 Logger.getLogger(ReviewQuestionsOther.class.getName());
 	
 	/*
 	 * Return a list of select1 and select type questions that have a text question that is 

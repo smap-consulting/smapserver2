@@ -406,12 +406,25 @@ public class ServerManager {
 			    tm.delete(oId, sId, null);		
 
 				// Delete survey definition
+				String groupIdent = RegionManager.getBundleIdent(sd, sId);
 				sql = "delete from survey where s_id = ?;";	
 				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
 				log.fine("Delete survey definition: " + pstmt.toString());
 				pstmt.execute();
+
+				// Delete the bundle's map grids once its last survey has gone
+				if(groupIdent != null) {
+					sql = "select count(*) from survey where coalesce(group_survey_ident, ident) = ?";
+					if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setString(1, groupIdent);
+					ResultSet rsBundle = pstmt.executeQuery();
+					if(rsBundle.next() && rsBundle.getInt(1) == 0) {
+						new RegionManager(localisation).deleteBundleRegions(sd, rel, groupIdent);
+					}
+				}
 
 				// Delete changeset data, this is an audit trail of modifications to the data
 				sql = "delete from changeset where s_id = ?;";	
