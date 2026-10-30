@@ -128,6 +128,7 @@ public class Results extends Application {
 			@QueryParam("lang") String lang,		// Language
 			@QueryParam("regionId") int regionId,			// Group a map's records by the cells of this grid
 			@QueryParam("regionShape") String regionShape,	// Or by the polygons of this geoshape question
+			@QueryParam("regionSurvey") String regionSurvey,	// In this survey of the bundle, default this survey
 			@QueryParam("regionLabel") String regionLabel,	// Question that labels those polygons
 			@QueryParam("geomname") boolean geomname,	// If true return the name of the geometry instead of geojson
 			@QueryParam("rId") int rId,				// Restrict results to a single record
@@ -146,6 +147,7 @@ public class Results extends Application {
 		boolean hasTimeGroup = false;
 		boolean hasGeo = true;
 		String regionSource = null;		// Sub query giving the polygons to group by
+		ArrayList<SqlFrag> regionRbac = null;	// Role row filters on the survey holding the polygons
 		HashMap<String, String> regionLabels = new HashMap<> ();
 		QuestionInfo date = null;
 		QuestionInfo group = null;
@@ -222,6 +224,13 @@ public class Results extends Application {
 			if(fn == null) {
 				throw new Exception("Function must be set &fn=none || percent || average || count || total");
 			}
+
+			// A map without a question that is grouped by regions counts the records in each region
+			boolean countOnly = qId <= 0 && (regionId > 0 || (regionShape != null && regionShape.length() > 0));
+			String recordsKey = localisation.getString("rg_records");
+			if(countOnly) {
+				fn = "count";
+			}
 			
 			// Get date column information
 			if(dateId != 0 && dateId != -1) {
@@ -273,22 +282,68 @@ public class Results extends Application {
 					}
 					regionSource = "(select gid::text as region_key, name as region_label, the_geom as region_geom from " + gridTable + ")";
 				} else {
-					QuestionInfo shape = getRegionQuestion(sd, cResults, sId, regionShape, localisation, tz, request.getRemoteUser(), lang, urlprefix, oId);
+					/*
+					 * The polygons can be in this survey or another survey of its bundle that the user can access
+					 */
+					int shapeSId = sId;
+					if(regionSurvey != null && regionSurvey.length() > 0) {
+						shapeSId = GeneralUtilityMethods.getSurveyId(sd, regionSurvey);
+						String bundle = RegionManager.getBundleIdent(sd, sId);
+						if(shapeSId <= 0 || bundle == null || !bundle.equals(RegionManager.getBundleIdent(sd, shapeSId))) {
+							throw new ApplicationException(localisation.getString("rg_shape").replace("%s1", GeneralUtilityMethods.getSafeText(regionShape, true)));
+						}
+						a.isValidSurvey(sd, request.getRemoteUser(), shapeSId, false, superUser);
+					}
+					QuestionInfo shape = getRegionQuestion(sd, cResults, shapeSId, regionShape, localisation, tz, request.getRemoteUser(), lang, urlprefix, oId);
 					if(shape == null || !"geoshape".equals(shape.getType())) {
 						throw new ApplicationException(localisation.getString("rg_shape").replace("%s1", GeneralUtilityMethods.getSafeText(regionShape, true)));
 					}
 					String shapeTable = shape.getTableName();
 					String labelColumn = shapeTable + ".prikey::text";
 					if(regionLabel != null && regionLabel.length() > 0) {
-						QuestionInfo label = getRegionQuestion(sd, cResults, sId, regionLabel, localisation, tz, request.getRemoteUser(), lang, urlprefix, oId);
+						QuestionInfo label = getRegionQuestion(sd, cResults, shapeSId, regionLabel, localisation, tz, request.getRemoteUser(), lang, urlprefix, oId);
 						if(label == null || !shapeTable.equals(label.getTableName())) {
 							throw new ApplicationException(localisation.getString("rg_label").replace("%s1", GeneralUtilityMethods.getSafeText(regionLabel, true)));
 						}
 						labelColumn = "coalesce(" + shapeTable + "." + label.getColumnName() + "::text, " + labelColumn + ")";
 					}
+
+					// Only the polygons the user's roles let them see
+					Tables shapeTables = new Tables(shapeSId);
+					shapeTables.add(shapeTable, shape.getFId(), shape.getParentFId());
+					StringBuilder shapeFilter = new StringBuilder("");
+					if(!superUser) {
+						regionRbac = new RoleManager(localisation).getSurveyRowFilter(sd,
+								GeneralUtilityMethods.getSurveyIdent(sd, shapeSId), request.getRemoteUser());
+						for(SqlFrag rf : regionRbac) {
+							if(rf.columns.size() > 0) {
+								for(int i = 0; i < rf.columns.size(); i++) {
+									int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, shapeSId, rf.humanNames.get(i));
+									if(rqId > 0) {
+										QuestionInfo fRbac = new QuestionInfo(shapeSId, rqId, sd);
+										shapeTables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
+									} else {
+										Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, shapeSId);
+										shapeTables.add(tlf.tableName, tlf.id, tlf.parentform);
+									}
+								}
+								if(shapeFilter.length() > 0) {
+									shapeFilter.append(" or");
+								}
+								shapeFilter.append(" (").append(rf.sql.toString()).append(")");
+							}
+						}
+					}
+					shapeTables.addIntermediateTables(sd);
+					String shapeJoin = shapeTables.getTableJoinSQL();
+
 					regionSource = "(select " + shapeTable + ".prikey::text as region_key, " + labelColumn + " as region_label, "
-							+ shapeTable + "." + shape.getColumnName() + " as region_geom from " + shapeTable
-							+ " where not " + shapeTable + "._bad and " + shapeTable + "." + shape.getColumnName() + " is not null)";
+							+ shapeTable + "." + shape.getColumnName() + " as region_geom from " + shapeTables.getTablesSQL()
+							+ " where " + shapeTables.getNoBadClause()
+							+ (shapeJoin.trim().length() > 0 ? " and " + shapeJoin : "")
+							+ " and " + shapeTable + "." + shape.getColumnName() + " is not null"
+							+ (shapeFilter.length() > 0 ? " and (" + shapeFilter + ")" : "")
+							+ ")";
 				}
 			}
 	
@@ -302,12 +357,15 @@ public class Results extends Application {
 			 * Add the the main question to the array of questions
 			 */
 			QuestionInfo aQ = null;
-			if(qId_is_calc) {
+			if(countOnly) {
+				// The location question stands in for the question, it gives the records' keys and tables
+				aQ = new QuestionInfo(localisation, tz, sId, groupId, sd, cResults, request.getRemoteUser(), false, lang, urlprefix, oId);
+			} else if(qId_is_calc) {
 				aQ = new QuestionInfo(sId, qId, sd, false, lang, qId_is_calc, urlprefix);
 			} else {
 				aQ = new QuestionInfo(localisation, tz, sId, qId, sd, cResults, request.getRemoteUser(), false, lang, urlprefix, oId);
 			}
-			checkQuestion(aQ, qId, localisation);
+			checkQuestion(aQ, countOnly ? groupId : qId, localisation);
 			q.add(aQ);
 			tables.add(aQ.getTableName(), aQ.getFId(),  aQ.getParentFId());
 			
@@ -463,6 +521,9 @@ public class Results extends Application {
 				
 			pstmt = cResults.prepareStatement(sql.toString());
 			int attribIdx = 1;
+			if(regionSource != null && regionRbac != null) {		// The region sub query is in the from clause, before the other parameters
+				attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, regionRbac, attribIdx, tz);
+			}
 			if(dateId != 0 && dateId != -1) {
 				if(startTime != null) {
 					pstmt.setTimestamp(attribIdx++, startTime);
@@ -500,12 +561,14 @@ public class Results extends Application {
 			if(sFilter != null) {
 				featureCollection.put("filter", sFilter);				
 			}
-			if(qId_is_calc) {
+			if(countOnly) {
+				featureCollection.put("question", recordsKey);
+			} else if(qId_is_calc) {
 				featureCollection.put("question", aQ.getColumnName());
 			} else {
 				featureCollection.put("question", aQ.getLabel());
 			}
-			featureCollection.put("qtype", aQ.getType());
+			featureCollection.put("qtype", countOnly ? "count" : aQ.getType());
 			featureCollection.put("survey", displayName);
 			featureCollection.put("cols", columns);
 			featureCollection.put("types", types);
@@ -752,7 +815,9 @@ public class Results extends Application {
 					prikeys.put(resultSet.getString("prikey"));
 					
 					
-					if(!aQ.isGeom()) {	// Ignore external geometry tables
+					if(countOnly) {
+						values.add(new RecordValues(recordsKey, 1));
+					} else if(!aQ.isGeom()) {	// Ignore external geometry tables
 						
 						if(aQ.getType().startsWith("select")) {
 							

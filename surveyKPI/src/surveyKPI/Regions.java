@@ -69,6 +69,9 @@ public class Regions extends Application {
 	private class Shape {
 		String question;
 		String form;
+		int sId;			// Survey holding the polygons, this survey or another in its bundle
+		String sIdent;
+		String survey;
 	}
 
 	private class RegionList {
@@ -119,19 +122,41 @@ public class Regions extends Application {
 			RegionList list = new RegionList();
 			list.grids = new RegionManager(getLocalisation(sd, request)).getGrids(sd, oId, groupIdent);
 
-			String sql = "select q.qname, f.name from question q, form f "
+			// The geoshape questions of the surveys in the bundle that the user can access, this survey's first
+			// The access check is the one Authorise.isValidSurvey makes, which closes the connection when it fails
+			boolean superUser = isSuperUser(sd, request);
+			StringBuilder sql = new StringBuilder("select q.qname, f.name, s.s_id, s.ident, s.display_name "
+					+ "from question q, form f, survey s, users u, user_project up "
 					+ "where q.f_id = f.f_id "
-					+ "and f.s_id = ? "
+					+ "and f.s_id = s.s_id "
+					+ "and coalesce(s.group_survey_ident, s.ident) = ? "
+					+ "and not s.deleted "
+					+ "and not s.hidden "
 					+ "and q.qtype = 'geoshape' "
 					+ "and not q.soft_deleted "
-					+ "order by f.f_id, q.seq";
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, sId);
+					+ "and s.p_id = up.p_id "
+					+ "and up.u_id = u.id "
+					+ "and u.ident = ? ");
+			if(!superUser) {
+				sql.append(GeneralUtilityMethods.getSurveyRBAC());
+			}
+			sql.append("order by (s.s_id = ?) desc, s.display_name, f.f_id, q.seq");
+			pstmt = sd.prepareStatement(sql.toString());
+			int idx = 1;
+			pstmt.setString(idx++, groupIdent);
+			pstmt.setString(idx++, request.getRemoteUser());
+			if(!superUser) {
+				pstmt.setString(idx++, request.getRemoteUser());
+			}
+			pstmt.setInt(idx++, sId);
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				Shape shape = new Shape();
 				shape.question = rs.getString(1);
 				shape.form = rs.getString(2);
+				shape.sId = rs.getInt(3);
+				shape.sIdent = rs.getString(4);
+				shape.survey = rs.getString(5);
 				list.shapes.add(shape);
 			}
 

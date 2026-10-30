@@ -198,6 +198,15 @@ public class SurveyTemplateManager {
 				
 				merge = true;
 				bundleSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, surveyId);
+				if(bundleSurveyIdent == null) {
+					// A survey loaded from an XForm is not given a bundle, it is a bundle of its own
+					bundleSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, surveyId);
+					try (PreparedStatement pstmtBundle = sd.prepareStatement(
+							"update survey set group_survey_ident = ident where s_id = ? and group_survey_ident is null")) {
+						pstmtBundle.setInt(1, surveyId);
+						pstmtBundle.executeUpdate();
+					}
+				}
 				groupForms = sm.getGroupForms(sd, bundleSurveyIdent);
 				questionNames = sm.getGroupQuestionsMap(sd, bundleSurveyIdent, null, false);	
 				optionNames = sm.getGroupOptions(sd, bundleSurveyIdent);
