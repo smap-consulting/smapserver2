@@ -13,6 +13,7 @@ import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.core.Response;
@@ -546,14 +547,35 @@ public class LookupManager {
 		ColDetails colDetails = null;
 		
 		int linked_sId = 0;
-		if(fileName != null && fileName.startsWith("linked_s")) {
+		if(fileName != null && (fileName.startsWith("linked_s") || fileName.startsWith("chart_s"))) {
+			// Survey data, the question's column is looked up
 			linked_sId = GeneralUtilityMethods.getLinkedSId(sd, sId, fileName);
 			colDetails = getColDetails(sd, gson, localisation, linked_sId, colName);
 		} else {
 			colDetails = new ColDetails();
-			colDetails.colName = colName;
+			colDetails.colName = csvColumnName(colName, localisation);
 		}
 		return colDetails;
+	}
+
+	/*
+	 * The column of a csv table for a column name in a lookup request.  The tables hold uploaded csv files
+	 * and the data replicated from SharePoint lists and DHIS2, and all of them name their columns with
+	 * cleanNameNoRand of the source column name.  The name is written into the SQL so it must come out as a
+	 * plain identifier, letters in any script, digits and underscores, otherwise the request is refused.
+	 * Survey data does not come here, its columns are looked up in the survey definition.
+	 */
+	private static final Pattern CSV_COLUMN = Pattern.compile("^[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*$");
+	private String csvColumnName(String name, ResourceBundle localisation) throws ApplicationException {
+		if(name == null) {
+			return null;
+		}
+		String column = GeneralUtilityMethods.cleanNameNoRand(name);
+		if(column == null || !CSV_COLUMN.matcher(column).matches()) {
+			throw new ApplicationException(localisation.getString("lu_col")
+					.replace("%s1", GeneralUtilityMethods.getSafeText(name, true)));
+		}
+		return column;
 	}
 	
 	private ColDetails getColDetails(Connection sd, Gson gson, ResourceBundle localisation, int sId, String qname) throws Exception {
@@ -656,10 +678,10 @@ public class LookupManager {
 				fDetails = getColDetails(sd, gson, localisation, linked_sId, fColumn);
 			} else {
 				qDetails = new ColDetails();
-				qDetails.colName = qColumn;
+				qDetails.colName = csvColumnName(qColumn, localisation);
 				
 				fDetails = new ColDetails();
-				fDetails.colName = fColumn;
+				fDetails.colName = csvColumnName(fColumn, localisation);
 			}
 			SqlFrag frag = null;
 			if(expression != null) {

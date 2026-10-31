@@ -10549,11 +10549,13 @@ public class GeneralUtilityMethods {
 		} else if (filename.startsWith("linked_s")){
 			int idx = filename.indexOf('_');
 			sIdent = filename.substring(idx + 1);
+		} else if (filename.startsWith("chart_self")) {	// Form: chart_self_keyname
+			sIdent = "self";
 		} else if (filename.startsWith("chart_s")) {  // Form: chart_sxx_yyyy_keyname we want sxx_yyyy
 			int idx1 = filename.indexOf('_');
 			int idx2 = filename.indexOf('_', idx1 + 1);
 			idx2 = filename.indexOf('_', idx2 + 1);
-			sIdent = filename.substring(idx1 + 1, idx2);
+			sIdent = idx2 > 0 ? filename.substring(idx1 + 1, idx2) : filename.substring(idx1 + 1);	// No key name
 		}
 
 		if (sIdent != null && sIdent.equals("self")) {
