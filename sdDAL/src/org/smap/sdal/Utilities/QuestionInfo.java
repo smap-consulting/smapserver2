@@ -34,6 +34,8 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
+import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.SqlFragParam;
 
 public class QuestionInfo {
 	
@@ -540,23 +542,54 @@ public class QuestionInfo {
 	
 	/*
 	 * Return an SQL expression that can be used to filter on this question and the passed in option
+	 * The values are parameters of the returned fragment
 	 */
-	public String getFilterExpression(String value1, String value2) {
-		String filter = "";
+	public SqlFrag getFilterFrag(String value1, String value2) throws ApplicationException {
+		SqlFrag frag = new SqlFrag();
 		if(qType != null) {
+			String col = tableName + "." + columnName;
 			if(qType.equals("select")) {
-				filter = tableName + "." + columnName + " ~* '\\m" + value1 + "\\M' ";
+				frag.add(col + " ~* ?");
+				addTextParam(frag, "\\m" + (value1 == null ? "" : value1.replaceAll("([^A-Za-z0-9_])", "\\\\$1")) + "\\M");
 			} else if(qType.equals("select1") || qType.equals("string") || qType.equals("calculate")) {
-				filter = tableName + "." + columnName + " =  '" + value1 + "' ";
+				frag.add(col + " = ?");
+				addTextParam(frag, value1);
 			} else if(value2 != null && (qType.equals("date") || qType.equals("dateTime"))) {
-				filter = tableName + "." + columnName + " between  '" + value1 + "' and  '" + value2 + "' ";
+				frag.add(col + " between cast(? as timestamp) and cast(? as timestamp)");
+				addTextParam(frag, value1);
+				addTextParam(frag, value2);
+			} else if(qType.equals("int")) {
+				SqlFragParam p = new SqlFragParam("integer");
+				try {
+					p.iValue = Integer.parseInt(value1.trim());
+				} catch (Exception e) {
+					throw new ApplicationException("Invalid filter value for " + qName + ": " + GeneralUtilityMethods.getSafeText(value1, true));
+				}
+				frag.add(col + " = ?");
+				frag.params.add(p);
+			} else if(qType.equals("decimal")) {
+				SqlFragParam p = new SqlFragParam("double");
+				try {
+					p.dValue = Double.parseDouble(value1.trim());
+				} catch (Exception e) {
+					throw new ApplicationException("Invalid filter value for " + qName + ": " + GeneralUtilityMethods.getSafeText(value1, true));
+				}
+				frag.add(col + " = ?");
+				frag.params.add(p);
 			} else {
-				filter = tableName + "." + columnName + " =  " + value1 + " ";
+				frag.add("cast(" + col + " as text) = ?");
+				addTextParam(frag, value1);
 			}
 		}
 		
-		log.fine("Filter: " + filter);
-		return filter;
+		log.fine("Filter: " + frag.sql);
+		return frag;
+	}
+	
+	private void addTextParam(SqlFrag frag, String value) {
+		SqlFragParam p = new SqlFragParam("string");
+		p.sValue = value;
+		frag.params.add(p);
 	}
 	
 	/*
@@ -586,7 +619,7 @@ public class QuestionInfo {
 			if(value2 != null && (qType.equals("date") || qType.equals("dateTime"))) {
 				filter = tableName + "." + columnName + " between  '" + value1 + "' and  '" + value2 + "' ";
 			} else {
-				filter = "${" + qName + "} = '" + value1 + "' ";
+				filter = "${" + qName + "} = '" + (value1 == null ? "" : value1.replace("'", "''")) + "' ";	// Doubled quotes stay in the text
 			}
 		}
 		

@@ -354,7 +354,8 @@ public class AllAssignments extends Application {
 									}
 								}
 
-								filterSql = filterQuestion.getFilterExpression(fValue, fValue2);		
+								filterFrag = filterQuestion.getFilterFrag(fValue, fValue2);
+								filterSql = filterFrag.sql.toString();		
 								// log.info("filter: " + filterSql);
 							}
 							

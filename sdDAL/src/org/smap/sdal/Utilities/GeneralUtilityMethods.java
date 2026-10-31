@@ -7964,7 +7964,7 @@ public class GeneralUtilityMethods {
 		int attribIdx = index;
 		for(int i = 0; i < frag.params.size(); i++) {
 			SqlFragParam p = frag.params.get(i);
-			if(p.getType().equals("text")) {
+			if(p.getType().equals("text") || p.getType().equals("string")) {	// string is text never converted to a date
 				pstmt.setString(attribIdx++, p.sValue);
 			} else if(p.getType().equals("integer")) {
 				pstmt.setInt(attribIdx++,  p.iValue);

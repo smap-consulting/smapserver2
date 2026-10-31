@@ -396,23 +396,20 @@ public class Items extends Application {
 				  *  This may reference columns in a different table
 				  */
 				Filter filter = null;
+				SqlFrag filterFrag = null;
 				if(sFilter != null) {
 					Type type = new TypeToken<Filter>(){}.getType();
 					Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 					filter = gson.fromJson(sFilter, type);
 					
-					if(filter.value != null) {
-						filter.value = filter.value.replace("'", "''");	// Escape apostrophes
-					}
-					
 					QuestionInfo fQ = new QuestionInfo(sId, filter.qId, sd);	
 					tables.add(fQ.getTableName(), fQ.getFId(), fQ.getParentFId());
-					log.info("Filter expression: " + fQ.getFilterExpression(filter.value, null));
+					filterFrag = fQ.getFilterFrag(filter.value, null);
 					
 					if(sqlFilter.length() > 0) {
-						sqlFilter += " and " + fQ.getFilterExpression(filter.value, null);
+						sqlFilter += " and " + filterFrag.sql;
 					} else {
-						sqlFilter = fQ.getFilterExpression(filter.value, null);
+						sqlFilter = filterFrag.sql.toString();
 					}
 				}
 				
@@ -596,6 +593,9 @@ public class Items extends Application {
 					
 					int attribIdx = 1;	
 					
+					if(filterFrag != null) {
+						attribIdx = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, attribIdx, tz);
+					}
 					if(advancedFilterFrag != null) {
 						attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
 					}		
@@ -639,6 +639,9 @@ public class Items extends Application {
 					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, columnSqlFrags, attribIdx, tz);
 				}
 				
+				if(filterFrag != null) {
+					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, attribIdx, tz);
+				}
 				if(advancedFilterFrag != null) {
 					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
 				}
@@ -749,6 +752,9 @@ public class Items extends Application {
 				// Apply the parameters again
 				attribIdx = 1;
 				
+				if(filterFrag != null) {
+					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, attribIdx, tz);
+				}
 				if(advancedFilterFrag != null) {
 					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
 				}

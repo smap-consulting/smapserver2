@@ -373,6 +373,7 @@ public class Results extends Application {
 			
 			 // Get the filter by value
 			Filter filter = null;
+			SqlFrag filterFrag = null;
 			StringBuilder sqlFilter = new StringBuilder("");
 			if(sFilter != null) {
 				Type type = new TypeToken<Filter>(){}.getType();
@@ -383,7 +384,8 @@ public class Results extends Application {
 				checkQuestion(fQ, filter.qId, localisation);
 				q.add(fQ);
 				tables.add(fQ.getTableName(), fQ.getFId(), fQ.getParentFId());
-				sqlFilter.append(" and ").append(fQ.getFilterExpression(filter.value, null));
+				filterFrag = fQ.getFilterFrag(filter.value, null);
+				sqlFilter.append(" and ").append(filterFrag.sql);
 			}
 				
 			/*
@@ -533,6 +535,9 @@ public class Results extends Application {
 				}
 			}
 			
+			if(filterFrag != null) {
+				attribIdx = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, attribIdx, tz);
+			}
 			if(advancedFilterFrag != null) {
 				attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
 			}
