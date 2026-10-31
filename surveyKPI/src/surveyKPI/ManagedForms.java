@@ -40,25 +40,18 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.ServerSettings;
-import org.smap.sdal.legacy.SurveyTemplate;
-import org.smap.sdal.legacy.TableManager;
 import org.smap.sdal.managers.Dhis2ExportManager;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ReferenceManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.EmailManager;
-import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.ActionLink;
-import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.Filter;
 import org.smap.sdal.model.Form;
-import org.smap.sdal.model.ManagedFormItem;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Role;
-import org.smap.sdal.model.SurveyViewDefn;
-import org.smap.sdal.model.TableColumn;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -79,7 +72,6 @@ public class ManagedForms extends Application {
 	
 	Authorise a = null;
 	Authorise aBulk = null;
-	Authorise aSuper = new Authorise(null, Authorise.ANALYST);
 	Authorise aAdmin = new Authorise(null, Authorise.ADMIN);
 	
 	boolean forDevice = false;	// URL prefixes should be in the client format
@@ -99,45 +91,6 @@ public class ManagedForms extends Application {
 		bulkAuthorisations.add(Authorise.ADMIN);
 		bulkAuthorisations.add(Authorise.SECURITY);
 		aBulk = new Authorise(bulkAuthorisations, null);
-	}
-
-	/*
-	 * Return the surveys in the project along with their management information
-	 */
-	@GET
-	@Path("/surveys/{pId}")
-	@Produces("application/json")
-	public Response getSurveys(@Context HttpServletRequest request,
-			@PathParam("pId") int pId) { 
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-GetManagedForms");
-		a.isAuthorised(sd, request, request.getRemoteUser());
-		a.isValidProject(sd, request.getRemoteUser(), pId);
-		// End Authorisation
-		
-		Response response = null;
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-		try {
-			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			String tz = "UTC";
-			
-			SurveyViewManager mf = new SurveyViewManager(localisation, tz);
-			ArrayList<ManagedFormItem> items = mf.getManagedForms(sd, pId);
-			response = Response.ok(gson.toJson(items)).build();
-		
-				
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "SQL Error", e);
-		    response = Response.serverError().entity(e.getMessage()).build();			
-		} finally {
-			SDDataSource.closeConnection("surveyKPI-GetManagedForms", sd);
-		}
-
-		return response;
 	}
 	
 	/*
@@ -782,285 +735,6 @@ public class ManagedForms extends Application {
 
 		return response;
 	}
-
-	/*
-	 * Make a survey managed
-	 * Deprecate
-	 */
-	class AddManaged {
-		int sId;
-		int manageId;
-	}
-	
-	@POST
-	@Produces("text/html")
-	@Consumes("application/json")
-	@Path("/add")
-	public Response setManaged(
-			@Context HttpServletRequest request, 
-			@FormParam("settings") String settings
-			) { 
-		
-		// Check for Ajax and reject if not
-		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
-			log.info("Error: Non ajax request");
-	        throw new AuthorisationException();   
-		} 
-		
-		Response response = null;
-		
-		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-		AddManaged am = gson.fromJson(settings, AddManaged.class);
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-managedForms");
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
-		} catch (Exception e) {
-		}
-		aSuper.isAuthorised(sd, request, request.getRemoteUser());
-		aSuper.isValidSurvey(sd, request.getRemoteUser(), am.sId, false, superUser);
-		// End Authorisation
-
-		String sql = "update survey set managed_id = ? where s_id = ?;";
-		PreparedStatement pstmt = null;
-		
-		Connection cResults = ResultsDataSource.getConnection("surveyKPI-Add Managed Forms");
-		
-		try {
-			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
-
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			String tz = "UTC";
-			
-			Form f = GeneralUtilityMethods.getTopLevelForm(sd, am.sId);	// Get the table name of the top level form
-			TableManager tm = new TableManager(localisation, tz);
-			
-			// 0. Ensure that the form data columns are fully published, don't add managed columns at this stage
-			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, am.sId);
-			SurveyTemplate template = new SurveyTemplate(localisation);
-			template.readDatabase(sd, cResults, sIdent, false);	
-			if(am.manageId > 0) {
-			
-				ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, cResults, am.sId, template,  0);
-				
-				// Apply any updates that have been made to the table structure since the last submission
-				boolean tableChanged = tm.applyTableChanges(sd, cResults, am.sId, tablesCreated);
-				
-				//boolean tableChanged = tm.createTable(cResults, sd, f.tableName, sIdent, am.sId, 0);
-				// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
-				boolean tablePublished = tm.addUnpublishedColumns(sd, cResults, am.sId, f.tableName);			
-				if(tableChanged || tablePublished) {
-					List<org.smap.sdal.legacy.Form> forms = template.getAllForms();	
-					for(org.smap.sdal.legacy.Form form : forms) {
-						tm.markPublished(sd, form.getId(), am.sId);		// only mark published if there have been changes made
-					}
-				}
-			}
-			
-			// 1. Check that the managed form is compatible with the survey
-			if(am.manageId > 0) {
-				String compatibleMsg = compatibleManagedForm(sd, cResults, localisation, am.sId, 
-						am.manageId, request.getRemoteUser(), oId, superUser, tz);
-				if(compatibleMsg != null) {
-					throw new Exception(localisation.getString("mf_nc") + " " + compatibleMsg);
-				}
-			}
-			
-			// 2. Add the management id to the survey record
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, am.manageId);
-			pstmt.setInt(2, am.sId);
-			log.info("Adding managed survey: " + pstmt.toString());
-			pstmt.executeUpdate();
-			
-			// 3. Create results tables if they do not exist
-			if(am.manageId > 0) {
-				
-				tm.writeAllTableStructures(sd, cResults, am.sId, template,  am.manageId);
-				
-				//boolean tableChanged = tm.createTable(cResults, sd, f.tableName, sName, am.sId, am.manageId);
-				// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
-				//boolean tablePublished = tm.addUnpublishedColumns(sd, cResults, am.sId, f.tableName);			
-				//if(tableChanged || tablePublished) {
-				//	tm.markPublished(sd, am.sId);		// only mark published if there have been changes made
-				//}
-			}
-			
-			// 4. Clear the auto update indicators if the managed form is being removed
-			if(am.manageId == 0) {
-				GeneralUtilityMethods.setAutoUpdates(sd, am.sId, am.manageId, null);
-			}
-			
-			response = Response.ok().build();
-				
-		} catch (Exception e) {
-			response = Response.serverError().entity(e.getMessage()).build();
-			log.log(Level.SEVERE,"Error", e);
-		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
-			
-			SDDataSource.closeConnection("surveyKPI-managedForms", sd);	
-			ResultsDataSource.closeConnection("surveyKPI-Add Managed Forms", cResults);
-		}
-		
-		return response;
-	}
-	
-	/*
-	 * Verify that
-	 *  1. Calculations in the managed form refer to questions in either the managed form or the form
-	 *     we are attaching to
-	 *     
-	 *  Also add details on the auto updates to the survey so that they can be readily applied on changes to that
-	 *  survey.
-	 */
-	private String compatibleManagedForm(Connection sd, Connection cResults, ResourceBundle localisation, int sId, 
-			int managedId,
-			String user,
-			int oId,
-			boolean superUser,
-			String tz) {
-		
-		StringBuffer compatibleMsg = new StringBuffer("");
-		ArrayList<AutoUpdate> autoUpdates = new ArrayList<AutoUpdate> ();
-		String language = "none";
-			
-		if(managedId > 0 && sId > 0) {
-				
-			try {	
-				SurveyViewDefn svd = new SurveyViewDefn();
-				SurveyViewManager qm = new SurveyViewManager(localisation, tz);
-				qm.getDataProcessingConfig(sd, managedId, svd, null, oId);
-					
-				org.smap.sdal.model.Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);	// Get the table name of the top level form		
-				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-				ArrayList<TableColumn> formColumns = GeneralUtilityMethods.getColumnsInForm(sd, 
-						cResults,
-						localisation,
-						language,
-						sId,
-						surveyIdent,
-						user,
-						null,	// Roles to apply
-						0,
-						f.id, 
-						f.tableName, 
-						false, 
-						false, 
-						false, 
-						true, 	// include instance id
-						true,	// Include prikey
-						true,	// Include HRK
-						true,	// Include other meta data
-						true,	// Include preloads
-						true,	// Include instancename
-						false,	// Include survey duration
-						true,	// Include case management
-						superUser,
-						false,		// HXL only include with XLS exports
-						false,		// Don't include audit data
-						tz,
-						false,		// mgmt
-						false,		// Accuracy and Altitude
-						true		// Server calculates
-						);
-				
-				for(TableColumn mc : svd.columns) {
-					
-					if(mc.type.equals("calculate")) {
-						
-						for(int i = 0; i < mc.calculation.columns.size(); i++) {
-							String refColumn = mc.calculation.columns.get(i);
-							TableColumn refDetails = new TableColumn();
-							compatibleMsg.append(getCompatabilityMsg(refColumn, svd, formColumns, localisation, refDetails));
-						}		
-					}
-					
-					if(mc.parameters != null && mc.parameters.get("source") != null) {
-						String refColumn = mc.parameters.get("source");
-						TableColumn refDetails = new TableColumn();
-						compatibleMsg.append(getCompatabilityMsg(refColumn, svd, formColumns, localisation, refDetails));
-						
-						if(refDetails.type != null && refDetails.type.equals("image") && mc.parameters.get("auto") != null && mc.parameters.get("auto").equals("yes")) {
-							AutoUpdate au = new AutoUpdate("imagelabel");
-							au.labelColType = "text";
-							au.sourceColName = refColumn;
-							au.targetColName = mc.column_name;
-							au.tableName =f.tableName;
-							autoUpdates.add(au);
-						}
-					}		
-				}
-				
-				if(compatibleMsg.length() > 0) {
-					autoUpdates = null;		// Managed form is not compatible and will be rejected
-				} else if(autoUpdates != null && autoUpdates.isEmpty()) {
-					autoUpdates = null;
-				}
-				GeneralUtilityMethods.setAutoUpdates(sd, sId, managedId, autoUpdates);
-				
-				
-				
-			} catch (Exception e) {
-				log.log(Level.SEVERE, e.getMessage(), e);
-				compatibleMsg.append(e.getMessage());
-			}
-		}
-		
-		if(compatibleMsg.length() == 0) {
-			return null;
-		} else {
-			return compatibleMsg.toString();
-		}
-
-	}
-	
-	/*
-	 * Get a compatability error message if the referenced column is not in the form
-	 */
-	String getCompatabilityMsg(String refColumn, SurveyViewDefn svd, 
-			ArrayList<TableColumn> formColumns, 
-			ResourceBundle localisation,
-			TableColumn refDetails) {
-		String msg = "";
-		
-		boolean referenceExists = false;
-		
-		// Check to see if the referenced column is in the managed form
-		for(TableColumn mc2 : svd.columns) {
-			if(refColumn.equals(mc2.column_name)) {
-				refDetails.type = mc2.type;
-				referenceExists = true;
-				break;
-			}
-		}
-		
-		// Check to see if the referenced column is in the form that is being attached to
-		if(!referenceExists) {
-			for(TableColumn fc2 : formColumns) {
-				if(refColumn.equals(fc2.question_name)) {
-					refDetails.type = fc2.type;
-					referenceExists = true;
-					break;
-				}
-			}
-		}
-		
-		// Report the missing reference
-		if(!referenceExists) {
-			msg = localisation.getString("mf_col") + " " + 
-					refColumn + " " + localisation.getString("mf_cninc") + "\n";
-		}
-		
-		return msg;
-	}
 	
 	/*
 	 * Get link to an action without creating an alert
@@ -1144,67 +818,6 @@ public class ManagedForms extends Application {
 		} finally {
 			
 			SDDataSource.closeConnection("surveyKPI-Get Action Link", sd);
-		}
-		
-		return response;
-	}
-	
-	
-	/*
-	 * Get the configuration settings
-	 */
-	@GET
-	@Produces("application/json")
-	@Path("/getreportconfig/{sId}/{key}")
-	public Response getManageConfig(
-			@Context HttpServletRequest request, 
-			@PathParam("sId") int sId,
-			@PathParam("key") String key
-			) { 
-		
-		Response response = null;
-		
-		String sql = "select settings from general_settings where u_id = ? and s_id = ? and key = ?;";
-		PreparedStatement pstmt = null;
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-managedForms");
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
-		} catch (Exception e) {
-		}
-		a.isAuthorised(sd, request, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
-		// End Authorisation
-		
-		try {
-
-			int uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());	// Get user id
-			
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, uId);
-			pstmt.setInt(2, sId);
-			pstmt.setString(3, key);
-			
-			log.info("Getting settings: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				response = Response.ok(rs.getString(1)).build();
-			} else {
-
-				response = Response.ok().build();
-			}
-				
-		} catch (Exception e) {
-			response = Response.serverError().entity(e.getMessage()).build();
-			log.log(Level.SEVERE,"Error", e);
-		} finally {
-			
-			
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
-	
-			SDDataSource.closeConnection("surveyKPI-managedForms", sd);
 		}
 		
 		return response;

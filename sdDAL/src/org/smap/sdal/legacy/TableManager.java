@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -178,6 +179,15 @@ public class TableManager {
 		return required;
 	}
 	
+	// The database type for each type of management column
+	private static final Map<String, String> MANAGED_COLUMN_TYPES = Map.of(
+			"text", "text",
+			"select_one", "text",
+			"date", "date",
+			"integer", "integer",
+			"decimal", "decimal",
+			"boolean", "boolean");
+	
 	public void addManagementColumns(Connection cResults, Connection sd, int sId, int managedId) throws Exception {
 
 		String sql = "select managed_id from survey where s_id = ?;";
@@ -220,11 +230,10 @@ public class TableManager {
 						continue;		// Calculated types are not stored in the database
 					}
 
-					String type;
-					if(tc.type.equals("select_one")) {
-						type = "text";
-					} else {
-						type = tc.type;
+					String type = MANAGED_COLUMN_TYPES.get(tc.type);
+					if(type == null) {
+						log.info("Management column not added as its type is not supported: " + tc.column_name + " " + tc.type);
+						continue;
 					}
 
 					if(!GeneralUtilityMethods.hasColumn(cResults, f.tableName, tc.column_name)) {

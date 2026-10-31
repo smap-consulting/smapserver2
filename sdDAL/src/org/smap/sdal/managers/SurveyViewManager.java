@@ -20,7 +20,6 @@ import org.smap.sdal.model.ConsoleColumn;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SurveyViewDefn;
-import org.smap.sdal.model.ManagedFormItem;
 import org.smap.sdal.model.MapLayer;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SurveySettingsDefn;
@@ -517,50 +516,6 @@ public void getDataProcessingConfig(Connection sd, int crId,
 		svd.columns.add(tc);
 	}
 
-}
-
-
-/*
- * Get a list of the surveys in a project and their management status
- */
-public ArrayList<ManagedFormItem> getManagedForms(Connection sd, int pId) throws SQLException {
-
-	ArrayList<ManagedFormItem> items = new ArrayList<ManagedFormItem> ();
-
-	String sql = "select s.s_id, s.managed_id, s.display_name, cr.name "
-			+ "from survey s "
-			+ "left outer join custom_report cr "
-			+ "on s.managed_id = cr.id "
-			+ "where s.p_id = ? "
-			+ "and s.deleted = false "
-			+ "order by s.display_name";
-
-	PreparedStatement pstmt = null;
-
-	try {
-
-		pstmt = sd.prepareStatement(sql);
-
-		pstmt.setInt(1, pId);
-
-		log.fine(pstmt.toString());
-		ResultSet rs = pstmt.executeQuery();
-
-		while(rs.next()) {
-			ManagedFormItem item = new ManagedFormItem();
-			item.sId = rs.getInt(1);
-			item.managedId = rs.getInt(2);
-			item.surveyName = rs.getString(3);
-			item.oversightName = rs.getString(4);
-			item.managed = (item.managedId > 0);
-			items.add(item);
-		}
-
-	} finally {
-		try {pstmt.close();} catch(Exception e) {};
-	}
-
-	return items;
 }
 
 /*
