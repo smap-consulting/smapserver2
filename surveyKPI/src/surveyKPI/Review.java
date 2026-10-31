@@ -36,6 +36,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
@@ -50,6 +51,7 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -806,10 +808,21 @@ public class Review extends Application {
 			Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 			for(int i = 0; i < u.reviewItems.size(); i++) {
 				ReviewItem ri = u.reviewItems.get(i);
+				
+				// Names come from the survey definition, never from the request
+				ri.table = null;
+				ri.qname = null;
+				ri.qtype = null;
+				ri.questionColumnName = null;
+				ri.optionColumnName = null;
+				
 				if(ri.q_id < 0) {
 					// Preload / meta
 					ri.table = topForm.tableName;
 					MetaItem item = GeneralUtilityMethods.getPreloadDetails(sd, sId, ri.q_id);
+					if(item == null) {
+						throw new ApplicationException("Table not found for question: " + ri.q_id);
+					}
 					ri.qtype = item.type;
 					ri.questionColumnName  = item.columnName;
 					
@@ -828,10 +841,15 @@ public class Review extends Application {
 					}
 				} else if(ri.f_id > 0) {
 					Form f = GeneralUtilityMethods.getForm(sd, sId, ri.f_id);
+					if(f.tableName == null) {
+						throw new ApplicationException("Form not found: " + ri.f_id);
+					}
 					ri.table = f.tableName;
 					ri.qname = "prikey";
 					ri.qtype = "int";
 					ri.questionColumnName = "prikey";
+				} else {
+					throw new ApplicationException("No question or form to update");
 				}
 				
 				if(ri.qtype.equals("select")) {
@@ -844,8 +862,9 @@ public class Review extends Application {
 					
 					if(resultSet.next()) {
 						ri.optionColumnName = resultSet.getString(1);
+					} else {
+						throw new ApplicationException("Option not found: " + GeneralUtilityMethods.getSafeText(ri.newValue, true));
 					}
-					
 				}
 
 			}
@@ -1115,6 +1134,8 @@ public class Review extends Application {
 		dConnection.setAutoCommit(false);
 		autoCommit = false;
 		
+		HashSet<String> checkedColumns = new HashSet<> ();	// Each table and column only needs checking once
+		
 		/*
 		 * Get the current value and primary key of each record that is to change
 		 */
@@ -1122,6 +1143,15 @@ public class Review extends Application {
 			String sqlData;
 			
 			UpdateItem ui = updateItems.get(i);
+			
+			// Names may come from the change history so check them again
+			String column = ui.qtype.equals("select") ? ui.questionColumnName + "__" + ui.optionColumnName : ui.questionColumnName;
+			if(!checkedColumns.contains(ui.table + "." + column)) {
+				if(!SurveyManager.isValidTableName(ui.table) || !GeneralUtilityMethods.hasColumn(dConnection, ui.table, column)) {
+					throw new ApplicationException("Column not found: " + GeneralUtilityMethods.getSafeText(String.valueOf(column), true));
+				}
+				checkedColumns.add(ui.table + "." + column);
+			}
 			
 			/*
 			 * Update data
