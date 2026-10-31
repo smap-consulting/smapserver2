@@ -490,6 +490,7 @@ public class XLSTemplateUploadManager {
 							String name = roleA[1];
 							Role r = survey.surveyData.roles.get(name);
 							if(r != null) {
+								RoleManager.checkNotJson(filter, localisation);
 								SqlFrag sq = new SqlFrag();
 								sq.addSqlFragment(filter, false, localisation, 0);
 								settingsQuestionInSurvey(sq.humanNames, h);		// validate question names

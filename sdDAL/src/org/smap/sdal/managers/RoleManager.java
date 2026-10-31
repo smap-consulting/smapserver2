@@ -580,6 +580,16 @@ public class RoleManager {
 	}
 	
 	/*
+	 * Row filters are stored as the expression the user wrote
+	 * The old json format held sql that would be used as is, so it is refused rather than trusted
+	 */
+	public static void checkNotJson(String rowFilter, ResourceBundle localisation) throws ApplicationException {
+		if(rowFilter != null && rowFilter.trim().startsWith("{")) {
+			throw new ApplicationException(localisation.getString("r_json"));
+		}
+	}
+	
+	/*
 	 * Update the row filter in a survey link
 	 */
 	public void updateSurveyRoleRowFilter(Connection sd, String sIdent, 
@@ -587,6 +597,7 @@ public class RoleManager {
 		
 		PreparedStatement pstmt = null;
 		
+		checkNotJson(role.row_filter, localisation);
 		SqlFrag sq = new SqlFrag();
 		sq.addSqlFragment(role.row_filter, false, localisation, 0);
 		
@@ -734,13 +745,9 @@ public class RoleManager {
 				String sqlFragString = resultSet.getString("row_filter");
 				String group = resultSet.getString("role_group");
 				if(sqlFragString != null && sqlFragString.trim().length() > 0) {
-					SqlFrag sf = null;
-					if(sqlFragString.trim().startsWith("{")) {
-						sf = gson.fromJson(sqlFragString, SqlFrag.class);
-					} else {
-						sf = new SqlFrag();			// New only the string is stored
-						sf.addSqlFragment(sqlFragString, false, localisation, 0);			
-					}
+					checkNotJson(sqlFragString, localisation);
+					SqlFrag sf = new SqlFrag();
+					sf.addSqlFragment(sqlFragString, false, localisation, 0);
 					sf.group = group;	
 					rfArray.add(sf);
 				}		
@@ -786,13 +793,10 @@ public class RoleManager {
 				while(resultSet.next()) {		
 					String sqlFragString = resultSet.getString("row_filter");
 					if(sqlFragString != null) {
-						if(sqlFragString.trim().startsWith("{")) {
-							rfArray.add(gson.fromJson(sqlFragString, SqlFrag.class));		// legacy json
-						} else {
-							SqlFrag sf = new SqlFrag();									// New only the string is stored
-							sf.addSqlFragment(sqlFragString, false, localisation, 0);
-							rfArray.add(sf);
-						}
+						checkNotJson(sqlFragString, localisation);
+						SqlFrag sf = new SqlFrag();
+						sf.addSqlFragment(sqlFragString, false, localisation, 0);
+						rfArray.add(sf);
 					}		
 				}
 			} finally {

@@ -343,6 +343,11 @@ public class SqlFrag {
 					}
 				}
 			}
+			if(out.length() == 0) {
+				String msg = localisation.getString("inv_token");
+				msg = msg.replace("%s1", origToken);
+				throw new ApplicationException(getErrorMsg(localisation, msg, rowNum));
+			}
 		} else if (token.length() > 0) {
 			// Non text parameter, accept decimal or integer
 			try {
