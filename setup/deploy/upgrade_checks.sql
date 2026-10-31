@@ -95,3 +95,14 @@ select source, id, token, expression
 from tokens
 where token !~* '^\{([0-9]+|[0-9]+_(day|days|hour|hours|minute|minutes|second|seconds)|[0-9]+:[0-9]+:[0-9]+)\}$'
 order by source, id;
+
+\echo
+\echo '7. Case management status and criticality questions that are not plain names'
+\echo '   These settings will not save until the question is chosen again.  A status question that is not a column of the table is no longer used to hide closed cases'
+select cs.id, cs.group_survey_ident, cs.settings::jsonb->>'statusQuestion' as status_question,
+       cs.settings::jsonb->>'criticalityQuestion' as criticality_question
+from cms_setting cs
+where cs.settings is not null
+  and (coalesce(nullif(cs.settings::jsonb->>'statusQuestion', ''), 'x') !~ '^[A-Za-z_][A-Za-z0-9_\-\.]*$'
+    or coalesce(nullif(cs.settings::jsonb->>'criticalityQuestion', ''), 'x') !~ '^[A-Za-z_][A-Za-z0-9_\-\.]*$')
+order by 2;

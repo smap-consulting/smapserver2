@@ -206,7 +206,8 @@ public class TableDataManager {
 			 * The default value of include_completed is "no"
 			 */
 			boolean completedFilter = false;
-			if((include_completed == null || include_completed.equals("no")) && cms != null && cms.settings != null && cms.settings.statusQuestion != null) {
+			if((include_completed == null || include_completed.equals("no")) && cms != null && cms.settings != null && cms.settings.statusQuestion != null
+					&& GeneralUtilityMethods.hasColumn(cResults, table_name, cms.settings.statusQuestion)) {
 				completedFilter = true;
 				sqlGetData.append(" and (").append(cms.settings.statusQuestion)
 					.append(" is null or cast( ")

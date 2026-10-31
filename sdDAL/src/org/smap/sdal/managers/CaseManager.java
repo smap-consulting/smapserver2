@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.Case;
@@ -207,6 +208,13 @@ public class CaseManager {
 			String user,
 			String group_survey_ident,
 			CaseManagementSettings settings) throws Exception {
+		
+		// The status and criticality questions are column names
+		for(String name : new String[] {settings.statusQuestion, settings.criticalityQuestion}) {
+			if(name != null && name.trim().length() > 0 && !GeneralUtilityMethods.isValidQuestionName(name)) {
+				throw new ApplicationException(localisation.getString("cm_inv_q").replace("%s1", GeneralUtilityMethods.getSafeText(name, true)));
+			}
+		}
 		
 		String sql = "update cms_setting "
 				+ "set settings = ?, "
