@@ -106,3 +106,13 @@ where cs.settings is not null
   and (coalesce(nullif(cs.settings::jsonb->>'statusQuestion', ''), 'x') !~ '^[A-Za-z_][A-Za-z0-9_\-\.]*$'
     or coalesce(nullif(cs.settings::jsonb->>'criticalityQuestion', ''), 'x') !~ '^[A-Za-z_][A-Za-z0-9_\-\.]*$')
 order by 2;
+
+\echo
+\echo '8. Question column names that are not plain names'
+\echo '   Column names are set by the server when a question is created and can no longer be changed as a question property.  Any listed here were changed directly'
+select s.s_id, s.display_name as survey, f.name as form, q.qname, q.column_name
+from question q
+join form f on f.f_id = q.f_id
+join survey s on s.s_id = f.s_id
+where q.column_name ~ '[^[:alnum:]_]' or q.column_name ~ '^[0-9]'
+order by 1, 4;

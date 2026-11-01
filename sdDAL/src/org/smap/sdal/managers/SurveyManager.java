@@ -33,6 +33,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -1992,6 +1993,13 @@ public class SurveyManager {
 	}
 	
 	/*
+	 * Question columns that are set by the server and are not changed as a property
+	 * The name, type and list are changed using "name", "type" and "list_name"
+	 */
+	private static final Set<String> FIXED_QUESTION_COLUMNS = Set.of("q_id", "f_id", "l_id", "seq", "qname", "qtype",
+			"column_name", "column_name_applied", "path", "published", "soft_deleted", "datatype");
+	
+	/*
 	 * Apply question property changes
 	 * This can be any simple property type such as relevance
 	 */
@@ -2049,6 +2057,11 @@ public class SurveyManager {
 
 			for(ChangeItem ci : changeItemList) {
 
+				if(ci.property.prop == null || FIXED_QUESTION_COLUMNS.contains(ci.property.prop.toLowerCase())) {
+					throw new ApplicationException(localisation.getString("sv_fixed_prop")
+							.replace("%s1", GeneralUtilityMethods.getSafeText(String.valueOf(ci.property.prop), true)));
+				}
+				
 				/*
 				 * If the question type is a begin repeat and the property is "calculate" then 
 				 *  the repeat count attribute of the sub form needs to be updated
