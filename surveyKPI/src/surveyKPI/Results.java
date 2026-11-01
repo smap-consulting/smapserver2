@@ -278,9 +278,11 @@ public class Results extends Application {
 					String gridTable = new RegionManager(localisation).getGridTable(sd, oId,
 							RegionManager.getBundleIdent(sd, sId), regionId);
 					if(gridTable == null) {
-						throw new ApplicationException(localisation.getString("rg_not_found"));
+						// Deleted from another panel, show the records ungrouped rather than fail
+						log.info("Map grid " + regionId + " not found for survey " + sId + ", records not grouped");
+					} else {
+						regionSource = "(select gid::text as region_key, name as region_label, the_geom as region_geom from " + gridTable + ")";
 					}
-					regionSource = "(select gid::text as region_key, name as region_label, the_geom as region_geom from " + gridTable + ")";
 				} else {
 					/*
 					 * The polygons can be in this survey or another survey of its bundle that the user can access
