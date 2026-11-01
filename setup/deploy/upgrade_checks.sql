@@ -147,3 +147,35 @@ from form f
 left join survey s on s.s_id = f.s_id
 where f.table_name ~ '[\x01-\x2f\x3a-\x40\x5b-\x5e\x60\x7b-\x7f]'
 order by 1;
+
+\echo
+\echo '12. Email templates with markup that will be removed when the email is sent'
+\echo '   Email content is now sanitised: style blocks, center, buttons, forms, scripts, embedded content, data: and javascript: links,'
+\echo '   event handlers, bgcolor / background attributes and classes other than on span and div are removed.  Use inline styles'
+\echo '   and a styled link instead of a button.  The email is still sent, only its formatting changes'
+with tmpl(source, id, name, content) as (
+	select 'notification', f.id::text, f.name, f.notify_details::jsonb->>'content'
+		from forward f where f.target = 'email' and f.notify_details like '{%'
+	union all
+	select 'task group email', tg.tg_id::text, tg.name, tg.email_details::jsonb->>'content'
+		from task_group tg where tg.email_details like '{%'
+	union all
+	select 'mailout', m.id::text, m.name, m.content from mailout m
+	union all
+	select 'organisation default email', o.id::text, o.name, o.default_email_content from organisation o
+)
+select source, id, name,
+	concat_ws(', ',
+		case when content ~* '<\s*/?\s*(style|center|button|script|iframe|form|input|select|textarea|link|meta|object|embed|svg|html|head|body|title|base)\M' then 'removed elements' end,
+		case when content ~* '(src|href)\s*=\s*["'']?\s*(data|javascript):' then 'data: or javascript: link' end,
+		case when content ~* '\son[a-z]+\s*=' then 'event handler' end,
+		case when content ~* '\s(bgcolor|background)\s*=' then 'bgcolor or background attribute' end,
+		case when content ~* '<(?!span\M|div\M)[a-z][a-z0-9]*\M[^>]*\sclass\s*=' then 'class not on span or div' end
+	) as reason
+from tmpl
+where content ~* '<\s*/?\s*(style|center|button|script|iframe|form|input|select|textarea|link|meta|object|embed|svg|html|head|body|title|base)\M'
+   or content ~* '(src|href)\s*=\s*["'']?\s*(data|javascript):'
+   or content ~* '\son[a-z]+\s*='
+   or content ~* '\s(bgcolor|background)\s*='
+   or content ~* '<(?!span\M|div\M)[a-z][a-z0-9]*\M[^>]*\sclass\s*='
+order by 1, 2;
