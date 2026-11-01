@@ -2257,12 +2257,21 @@ public class GeneralUtilityMethods {
 	 * Get the survey id from the ident
 	 */
 	static public int getSurveyId(Connection sd, String sIdent) throws SQLException {
+		return getSurveyId(sd, sIdent, false);
+	}
+
+	/*
+	 * excludeDeleted: 0 if the survey with the ident has been deleted.  A replaced survey is still found,
+	 * its replacement has the ident
+	 */
+	static public int getSurveyId(Connection sd, String sIdent, boolean excludeDeleted) throws SQLException {
 
 		int sId = 0;
 
 		String sql = "select s_id " 
 				+ "from survey " 
-				+ "where ident = ?";
+				+ "where ident = ?"
+				+ (excludeDeleted ? " and not deleted" : "");
 		PreparedStatement pstmt = null;
 
 		try {
@@ -5271,11 +5280,20 @@ public class GeneralUtilityMethods {
 	 * Convert a question name to a question id
 	 */
 	public static int getQuestionIdFromName(Connection sd, int sId, String name) throws SQLException {
+		return getQuestionIdFromName(sd, sId, name, false);
+	}
+
+	/*
+	 * Convert a question name to a question id
+	 * excludeDeleted: a question that has been deleted, and whose column is kept, is not found
+	 */
+	public static int getQuestionIdFromName(Connection sd, int sId, String name, boolean excludeDeleted) throws SQLException {
 
 		String sql = "select q_id " 
 				+ "from question q " 
 				+ "where q.qname = ? "
-				+ "and q.f_id in (select f_id from form where s_id = ?)";
+				+ "and q.f_id in (select f_id from form where s_id = ?)"
+				+ (excludeDeleted ? " and not q.soft_deleted" : "");
 
 		int qId = -1;
 		PreparedStatement pstmt = null;

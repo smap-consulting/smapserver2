@@ -288,64 +288,76 @@ public class Results extends Application {
 					 * The polygons can be in this survey or another survey of its bundle that the user can access
 					 */
 					int shapeSId = sId;
+					boolean shapeFound = true;
 					if(regionSurvey != null && regionSurvey.length() > 0) {
-						shapeSId = GeneralUtilityMethods.getSurveyId(sd, regionSurvey);
-						String bundle = RegionManager.getBundleIdent(sd, sId);
-						if(shapeSId <= 0 || bundle == null || !bundle.equals(RegionManager.getBundleIdent(sd, shapeSId))) {
-							throw new ApplicationException(localisation.getString("rg_shape").replace("%s1", GeneralUtilityMethods.getSafeText(regionShape, true)));
+						shapeSId = GeneralUtilityMethods.getSurveyId(sd, regionSurvey, true);
+						if(shapeSId <= 0) {
+							shapeFound = false;		// The survey holding the polygons has been deleted
+						} else {
+							String bundle = RegionManager.getBundleIdent(sd, sId);
+							if(bundle == null || !bundle.equals(RegionManager.getBundleIdent(sd, shapeSId))) {
+								throw new ApplicationException(localisation.getString("rg_shape").replace("%s1", GeneralUtilityMethods.getSafeText(regionShape, true)));
+							}
+							a.isValidSurvey(sd, request.getRemoteUser(), shapeSId, false, superUser);
 						}
-						a.isValidSurvey(sd, request.getRemoteUser(), shapeSId, false, superUser);
 					}
-					QuestionInfo shape = getRegionQuestion(sd, cResults, shapeSId, regionShape, localisation, tz, request.getRemoteUser(), lang, urlprefix, oId);
-					if(shape == null || !"geoshape".equals(shape.getType())) {
+					QuestionInfo shape = shapeFound ? getRegionQuestion(sd, cResults, shapeSId, regionShape, localisation, tz, request.getRemoteUser(), lang, urlprefix, oId) : null;
+					if(shape != null && !"geoshape".equals(shape.getType())) {
 						throw new ApplicationException(localisation.getString("rg_shape").replace("%s1", GeneralUtilityMethods.getSafeText(regionShape, true)));
 					}
-					String shapeTable = shape.getTableName();
-					String labelColumn = shapeTable + ".prikey::text";
-					if(regionLabel != null && regionLabel.length() > 0) {
-						QuestionInfo label = getRegionQuestion(sd, cResults, shapeSId, regionLabel, localisation, tz, request.getRemoteUser(), lang, urlprefix, oId);
-						if(label == null || !shapeTable.equals(label.getTableName())) {
-							throw new ApplicationException(localisation.getString("rg_label").replace("%s1", GeneralUtilityMethods.getSafeText(regionLabel, true)));
-						}
-						labelColumn = "coalesce(" + shapeTable + "." + label.getColumnName() + "::text, " + labelColumn + ")";
-					}
-
-					// Only the polygons the user's roles let them see
-					Tables shapeTables = new Tables(shapeSId);
-					shapeTables.add(shapeTable, shape.getFId(), shape.getParentFId());
-					StringBuilder shapeFilter = new StringBuilder("");
-					if(!superUser) {
-						regionRbac = new RoleManager(localisation).getSurveyRowFilter(sd,
-								GeneralUtilityMethods.getSurveyIdent(sd, shapeSId), request.getRemoteUser());
-						for(SqlFrag rf : regionRbac) {
-							if(rf.columns.size() > 0) {
-								for(int i = 0; i < rf.columns.size(); i++) {
-									int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, shapeSId, rf.humanNames.get(i));
-									if(rqId > 0) {
-										QuestionInfo fRbac = new QuestionInfo(shapeSId, rqId, sd);
-										shapeTables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
-									} else {
-										Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, shapeSId);
-										shapeTables.add(tlf.tableName, tlf.id, tlf.parentform);
-									}
-								}
-								if(shapeFilter.length() > 0) {
-									shapeFilter.append(" or");
-								}
-								shapeFilter.append(" (").append(rf.sql.toString()).append(")");
+					if(shape == null) {
+						// Deleted since the panel was set up, show the records ungrouped rather than fail
+						log.info("Map polygons " + regionSurvey + " " + regionShape + " not found for survey " + sId + ", records not grouped");
+					} else {
+						String shapeTable = shape.getTableName();
+						String labelColumn = shapeTable + ".prikey::text";
+						if(regionLabel != null && regionLabel.length() > 0) {
+							QuestionInfo label = getRegionQuestion(sd, cResults, shapeSId, regionLabel, localisation, tz, request.getRemoteUser(), lang, urlprefix, oId);
+							if(label != null && !shapeTable.equals(label.getTableName())) {
+								throw new ApplicationException(localisation.getString("rg_label").replace("%s1", GeneralUtilityMethods.getSafeText(regionLabel, true)));
+							}
+							if(label != null) {		// A deleted label question leaves the polygons labelled by their keys
+								labelColumn = "coalesce(" + shapeTable + "." + label.getColumnName() + "::text, " + labelColumn + ")";
 							}
 						}
-					}
-					shapeTables.addIntermediateTables(sd);
-					String shapeJoin = shapeTables.getTableJoinSQL();
 
-					regionSource = "(select " + shapeTable + ".prikey::text as region_key, " + labelColumn + " as region_label, "
-							+ shapeTable + "." + shape.getColumnName() + " as region_geom from " + shapeTables.getTablesSQL()
-							+ " where " + shapeTables.getNoBadClause()
-							+ (shapeJoin.trim().length() > 0 ? " and " + shapeJoin : "")
-							+ " and " + shapeTable + "." + shape.getColumnName() + " is not null"
-							+ (shapeFilter.length() > 0 ? " and (" + shapeFilter + ")" : "")
-							+ ")";
+						// Only the polygons the user's roles let them see
+						Tables shapeTables = new Tables(shapeSId);
+						shapeTables.add(shapeTable, shape.getFId(), shape.getParentFId());
+						StringBuilder shapeFilter = new StringBuilder("");
+						if(!superUser) {
+							regionRbac = new RoleManager(localisation).getSurveyRowFilter(sd,
+									GeneralUtilityMethods.getSurveyIdent(sd, shapeSId), request.getRemoteUser());
+							for(SqlFrag rf : regionRbac) {
+								if(rf.columns.size() > 0) {
+									for(int i = 0; i < rf.columns.size(); i++) {
+										int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, shapeSId, rf.humanNames.get(i));
+										if(rqId > 0) {
+											QuestionInfo fRbac = new QuestionInfo(shapeSId, rqId, sd);
+											shapeTables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
+										} else {
+											Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, shapeSId);
+											shapeTables.add(tlf.tableName, tlf.id, tlf.parentform);
+										}
+									}
+									if(shapeFilter.length() > 0) {
+										shapeFilter.append(" or");
+									}
+									shapeFilter.append(" (").append(rf.sql.toString()).append(")");
+								}
+							}
+						}
+						shapeTables.addIntermediateTables(sd);
+						String shapeJoin = shapeTables.getTableJoinSQL();
+
+						regionSource = "(select " + shapeTable + ".prikey::text as region_key, " + labelColumn + " as region_label, "
+								+ shapeTable + "." + shape.getColumnName() + " as region_geom from " + shapeTables.getTablesSQL()
+								+ " where " + shapeTables.getNoBadClause()
+								+ (shapeJoin.trim().length() > 0 ? " and " + shapeJoin : "")
+								+ " and " + shapeTable + "." + shape.getColumnName() + " is not null"
+								+ (shapeFilter.length() > 0 ? " and (" + shapeFilter + ")" : "")
+								+ ")";
+					}
 				}
 			}
 	
@@ -1081,9 +1093,9 @@ public class Results extends Application {
 	 */
 	private QuestionInfo getRegionQuestion(Connection sd, Connection cResults, int sId, String name, ResourceBundle localisation,
 			String tz, String user, String lang, String urlprefix, int oId) throws Exception {
-		int id = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, name);
+		int id = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, name, true);
 		if(id <= 0) {
-			return null;
+			return null;		// Not in the survey, or deleted
 		}
 		QuestionInfo qi = new QuestionInfo(localisation, tz, sId, id, sd, cResults, user, false, lang, urlprefix, oId);
 		return (qi.getTableName() == null || qi.getColumnName() == null) ? null : qi;
