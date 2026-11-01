@@ -114,7 +114,7 @@ select s.s_id, s.display_name as survey, f.name as form, q.qname, q.column_name
 from question q
 join form f on f.f_id = q.f_id
 join survey s on s.s_id = f.s_id
-where q.column_name ~ '[^[:alnum:]_]' or q.column_name ~ '^[0-9]'
+where q.column_name ~ '[\x01-\x2f\x3a-\x40\x5b-\x5e\x60\x7b-\x7f]' or q.column_name ~ '^[0-9]'
 order by 1, 4;
 
 \echo
@@ -126,3 +126,15 @@ left join survey s on s.s_id = ct.s_id
 where ct.survey and ct.chart_key is not null
   and not coalesce((ct.sqldef::jsonb -> 'colNames') ? ct.chart_key, false)
 order by 2;
+
+\echo
+\echo '10. Choice and csv file column names with characters other than letters, digits and _'
+\echo '   New names replace these characters with x.  Existing columns keep their names, a csv file listed here should be uploaded again'
+select 'choice' as source, l.s_id::text as id, l.name as list, o.ovalue as name, o.column_name
+from option o join listname l on l.l_id = o.l_id
+where o.column_name ~ '[\x01-\x2f\x3a-\x40\x5b-\x5e\x60\x7b-\x7f]'
+union all
+select 'csv file', ct.id::text, ct.filename, h->>'fName', h->>'tName'
+from csvtable ct, jsonb_array_elements(case when ct.headers is not null and ct.headers like '[%' then ct.headers::jsonb else '[]'::jsonb end) h
+where h->>'tName' ~ '[\x01-\x2f\x3a-\x40\x5b-\x5e\x60\x7b-\x7f]'
+order by 1, 2;

@@ -175,6 +175,16 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * Remove white space and replace any other ascii character that is not a letter, digit or underscore with x
+	 * Characters outside ascii are valid in a postgres name and are kept
+	 */
+	private static final Pattern columnNameAsciiChars = Pattern.compile("[\\x00-\\x2f\\x3a-\\x40\\x5b-\\x5e\\x60\\x7b-\\x7f]");
+	static private String replaceColumnNameChars(String in) {
+		String out = in.replaceAll("[ \\t\\n\\r\\f\\x0B]", "");
+		return columnNameAsciiChars.matcher(out).replaceAll("x");
+	}
+	
+	/*
 	 * Remove any characters from the name that will prevent it being used as a
 	 * database column name
 	 */
@@ -185,9 +195,7 @@ public class GeneralUtilityMethods {
 		if (in != null) {
 			out = in.trim().toLowerCase();
 
-			out = out.replace(" ", ""); // Remove spaces
-			out = out.replaceAll("[\\.\\[\\\\^\\$\\|\\?\\*\\+\\(\\)\\]\"\';,:!@#&%/{}<>-]", "x"); // Remove special
-			// characters ;
+			out = replaceColumnNameChars(out);
 
 			/*
 			 * Rename fields that are the same as postgres / sql reserved words
@@ -243,9 +251,7 @@ public class GeneralUtilityMethods {
 			out = in.trim().toLowerCase();
 			out = removeBOM(out);
 			
-			out = out.replace(" ", ""); // Remove spaces
-			out = out.replaceAll("[\\.\\[\\\\^\\$\\|\\?\\*\\+\\(\\)\\]\"\';,:!@#&%/{}<>-]", "x"); // Remove special
-			// characters ;
+			out = replaceColumnNameChars(out);
 
 			/*
 			 * Rename fields that are the same as postgres / sql reserved words
