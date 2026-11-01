@@ -2361,46 +2361,20 @@ public class SubRelationalDB extends Subscriber {
 		
 
 		if(uuid != null && uuid.trim().length() > 0) {
-			uuid = uuid.replace("'", "''");	// Escape apostrophes
 			try {
 
-				String colTest1 = "select column_name from information_schema.columns " +
-						"where table_name = '" + tableName + "' and column_name = '_instanceid'";
-				String sql1 = "select prikey from " + tableName + " where _instanceid = '" + uuid + "' " +
-						"order by prikey asc;";
-
-				pstmt = cResults.prepareStatement(colTest1);
-				// Check for duplicates with the old _instanceid
-				ResultSet res = pstmt.executeQuery();
-				if(res.next()) {
-					// Has _instanceid
-					try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-					pstmt = cResults.prepareStatement(sql1);
-					res = pstmt.executeQuery();
-					while(res.next()) {
-						duplicateKeys.add(res.getInt(1));
+				// Check for duplicates with the old _instanceid and the new instanceid
+				for(String col : new String[] {"_instanceid", "instanceid"}) {
+					if(GeneralUtilityMethods.hasColumn(cResults, tableName, col)) {
+						try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+						pstmt = cResults.prepareStatement("select prikey from " + tableName + " where " + col + " = ? order by prikey asc");
+						pstmt.setString(1, uuid);
+						ResultSet res = pstmt.executeQuery();
+						while(res.next()) {
+							duplicateKeys.add(res.getInt(1));
+						}
 					}
 				}
-
-				String colTest2 = "select column_name from information_schema.columns " +
-						"where table_name = '" + tableName + "' and column_name = 'instanceid'";
-				String sql2 = "select prikey from " + tableName + " where instanceid = '" + uuid + "' " +
-						"order by prikey asc;";
-
-				// Check for duplicates with the new instanceid
-				try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-				pstmt = cResults.prepareStatement(colTest2);
-				res = pstmt.executeQuery();
-				if(res.next()) {
-					// Has instanceid
-					try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-					pstmt = cResults.prepareStatement(sql2);
-					res = pstmt.executeQuery();
-					while(res.next()) {
-						duplicateKeys.add(res.getInt(1));
-					}
-				}
-
 
 				if(duplicateKeys.size() > 0) {
 					log.fine("Submission has " + duplicateKeys.size() + " duplicates for uuid: " + uuid);
