@@ -138,3 +138,12 @@ select 'csv file', ct.id::text, ct.filename, h->>'fName', h->>'tName'
 from csvtable ct, jsonb_array_elements(case when ct.headers is not null and ct.headers like '[%' then ct.headers::jsonb else '[]'::jsonb end) h
 where h->>'tName' ~ '[\x01-\x2f\x3a-\x40\x5b-\x5e\x60\x7b-\x7f]'
 order by 1, 2;
+
+\echo
+\echo '11. Form table names with characters other than letters, digits and _'
+\echo '   Repeats renamed before this version could get a table name with . or -.  Informational, existing tables keep their names'
+select f.s_id, s.display_name as survey, f.name as form, f.table_name
+from form f
+left join survey s on s.s_id = f.s_id
+where f.table_name ~ '[\x01-\x2f\x3a-\x40\x5b-\x5e\x60\x7b-\x7f]'
+order by 1;

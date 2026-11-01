@@ -2637,7 +2637,7 @@ public class SurveyManager {
 								try {if (pstmtUpdateForm != null) {pstmtUpdateForm.close();}} catch (SQLException e) {}
 								pstmtUpdateForm = sd.prepareStatement(sqlUpdateForm);
 								pstmtUpdateForm.setString(1,  ci.property.newVal);
-								pstmtUpdateForm.setString(2,  "s" + sId + "_" + ci.property.newVal);
+								pstmtUpdateForm.setString(2,  "s" + sId + "_" + GeneralUtilityMethods.cleanName(ci.property.newVal, true, true, true));	// As when the form is created
 								pstmtUpdateForm.setInt(3,  sId);
 								pstmtUpdateForm.setString(4,  ci.property.oldVal);
 
