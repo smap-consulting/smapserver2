@@ -116,3 +116,13 @@ join form f on f.f_id = q.f_id
 join survey s on s.s_id = f.s_id
 where q.column_name ~ '[^[:alnum:]_]' or q.column_name ~ '^[0-9]'
 order by 1, 4;
+
+\echo
+\echo '9. Saved chart queries whose key is not one of their columns'
+\echo '   These are rebuilt when next used, and the chart then reports the key as not found in the form'
+select ct.id, ct.s_id, s.display_name as survey, ct.filename, ct.chart_key
+from csvtable ct
+left join survey s on s.s_id = ct.s_id
+where ct.survey and ct.chart_key is not null
+  and not coalesce((ct.sqldef::jsonb -> 'colNames') ? ct.chart_key, false)
+order by 2;

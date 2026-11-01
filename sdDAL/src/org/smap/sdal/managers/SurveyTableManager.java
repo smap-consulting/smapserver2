@@ -157,7 +157,9 @@ public class SurveyTableManager {
 						throw new Exception("Failed to create CSV Table entry");
 					}
 				}
-				if(sqlDef == null || sqlDef.colNames.size() == 0) {
+				// Rebuild the sql if it is missing or was saved with a chart key that is not one of its columns
+				if(sqlDef == null || sqlDef.colNames.size() == 0
+						|| (chart_key != null && !sqlDef.colNames.contains(chart_key))) {
 					getSqlAndHeaders(sd, cResults, sId, fileName);
 				}
 	
@@ -852,6 +854,11 @@ public class SurveyTableManager {
 			// the primary keys of sub forms
 			StringBuffer orderBy = new StringBuffer("");
 			if(chart_key != null) {
+				// The chart key must be one of the columns found above
+				if(!colNames.contains(chart_key)) {
+					throw new ApplicationException(GeneralUtilityMethods.getSafeText(chart_key, true) + " " 
+							+ (localisation != null ? localisation.getString("imp_nfi") : "not found in form"));
+				}
 				orderBy.append(" order by ");
 				orderBy.append(chart_key);
 				orderBy.append(" asc");		// Historically used ascending
