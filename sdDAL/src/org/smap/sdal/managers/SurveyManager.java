@@ -3900,24 +3900,28 @@ public class SurveyManager {
 	
 	/*
 	 * Get the group Questions
+	 * If columnName is not null only the questions with that column name are returned
 	 */
 	public HashMap<String, QuestionForm> getGroupQuestionsMap(Connection sd, 
 			String groupSurveyIdent,
-			String filter,
+			String columnName,
 			boolean useColumnName) throws SQLException {
 		
 		HashMap<String, QuestionForm> groupQuestions = new HashMap<> ();
 
 		String sql = sqlGetGroupQuestions;
 		
-		if(filter != null) {
-			sql += " and " + filter;
+		if(columnName != null) {
+			sql += " and q.column_name = ?";
 		}
 		
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, groupSurveyIdent);
+			if(columnName != null) {
+				pstmt.setString(2, columnName);
+			}
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {

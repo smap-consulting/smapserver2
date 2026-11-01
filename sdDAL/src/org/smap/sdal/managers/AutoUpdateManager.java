@@ -121,7 +121,7 @@ public class AutoUpdateManager {
 							String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, qf.s_id);
 							HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, 
 									groupSurveyIdent, 
-									" q.column_name = '" + refColumn + "'",
+									refColumn,
 									true);
 							
 							QuestionForm refQf = refQuestionMap.get(refColumn);
