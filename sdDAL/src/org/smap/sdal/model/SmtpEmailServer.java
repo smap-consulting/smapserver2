@@ -1,6 +1,9 @@
 package org.smap.sdal.model;
 
 import java.io.IOException;
+import java.security.cert.CertPathBuilderException;
+import java.security.cert.CertPathValidatorException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.ResourceBundle;
@@ -9,6 +12,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLPeerUnverifiedException;
 
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
@@ -346,6 +351,13 @@ public class SmtpEmailServer extends EmailServer {
 				int sends = (conn == null) ? 0 : conn.sends;
 				discardConnection(conn);
 
+				// Trying again will not help, say what is wrong with the relay
+				String tlsMsg = getTlsFailure(me);
+				if(tlsMsg != null) {
+					log.log(Level.SEVERE, "Encrypted connection to " + smtpHost + " failed", me);
+					throw new Exception(localisation.getString("email_cs") + ":  " + tlsMsg);
+				}
+
 				if(isRateLimited(me)) {
 					/*
 					 * Do not come back before the pause is up.  Retrying into a relay that is
@@ -382,7 +394,10 @@ public class SmtpEmailServer extends EmailServer {
 			} catch(Exception e) {
 				discardConnection(conn);
 				log.log(Level.SEVERE, "Exception", e);
-				String msg = e.getMessage();
+				String msg = getTlsFailure(e);
+				if(msg == null) {
+					msg = e.getMessage();
+				}
 				throw new Exception(localisation.getString("email_cs") + ":  " + msg);
 			}
 		}
@@ -643,6 +658,36 @@ public class SmtpEmailServer extends EmailServer {
 			t = t.getCause();
 		}
 		return false;
+	}
+
+	/*
+	 * A message for the administrator if the failure is the encryption that is now required, see
+	 * getEmailSession, otherwise null.  The relay's certificate is not trusted or does not name it,
+	 * or a relay that needs a log on does not offer STARTTLS.  Null for anything else.
+	 */
+	private String getTlsFailure(Throwable e) {
+		Throwable t = e;
+		while(t != null) {
+			String m = t.getMessage() == null ? "" : t.getMessage();
+			if(t instanceof SSLHandshakeException || t instanceof SSLPeerUnverifiedException
+					|| t instanceof CertificateException || t instanceof CertPathBuilderException
+					|| t instanceof CertPathValidatorException
+					|| m.contains("Can't verify identity of server")) {
+				return localisation.getString("email_tls_cert").replace("%s1", String.valueOf(smtpHost));
+			}
+			if(m.contains("STARTTLS is required")) {
+				return localisation.getString("email_tls_req").replace("%s1", String.valueOf(smtpHost));
+			}
+			Throwable next = null;
+			if(t instanceof MessagingException) {
+				next = ((MessagingException) t).getNextException();
+			}
+			if(next == null || next == t) {
+				next = t.getCause();
+			}
+			t = (next == t) ? null : next;
+		}
+		return null;
 	}
 
 	private boolean hasAuthentication() {
