@@ -2363,16 +2363,15 @@ public class SubRelationalDB extends Subscriber {
 		if(uuid != null && uuid.trim().length() > 0) {
 			try {
 
-				// Check for duplicates with the old _instanceid and the new instanceid
-				for(String col : new String[] {"_instanceid", "instanceid"}) {
-					if(GeneralUtilityMethods.hasColumn(cResults, tableName, col)) {
-						try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-						pstmt = cResults.prepareStatement("select prikey from " + tableName + " where " + col + " = ? order by prikey asc");
-						pstmt.setString(1, uuid);
-						ResultSet res = pstmt.executeQuery();
-						while(res.next()) {
-							duplicateKeys.add(res.getInt(1));
-						}
+				// Legacy tables have _instanceid instead of instanceid
+				String col = GeneralUtilityMethods.hasColumn(cResults, tableName, "instanceid") ? "instanceid"
+						: GeneralUtilityMethods.hasColumn(cResults, tableName, "_instanceid") ? "_instanceid" : null;
+				if(col != null) {
+					pstmt = cResults.prepareStatement("select prikey from " + tableName + " where " + col + " = ? order by prikey asc");
+					pstmt.setString(1, uuid);
+					ResultSet res = pstmt.executeQuery();
+					while(res.next()) {
+						duplicateKeys.add(res.getInt(1));
 					}
 				}
 
