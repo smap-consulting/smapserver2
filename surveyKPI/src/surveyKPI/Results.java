@@ -472,35 +472,27 @@ public class Results extends Application {
 			}
 			String sqlTables = tables.getTablesSQL();
 			if(regionSource != null) {
-				sqlTables += ", " + regionSource + " rg";
+				/*
+				 * Each record is counted in one region.  A line or polygon location is reduced to a point on it,
+				 * and a point on the edge shared by two regions goes to the one with the lower key
+				 */
+				sqlTables += ", lateral (select r.region_key, r.region_label, r.region_geom from " + regionSource + " r"
+						+ " where ST_Intersects(r.region_geom, ST_PointOnSurface(" + group.getTableName() + "." + group.getColumnName() + "))"
+						+ " order by r.region_key limit 1) rg";
 			}
 			String sqlTableJoin = tables.getTableJoinSQL();
-			String sqlGeom = null;
 			String sqlNoBad = tables.getNoBadClause();
 			String sqlRestrictToRecordId = restrictToRecordId(aQ, rId);
 			String sqlRestrictToDateRange = "";
 			if(date != null) {
 				sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startTime, endTime, date.getColumnName());
 			} 
-			if(regionSource != null) {
-				sqlGeom = "ST_Intersects(" + group.getTableName() + "." + group.getColumnName() + ", rg.region_geom)";
-			}
-	
 			StringBuffer sql = new StringBuffer("select ").append(sqlSelect).append(" from ").append(sqlTables);
 			if(sqlTableJoin.trim().length() > 0) {
 				sql.append(" where ").append(sqlTableJoin);
 				doneWhere = true;
 			}
-			if(sqlGeom != null) {
-				if(doneWhere) {
-					sql.append(" and ");
-				} else {
-					sql.append(" where ");
-					doneWhere = true;
-				}
-				sql.append(sqlGeom);
-			}
-			
+
 			// Add clause remove bad records
 			if(doneWhere) {
 				sql.append(" and ");
