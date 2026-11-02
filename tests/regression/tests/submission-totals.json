@@ -1,0 +1,18 @@
+{
+  "name": "submission-totals",
+  "description": "Totals of the MCP submission_events tool. The success total is counted from idx_ue_p_status_ident alone and the other states only from rows with a db_status other than success, so that the totals cover every upload without reading each row (smapserver2, 2026-11-02). Checks the survey's totals against the uploads it is known to have, against the uploads the tool lists for each state, and the survey, project and all project totals against the console monitor page's totals (EventList), which count them in their own query. The monitor counts an upload with no upload status as nothing, the tool as not_loaded, so a difference in not_loaded alone at project or all scope is reported as a warning. The records and the duplicate upload are kept.",
+  "kind": "mcp-totals",
+  "survey": {
+    "name": "Submission totals test",
+    "project": "A project",
+    "questions": [
+      { "name": "t_text", "type": "string", "label": "Text" }
+    ]
+  },
+  "records": [
+    { "via": "browser", "instanceID": "uuid:subtotals-1", "deviceID": "subtotals", "answers": { "t_text": "one" } },
+    { "via": "browser", "instanceID": "uuid:subtotals-2", "deviceID": "subtotals", "answers": { "t_text": "two" } }
+  ],
+  "duplicate": { "instanceID": "uuid:subtotals-2", "deviceID": "subtotals", "answers": { "t_text": "two" } },
+  "expect": { "success": 2, "error": 0, "duplicate": 1, "merged": 0, "not_loaded": 0, "upload_error": 0 }
+}

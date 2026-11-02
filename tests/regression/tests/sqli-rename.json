@@ -1,0 +1,36 @@
+{
+  "name": "sqli-rename",
+  "description": "Table name of a renamed repeat. Renaming a begin repeat, geopolygon or geolinestring set the form's table name to s<sId>_<new name> without cleaning it, and a question name may hold . and -, so s1_r.two would read as schema r... table two. The new name is now cleaned as when the form is created (SurveyManager.applyQuestionProperty, 2026-11-01): r.two gives the table s<sId>_rxtwo. The repeat r_one has no data, so it can be renamed; the last probe renames it back. Each run adds two survey versions.",
+  "kind": "sqli",
+  "survey": {
+    "name": "SQL injection rename test",
+    "project": "A project",
+    "questions": [
+      { "name": "s_text", "type": "string", "label": "Text" }
+    ],
+    "groups": [
+      { "name": "r_one", "label": "Repeat", "repeating": true }
+    ]
+  },
+  "probes": [
+    {
+      "name": "rename: repeat to r.two",
+      "url": "/surveyKPI/surveys/save/{sId}",
+      "method": "PUT",
+      "form": { "changes": [ { "changeType": "property", "type": "question", "action": "update", "source": "editor", "items": [ { "property": { "qId": "{q:r_one}", "type": "question", "qType": "begin repeat", "name": "r_one", "prop": "name", "oldVal": "r_one", "newVal": "r.two" } } ] } ] },
+      "expect": { "status": 200, "fields": { "success": 1, "failed": 0 } }
+    },
+    {
+      "name": "rename: table name cleaned",
+      "url": "/surveyKPI/survey/{sId}/getMeta",
+      "expect": { "status": 200, "contains": "s{sId}_rxtwo", "notContains": "s{sId}_r.two" }
+    },
+    {
+      "name": "rename: back to r_one",
+      "url": "/surveyKPI/surveys/save/{sId}",
+      "method": "PUT",
+      "form": { "changes": [ { "changeType": "property", "type": "question", "action": "update", "source": "editor", "items": [ { "property": { "qId": "{q:r_one}", "type": "question", "qType": "begin repeat", "name": "r.two", "prop": "name", "oldVal": "r.two", "newVal": "r_one" } } ] } ] },
+      "expect": { "status": 200, "fields": { "success": 1, "failed": 0 } }
+    }
+  ]
+}

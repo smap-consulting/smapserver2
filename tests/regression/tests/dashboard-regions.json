@@ -1,0 +1,204 @@
+{
+  "name": "dashboard-regions",
+  "description": "Map panels grouped by region. A hex grid made for the survey bundle, the polygons of a geoshape question in the survey and the polygons of a geoshape question in another survey of the bundle group a select question's answers; each region is coloured by the share of its records with the selected answer, as clusters are; a map without a question grouped by region counts its records and colours regions relative to each other; records outside every region are left out; regions are drawn as polygons, not clustered, also in a time series whose slider moves the window; the region and label questions come from the database, so a non polygon question or a survey outside the bundle is refused, an unknown grid (as a deleted one leaves) gives the records ungrouped, a label with SQL appended is not used and the polygons are labelled by key (2d92c150b, 5269e7bf6), and the old geoTable parameter is ignored; a grid with too many cells is refused; old saved panels (shape:{question}:{label}) still work. Guards the region grouping work in smapserver2 and prop-smapserver (2026-10-30).",
+  "kind": "dashboard-region",
+  "survey": {
+    "name": "Dashboard region test",
+    "project": "A project",
+    "choices": {
+      "d_list": [
+        {
+          "value": "a",
+          "label": "Alpha"
+        },
+        {
+          "value": "b",
+          "label": "Beta"
+        }
+      ]
+    },
+    "questions": [
+      {
+        "name": "d_loc",
+        "type": "geopoint",
+        "label": "Location"
+      },
+      {
+        "name": "d_choice",
+        "type": "select1",
+        "label": "Choice",
+        "option_list": "d_list"
+      },
+      {
+        "name": "d_area",
+        "type": "geoshape",
+        "label": "Area"
+      },
+      {
+        "name": "d_name",
+        "type": "string",
+        "label": "Area name"
+      }
+    ]
+  },
+  "records": [
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashreg-a1",
+      "deviceID": "dashreg-test",
+      "answers": {
+        "d_loc": "-27.4600 153.0200 0 5",
+        "d_choice": "a"
+      }
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashreg-a2",
+      "deviceID": "dashreg-test",
+      "answers": {
+        "d_loc": "-27.4620 153.0180 0 5",
+        "d_choice": "a"
+      }
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashreg-a3",
+      "deviceID": "dashreg-test",
+      "answers": {
+        "d_loc": "-27.4580 153.0220 0 5",
+        "d_choice": "b"
+      }
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashreg-a4",
+      "deviceID": "dashreg-test",
+      "answers": {
+        "d_loc": "-27.4550 153.0250 0 5",
+        "d_choice": "a"
+      }
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashreg-b1",
+      "deviceID": "dashreg-test",
+      "answers": {
+        "d_loc": "-27.4000 153.1000 0 5",
+        "d_choice": "b"
+      }
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashreg-b2",
+      "deviceID": "dashreg-test",
+      "answers": {
+        "d_loc": "-27.4020 153.1020 0 5",
+        "d_choice": "b"
+      }
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashreg-out",
+      "deviceID": "dashreg-test",
+      "answers": {
+        "d_loc": "-27.3000 153.3000 0 5",
+        "d_choice": "a"
+      }
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashreg-areaA",
+      "deviceID": "dashreg-test",
+      "answers": {
+        "d_area": "-27.4700 153.0100 0 0;-27.4700 153.0300 0 0;-27.4500 153.0300 0 0;-27.4500 153.0100 0 0;-27.4700 153.0100 0 0",
+        "d_name": "Area A"
+      }
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashreg-areaB",
+      "deviceID": "dashreg-test",
+      "answers": {
+        "d_area": "-27.4100 153.0900 0 0;-27.4100 153.1100 0 0;-27.3900 153.1100 0 0;-27.3900 153.0900 0 0;-27.4100 153.0900 0 0",
+        "d_name": "Area B"
+      }
+    }
+  ],
+  "grid": {
+    "name": "Regression grid",
+    "cellSize": 1000,
+    "extent": [
+      152.98,
+      -27.5,
+      153.14,
+      -27.36
+    ]
+  },
+  "panels": {
+    "title": "Dashboard region test",
+    "question": "d_choice",
+    "location": "d_loc",
+    "shape": "d_area",
+    "label": "d_name"
+  },
+  "expect": {
+    "shapes": {
+      "Area A": {
+        "Alpha": 3,
+        "Beta": 1
+      },
+      "Area B": {
+        "Alpha": 0,
+        "Beta": 2
+      }
+    },
+    "gridRecords": 6,
+    "countShapes": {
+      "Area A": 4,
+      "Area B": 2
+    },
+    "bundle": {
+      "Zone AB": {
+        "Alpha": 3,
+        "Beta": 3
+      }
+    },
+    "shapeColours": {
+      "Area A": "orange",
+      "Area B": "blue"
+    },
+    "countColours": {
+      "Area A": "red",
+      "Area B": "blue"
+    },
+    "bundleColours": {
+      "Zone AB": "yellow"
+    }
+  },
+  "bundle": {
+    "name": "Dashboard region polygons",
+    "questions": [
+      {
+        "type": "geoshape",
+        "name": "p_area",
+        "label": "Area"
+      },
+      {
+        "type": "text",
+        "name": "p_name",
+        "label": "Zone name"
+      }
+    ],
+    "shape": "p_area",
+    "label": "p_name",
+    "record": {
+      "instanceID": "uuid:dashreg-zone",
+      "deviceID": "dashreg-test",
+      "answers": {
+        "p_area": "-27.4800 153.0000 0 0;-27.4800 153.1200 0 0;-27.3800 153.1200 0 0;-27.3800 153.0000 0 0;-27.4800 153.0000 0 0",
+        "p_name": "Zone AB"
+      }
+    }
+  },
+  "otherSurvey": "Dashboard map test"
+}

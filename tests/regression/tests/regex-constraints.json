@@ -1,0 +1,26 @@
+{
+  "name": "regex-constraints",
+  "description": "Regex constraints in webforms, including backslash escapes. Guards jsString escaping (4f9a95ad4) and the removal of backslash halving in WebForm.addBody (2c971182e).",
+  "kind": "webform-constraint",
+  "survey": {
+    "name": "Regex constraint test",
+    "project": "A project",
+    "questions": [
+      { "name": "intro", "type": "note", "label": "Each question has a regex constraint. Enter the values in the hint. \"Accept\" values must be allowed and \"Reject\" values must show the constraint error. If the backslashes were lost, the Reject values in brackets would wrongly be allowed." },
+      { "name": "digits", "type": "string", "label": "\\d - four digits", "hint": "Accept: 1234. Reject: abcd, 12345, (dddd)", "constraint": "regex(., '^\\d{4}$')" },
+      { "name": "word", "type": "string", "label": "\\w - one word, letters digits underscore", "hint": "Accept: abc_12. Reject: abc def", "constraint": "regex(., '^\\w+$')" },
+      { "name": "space", "type": "string", "label": "\\s \\S - two words with one space", "hint": "Accept: John Smith. Reject: JohnSmith, (SSsSS)", "constraint": "regex(., '^\\S+\\s\\S+$')" },
+      { "name": "decimal_dot", "type": "string", "label": "\\. - amount with two decimals", "hint": "Accept: 12.34. Reject: 12x34, 12.3", "constraint": "regex(., '^\\d+\\.\\d{2}$')" },
+      { "name": "backslash", "type": "string", "label": "\\\\ - a literal backslash between a and b", "hint": "Accept: a\\b. Reject: ab, a/b", "constraint": "regex(., '^a\\\\b$')" },
+      { "name": "control", "type": "string", "label": "Control, no backslash - three capital letters", "hint": "Accept: ABC. Reject: abc, ABCD", "constraint": "regex(., '^[A-Z]{3}$')" }
+    ]
+  },
+  "cases": {
+    "digits": { "accept": ["1234"], "reject": ["abcd", "12345", "dddd"] },
+    "word": { "accept": ["abc_12", "www"], "reject": ["abc def"] },
+    "space": { "accept": ["John Smith"], "reject": ["JohnSmith", "SSsSS"] },
+    "decimal_dot": { "accept": ["12.34"], "reject": ["12x34", "12.3"] },
+    "backslash": { "accept": ["a\\b"], "reject": ["ab", "a/b"] },
+    "control": { "accept": ["ABC"], "reject": ["abc", "ABCD"] }
+  }
+}

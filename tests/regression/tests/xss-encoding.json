@@ -1,0 +1,269 @@
+{
+  "name": "xss-encoding",
+  "description": "Submitted text, choice labels, device ids, record ids and task names containing HTML are shown as text and never run as markup, on the console table, the record view, the analysis page, the monitor page, My Work, the survey editor, the webform, the translation page and the change history, while label markup that is allowed still works. Each payload records itself in window.__xss if it runs and tags any element it makes, or breaks into, with data-xss. Guards the prop-smapserver encoding fixes dc8db8e99, bf273a49f and 90eff91f4, and the server encoding of console data (getSafeText, a9cb9739f) that the console relies on. The editor, webform, translation and change history pages guard 634d013cb, 5dcf406b0 and ff1f25b45.",
+  "kind": "xss",
+  "survey": {
+    "name": "XSS regression test",
+    "project": "A project",
+    "choices": {
+      "x_list": [
+        {
+          "value": "c1",
+          "label": "XSS6 <img src=x data-xss=6 onerror=\"(window.__xss=window.__xss||[]).push(6)\">"
+        },
+        {
+          "value": "c2",
+          "label": "XSS7\" data-xss=\"7"
+        },
+        {
+          "value": "c3",
+          "label": "XSS15 </textarea><img src=x data-xss=15>"
+        }
+      ]
+    },
+    "questions": [
+      {
+        "name": "x_tag",
+        "type": "string",
+        "label": "Markup inside text"
+      },
+      {
+        "name": "x_attr",
+        "type": "string",
+        "label": "Quote that would end an attribute"
+      },
+      {
+        "name": "x_close",
+        "type": "string",
+        "label": "Closing tags that would end a textarea or cell"
+      },
+      {
+        "name": "x_lead",
+        "type": "string",
+        "label": "Text that starts with a tag"
+      },
+      {
+        "name": "x_media",
+        "type": "string",
+        "label": "Media link with a quote"
+      },
+      {
+        "name": "x_choice",
+        "type": "select1",
+        "label": "Choice labels with markup",
+        "option_list": "x_list"
+      },
+      {
+        "name": "x_calc",
+        "type": "calculate",
+        "label": "Calculation with closing tags",
+        "calculation": "concat('XSS11 </textarea><img src=x data-xss=11>', ' &lt;')"
+      },
+      {
+        "name": "x_props",
+        "type": "string",
+        "label": "Properties with quotes",
+        "hint": "XSS14 &lt;b&gt; stays as typed & </textarea><img src=x data-xss=14>",
+        "constraint": ". != 'XSS12\" data-xss=\"12'",
+        "appearance": "XSS13\" data-xss=\"13"
+      },
+      {
+        "name": "x_note",
+        "type": "note",
+        "label": "XSS16 &lt;img src=x data-xss=16 onerror=&quot;(window.__xss=window.__xss||[]).push(16)&quot;&gt;"
+      },
+      {
+        "name": "x_note2",
+        "type": "note",
+        "label": "XSS17 &amp;lt;img src=x data-xss=17 onerror=(window.__xss=window.__xss||[]).push(17)&amp;gt;"
+      },
+      {
+        "name": "x_note3",
+        "type": "note",
+        "label": "XSS18 &amp;amp;lt;img src=x data-xss=18 onerror=(window.__xss=window.__xss||[]).push(18)&amp;amp;gt;"
+      },
+      {
+        "name": "x_markup",
+        "type": "note",
+        "label": "XSS19 **bold** and <b>tag</b> stay formatted, A & B and 1 < 2 stay as typed"
+      },
+      {
+        "name": "x_note4",
+        "type": "note",
+        "label": "XSS20 &lt;/textarea&gt;&lt;b data-xss=20&gt;breakout&lt;/b&gt;"
+      }
+    ]
+  },
+  "records": [
+    {
+      "via": "mcp",
+      "answers": {
+        "x_tag": "XSS1 <img src=x data-xss=1 onerror=\"(window.__xss=window.__xss||[]).push(1)\">",
+        "x_attr": "XSS2\" data-xss=\"2\" onfocus=\"(window.__xss=window.__xss||[]).push(2)\" autofocus x=\"",
+        "x_close": "XSS3 </textarea></td></div><img src=x data-xss=3 onerror=\"(window.__xss=window.__xss||[]).push(3)\">",
+        "x_lead": "<img src=x data-xss=4 onerror=\"(window.__xss=window.__xss||[]).push(4)\">XSS4",
+        "x_media": "https://example.invalid/XSS5.jpg?\" data-xss=\"5\" onerror=\"(window.__xss=window.__xss||[]).push(5)",
+        "x_choice": "c1"
+      },
+      "task": "XSS8 \"quoted\" & more"
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:xss9\" data-xss=\"9",
+      "deviceID": "XSS10 <img src=x data-xss=10 onerror=\"(window.__xss=window.__xss||[]).push(10)\">",
+      "answers": {
+        "x_tag": "XSS9 direct submission"
+      },
+      "task": "XSS9 link test"
+    }
+  ],
+  "pages": [
+    {
+      "name": "console table",
+      "url": "/app/tasks/managed_forms.html?id={sId}",
+      "expect": [
+        "XSS1",
+        "XSS2",
+        "XSS3",
+        "XSS4",
+        "XSS5"
+      ]
+    },
+    {
+      "name": "console record view",
+      "url": "/app/tasks/managed_forms.html?id={sId}",
+      "actions": [
+        "selectRow:XSS1",
+        "click:#m_view"
+      ],
+      "expect": [
+        "XSS1",
+        "XSS2",
+        "XSS3",
+        "XSS4",
+        "XSS5",
+        "XSS8"
+      ],
+      "literal": [
+        "XSS8 \"quoted\" & more"
+      ]
+    },
+    {
+      "name": "analysis",
+      "url": "/app/fieldAnalysis/index.html",
+      "panels": {
+        "question": "x_choice",
+        "types": [
+          "graph",
+          "table"
+        ]
+      },
+      "expect": [
+        "XSS6",
+        "XSS7"
+      ],
+      "literal": [
+        "XSS6 <img src=\"x\" />",
+        "XSS7\" data-xss=\"7"
+      ],
+      "absent": [
+        "#panels img[src=\"x\"]"
+      ]
+    },
+    {
+      "name": "monitor",
+      "url": "/app/fieldManager/monitor.html",
+      "actions": [
+        "select:#survey={sId}"
+      ],
+      "expect": [
+        "XSS10"
+      ],
+      "literal": [
+        "XSS10 <img src=x data-xss=10"
+      ]
+    },
+    {
+      "name": "my work",
+      "url": "/app/myWork/index.html",
+      "expect": [
+        "XSS9 link test"
+      ]
+    },
+    {
+      "name": "editor questions",
+      "url": "/edit.html?id={sId}",
+      "actions": [
+        "click:a[data-prop=\"label\"].q_only",
+        "click:a[data-prop=\"hint\"]",
+        "click:a[data-prop=\"appearance\"]",
+        "click:a[data-prop=\"constraint\"]",
+        "click:a[data-prop=\"display_name\"]",
+        "click:a[data-prop=\"parameters\"]",
+        "click:a[data-prop=\"relevant\"]",
+        "click:a[data-prop=\"calculation\"]"
+      ],
+      "expect": [
+        "XSS11"
+      ],
+      "fields": [
+        "concat('XSS11 </textarea><img src=x data-xss=11>', ' &lt;')"
+      ],
+      "noPending": ".m_save_survey .badge",
+      "entitiesExpected": true
+    },
+    {
+      "name": "editor choices",
+      "url": "/edit.html?id={sId}",
+      "actions": [
+        "click:.edit_choice",
+        "click:a[data-prop=\"label\"].o_only",
+        "click:a[data-prop=\"display_name\"]"
+      ],
+      "expect": [
+        "XSS6",
+        "XSS7",
+        "XSS15"
+      ],
+      "noPending": ".m_save_survey .badge"
+    },
+    {
+      "name": "webform",
+      "url": "/app/myWork/webForm/{ident}?nc={ts}",
+      "expect": [
+        "XSS14",
+        "XSS16",
+        "XSS17",
+        "XSS18",
+        "XSS19",
+        "XSS20"
+      ],
+      "present": [
+        "form.or .question-label strong",
+        "form.or .question-label b"
+      ],
+      "literal": [
+        "A & B and 1 < 2 stay as typed"
+      ]
+    },
+    {
+      "name": "translation",
+      "url": "/translate.html",
+      "expect": [
+        "XSS16",
+        "XSS19",
+        "XSS20"
+      ],
+      "fields": [
+        "XSS19 **bold** and <b>tag</b> stay formatted, A & B and 1 < 2 stay as typed"
+      ]
+    },
+    {
+      "name": "change history",
+      "url": "/app/changes.html",
+      "expect": [
+        "XSS15"
+      ]
+    }
+  ]
+}

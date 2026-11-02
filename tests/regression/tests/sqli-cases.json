@@ -1,0 +1,26 @@
+{
+  "name": "sqli-cases",
+  "description": "Case management status question. POST /surveyKPI/cases/settings/{bundle} stored the settings as sent and the data table read put statusQuestion into its WHERE clause unchanged. The status and criticality questions must now be plain names when saved, and the status column is only used when the table has it (2026-10-31). Uses the sqli-filter survey, whose bundle is itself; the last probe clears its case settings again.",
+  "kind": "sqli",
+  "uses": "sqli-filter",
+  "probes": [
+    {
+      "name": "cases: SQL in status question",
+      "url": "/surveyKPI/cases/settings/{ident}",
+      "form": { "settings": { "statusQuestion": "s_text is null or true or s_text", "finalStatus": "zzz" } },
+      "expect": { "notStatus": 200 }
+    },
+    {
+      "name": "cases: SQL in criticality question",
+      "url": "/surveyKPI/cases/settings/{ident}",
+      "form": { "settings": { "criticalityQuestion": "s_text, s_int" } },
+      "expect": { "notStatus": 200 }
+    },
+    {
+      "name": "cases: clear settings",
+      "url": "/surveyKPI/cases/settings/{ident}",
+      "form": { "settings": { "statusQuestion": "", "finalStatus": "" } },
+      "expect": { "status": 200 }
+    }
+  ]
+}

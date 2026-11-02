@@ -1,0 +1,22 @@
+{
+  "name": "sqli-names",
+  "description": "Characters in names that become database column names. cleanName and cleanNameNoRand replaced a list of special characters but kept = ~ ` and tabs and new lines, which then reached SQL in csv file headers (uploaded by an analyst) and choice values. Now white space is removed and any other ascii character that is not a letter, digit or underscore becomes x; non-ascii letters are kept (GeneralUtilityMethods, 2026-11-01). The csv has a header x~y, which is now the column xxy: a lookup on it returns a choice, where the old code refused the name. Uses the sqli-lookup survey. Attach the csv after the new code is deployed: a file attached on the old code made the column x~y.",
+  "kind": "sqli",
+  "uses": "sqli-lookup",
+  "csv": {
+    "name": "sqli_names",
+    "content": "value,label,x~y\na,Alpha,p\nb,Beta,q\n"
+  },
+  "probes": [
+    {
+      "name": "names: header with ~ is a plain column",
+      "url": "/surveyKPI/lookup/choices/{ident}/sqli_names/value/label?search_type=matches&q_column=x%7Ey&q_value=p",
+      "expect": { "status": 200, "choices": 1 }
+    },
+    {
+      "name": "names: real column",
+      "url": "/surveyKPI/lookup/choices/{ident}/sqli_names/value/label?search_type=matches&q_column=value&q_value=b",
+      "expect": { "status": 200, "choices": 1 }
+    }
+  ]
+}

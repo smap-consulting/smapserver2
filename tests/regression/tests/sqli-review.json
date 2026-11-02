@@ -1,0 +1,20 @@
+{
+  "name": "sqli-review",
+  "description": "Table and column names in a review (bulk data change) request. POST /surveyKPI/review/{sId} took the table, column and type from the request for an item with no question or form id, and kept a requested option column when the option was not found; undo replays the names saved in the change history. Names now come only from the survey definition and are checked against the survey's forms and their columns on update and undo (2026-10-31). Uses the sqli-filter survey. The real probe rewrites s_text 'a' to 'a' and the probe for the old hole sets s_int 1 to 1, so the records keep their values; each run adds changesets to the survey's change history.",
+  "kind": "sqli",
+  "uses": "sqli-filter",
+  "probes": [
+    {
+      "name": "review: real question",
+      "url": "/surveyKPI/review/{sId}",
+      "form": { "updates": { "qFilter": "{q:s_text}", "valueFilter": "a", "reason": "regression test", "description": "unchanged value", "reviewItems": [ { "q_id": "{q:s_text}", "newValue": "a" } ] } },
+      "expect": { "status": 200 }
+    },
+    {
+      "name": "review: requested table and column",
+      "url": "/surveyKPI/review/{sId}",
+      "form": { "updates": { "qFilter": "{q:s_text}", "valueFilter": "a", "reason": "regression test", "description": "requested names", "reviewItems": [ { "q_id": 0, "f_id": 0, "table": "{table}", "questionColumnName": "s_text = s_text, s_int", "qtype": "int", "newValue": "1" } ] } },
+      "expect": { "status": 400 }
+    }
+  ]
+}

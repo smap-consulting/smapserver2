@@ -1,0 +1,189 @@
+{
+  "name": "sqli-filter",
+  "description": "SQL in the value of a dashboard question filter. /surveyKPI/items and /surveyKPI/results put filter={qId,value} into the SQL text: results unescaped, items unquoted for numeric questions. The task group 'assign from data' rule built the same expression. Values are now bound parameters (QuestionInfo.getFilterFrag, 2026-10-31). A real value still filters; SQL in a value must be refused or match nothing rather than widen the query to every record. Select multiple filters match the option as a whole word with ~* and \\m \\M; the option is now regex-escaped, so 'red' matches 'red blue' but not 'reddish', and '.' matches nothing (commit 4ea23436e).",
+  "kind": "sqli",
+  "survey": {
+    "name": "SQL injection filter test",
+    "project": "A project",
+    "questions": [
+      {
+        "name": "s_text",
+        "type": "string",
+        "label": "Text"
+      },
+      {
+        "name": "s_int",
+        "type": "int",
+        "label": "Number"
+      },
+      {
+        "name": "s_multi",
+        "type": "select",
+        "label": "Colours",
+        "option_list": "colours"
+      }
+    ],
+    "choices": {
+      "colours": [
+        {
+          "value": "red",
+          "label": "Red"
+        },
+        {
+          "value": "reddish",
+          "label": "Reddish"
+        },
+        {
+          "value": "blue",
+          "label": "Blue"
+        }
+      ]
+    }
+  },
+  "records": [
+    {
+      "instanceID": "uuid:sqli-filter-0001",
+      "answers": {
+        "s_text": "a",
+        "s_int": "1",
+        "s_multi": "red blue"
+      }
+    },
+    {
+      "instanceID": "uuid:sqli-filter-0002",
+      "answers": {
+        "s_text": "b",
+        "s_int": "2",
+        "s_multi": "reddish"
+      }
+    }
+  ],
+  "probes": [
+    {
+      "name": "items: text value",
+      "url": "/surveyKPI/items/{fId}?rec_limit=50&mustHaveGeom=no",
+      "filter": {
+        "q": "s_text",
+        "value": "a"
+      },
+      "expect": {
+        "status": 200,
+        "records": 1
+      }
+    },
+    {
+      "name": "items: int value",
+      "url": "/surveyKPI/items/{fId}?rec_limit=50&mustHaveGeom=no",
+      "filter": {
+        "q": "s_int",
+        "value": "2"
+      },
+      "expect": {
+        "status": 200,
+        "records": 1
+      }
+    },
+    {
+      "name": "items: SQL in int value",
+      "url": "/surveyKPI/items/{fId}?rec_limit=50&mustHaveGeom=no",
+      "filter": {
+        "q": "s_int",
+        "value": "1 or 1=1"
+      },
+      "expect": {
+        "refusedOrEmpty": true
+      }
+    },
+    {
+      "name": "items: SQL in text value",
+      "url": "/surveyKPI/items/{fId}?rec_limit=50&mustHaveGeom=no",
+      "filter": {
+        "q": "s_text",
+        "value": "x' or 'x'='x"
+      },
+      "expect": {
+        "refusedOrEmpty": true
+      }
+    },
+    {
+      "name": "results: text value",
+      "url": "/surveyKPI/results/{sId}?lang=language&fn=none&qId={q:s_int}",
+      "filter": {
+        "q": "s_text",
+        "value": "a"
+      },
+      "expect": {
+        "status": 200,
+        "records": 1
+      }
+    },
+    {
+      "name": "results: SQL in text value",
+      "url": "/surveyKPI/results/{sId}?lang=language&fn=none&qId={q:s_int}",
+      "filter": {
+        "q": "s_text",
+        "value": "x' or 'x'='x"
+      },
+      "expect": {
+        "refusedOrEmpty": true
+      }
+    },
+    {
+      "name": "results: SQL in int value",
+      "url": "/surveyKPI/results/{sId}?lang=language&fn=none&qId={q:s_text}",
+      "filter": {
+        "q": "s_int",
+        "value": "1 or 1=1"
+      },
+      "expect": {
+        "refusedOrEmpty": true
+      }
+    },
+    {
+      "name": "items: select multiple option",
+      "url": "/surveyKPI/items/{fId}?rec_limit=50&mustHaveGeom=no",
+      "filter": {
+        "q": "s_multi",
+        "value": "red"
+      },
+      "expect": {
+        "status": 200,
+        "records": 1
+      }
+    },
+    {
+      "name": "results: select multiple option",
+      "url": "/surveyKPI/results/{sId}?lang=language&fn=none&qId={q:s_int}",
+      "filter": {
+        "q": "s_multi",
+        "value": "red"
+      },
+      "expect": {
+        "status": 200,
+        "records": 1
+      }
+    },
+    {
+      "name": "results: regex in select multiple value",
+      "url": "/surveyKPI/results/{sId}?lang=language&fn=none&qId={q:s_int}",
+      "filter": {
+        "q": "s_multi",
+        "value": "."
+      },
+      "expect": {
+        "refusedOrEmpty": true
+      }
+    },
+    {
+      "name": "results: SQL in select multiple value",
+      "url": "/surveyKPI/results/{sId}?lang=language&fn=none&qId={q:s_int}",
+      "filter": {
+        "q": "s_multi",
+        "value": "x\\M' or 1=1 or 'a' ~* 'a"
+      },
+      "expect": {
+        "refusedOrEmpty": true
+      }
+    }
+  ]
+}

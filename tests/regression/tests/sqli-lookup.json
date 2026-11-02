@@ -1,0 +1,51 @@
+{
+  "name": "sqli-lookup",
+  "description": "SQL injection through lookup column names. For a CSV file, or the data replicated from SharePoint and DHIS2 which is held the same way, the q_column and f_column of /lookup/choices and /lookup/mlchoices, and the key column of a pulldata lookup, were written into the SQL unchanged. A column name with SQL in it must be refused rather than widen the query; a real column still works. Guards the LookupManager csvColumnName fix (2026-10-31). mlchoices shares the choices code. Survey data (linked_s, chart_s) maps a name to the question's column in the survey definition; probing it needs a form that references the file, so it is not probed here.",
+  "kind": "sqli",
+  "survey": {
+    "name": "SQL injection test",
+    "project": "A project",
+    "questions": [
+      {
+        "name": "s_text",
+        "type": "string",
+        "label": "Text"
+      }
+    ]
+  },
+  "csv": {
+    "name": "sqli_lookup",
+    "content": "value,label\na,Alpha\nb,Beta\n"
+  },
+  "probes": [
+    {
+      "name": "choices: real column",
+      "url": "/surveyKPI/lookup/choices/{ident}/sqli_lookup/value/label?search_type=matches&q_column=value&q_value=a",
+      "expect": {
+        "status": 200,
+        "choices": 1
+      }
+    },
+    {
+      "name": "choices: SQL in q_column",
+      "url": "/surveyKPI/lookup/choices/{ident}/sqli_lookup/value/label?search_type=matches&q_column=1%3D1%20or%20value&q_value=zzz",
+      "expect": {
+        "refusedOrEmpty": true
+      }
+    },
+    {
+      "name": "choices: SQL in f_column",
+      "url": "/surveyKPI/lookup/choices/{ident}/sqli_lookup/value/label?search_type=matches&q_column=value&q_value=zzz&f_column=1%3D1%20or%201%3D1%20or%20value&f_value=zzz",
+      "expect": {
+        "refusedOrEmpty": true
+      }
+    },
+    {
+      "name": "pulldata: SQL in key column",
+      "url": "/surveyKPI/lookup/{ident}/sqli_lookup/1%3D1%20or%20value/zzz",
+      "expect": {
+        "refusedOrEmpty": true
+      }
+    }
+  ]
+}

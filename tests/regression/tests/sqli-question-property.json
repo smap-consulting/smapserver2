@@ -1,0 +1,36 @@
+{
+  "name": "sqli-question-property",
+  "description": "Question columns set through the editor's property change. PUT /surveyKPI/surveys/save/{sId} (editor, and MCP survey_question_edit) wrote any column of the question table named as the property, including column_name, which is then used as SQL text on publish and in every data query. The server set columns (q_id, f_id, l_id, seq, qname, qtype, column_name, column_name_applied, path, published, soft_deleted, datatype) are now refused; name, type and list_name still work through their own paths (SurveyManager.applyQuestionProperty, 2026-11-01). Uses the sqli-filter survey. The real probe sets s_text's appearance to w4 and the next puts it back, so each run adds two survey versions; the refused probes set the value the column already has, so nothing changes even on old code.",
+  "kind": "sqli",
+  "uses": "sqli-filter",
+  "probes": [
+    {
+      "name": "property: appearance",
+      "url": "/surveyKPI/surveys/save/{sId}",
+      "method": "PUT",
+      "form": { "changes": [ { "changeType": "property", "type": "question", "action": "update", "source": "editor", "items": [ { "property": { "qId": "{q:s_text}", "type": "question", "qType": "string", "name": "s_text", "prop": "appearance", "oldVal": "", "newVal": "w4" } } ] } ] },
+      "expect": { "status": 200, "fields": { "success": 1, "failed": 0 } }
+    },
+    {
+      "name": "property: appearance back",
+      "url": "/surveyKPI/surveys/save/{sId}",
+      "method": "PUT",
+      "form": { "changes": [ { "changeType": "property", "type": "question", "action": "update", "source": "editor", "items": [ { "property": { "qId": "{q:s_text}", "type": "question", "qType": "string", "name": "s_text", "prop": "appearance", "oldVal": "w4", "newVal": "" } } ] } ] },
+      "expect": { "status": 200, "fields": { "success": 1, "failed": 0 } }
+    },
+    {
+      "name": "property: column_name refused",
+      "url": "/surveyKPI/surveys/save/{sId}",
+      "method": "PUT",
+      "form": { "changes": [ { "changeType": "property", "type": "question", "action": "update", "source": "editor", "items": [ { "property": { "qId": "{q:s_text}", "type": "question", "qType": "string", "name": "s_text", "prop": "column_name", "oldVal": "s_text", "newVal": "s_text" } } ] } ] },
+      "expect": { "status": 200, "fields": { "success": 0, "failed": 1 } }
+    },
+    {
+      "name": "property: f_id refused",
+      "url": "/surveyKPI/surveys/save/{sId}",
+      "method": "PUT",
+      "form": { "changes": [ { "changeType": "property", "type": "question", "action": "update", "source": "editor", "items": [ { "property": { "qId": "{q:s_text}", "type": "question", "qType": "string", "name": "s_text", "prop": "f_id", "oldVal": "{fId}", "newVal": "{fId}" } } ] } ] },
+      "expect": { "status": 200, "fields": { "success": 0, "failed": 1 } }
+    }
+  ]
+}

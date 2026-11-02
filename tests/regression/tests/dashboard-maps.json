@@ -1,0 +1,137 @@
+{
+  "name": "dashboard-maps",
+  "description": "Dashboard map panels and their settings dialog. A User Activity map draws the user's trail (it was fetched with an end date of 0, which returns nothing, and never drawn) and the trail follows the panel's dates; a geotrace on a Data map is drawn blue (the style misspelt strokeColor, so lines took the default black); a cluster of user records is labelled with at most 3 record numbers and a count of the rest; Include Read Only is offered only on Data tables and maps; the Show on default for a map reads This Map; switching a table's subject back to Data does not show the map only location picker. A daily time series map of the select question clusters its points and the slider moves the time window (time series layers were not clustered). Guards prop-smapserver 5747ff2d8 and c34847ce8.",
+  "kind": "dashboard-map",
+  "survey": {
+    "name": "Dashboard map test",
+    "project": "A project",
+    "choices": {
+      "d_list": [
+        {
+          "value": "a",
+          "label": "Alpha"
+        },
+        {
+          "value": "b",
+          "label": "Beta"
+        }
+      ]
+    },
+    "questions": [
+      {
+        "name": "d_loc",
+        "type": "geopoint",
+        "label": "Location"
+      },
+      {
+        "name": "d_choice",
+        "type": "select1",
+        "label": "Choice",
+        "option_list": "d_list"
+      },
+      {
+        "name": "d_trace",
+        "type": "geotrace",
+        "label": "Route"
+      }
+    ]
+  },
+  "records": [
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashmap-1",
+      "deviceID": "dashmap-test",
+      "answers": {
+        "d_loc": "-27.4600 153.0200 0 5",
+        "d_choice": "a"
+      }
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashmap-2",
+      "deviceID": "dashmap-test",
+      "answers": {
+        "d_loc": "-27.4600 153.0200 0 5",
+        "d_choice": "a"
+      }
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashmap-3",
+      "deviceID": "dashmap-test",
+      "answers": {
+        "d_loc": "-27.4600 153.0200 0 5",
+        "d_choice": "b"
+      }
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashmap-4",
+      "deviceID": "dashmap-test",
+      "answers": {
+        "d_loc": "-27.4600 153.0200 0 5",
+        "d_choice": "a"
+      }
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashmap-5",
+      "deviceID": "dashmap-test",
+      "answers": {
+        "d_loc": "-27.4600 153.0200 0 5",
+        "d_choice": "b"
+      }
+    },
+    {
+      "via": "browser",
+      "instanceID": "uuid:dashmap-6",
+      "deviceID": "dashmap-test",
+      "answers": {
+        "d_loc": "-27.4600 153.0200 0 5",
+        "d_choice": "a",
+        "d_trace": "-27.4600 153.0200 0 5;-27.4550 153.0250 0 5;-27.4500 153.0300 0 5"
+      }
+    }
+  ],
+  "trail": {
+    "deviceId": "dashmap-test",
+    "day": "2020-01-15",
+    "start": "2020-01-15T09:00:00",
+    "stepMinutes": 10,
+    "points": [
+      [
+        -27.46,
+        153.02
+      ],
+      [
+        -27.459,
+        153.021
+      ],
+      [
+        -27.458,
+        153.022
+      ],
+      [
+        -27.457,
+        153.023
+      ],
+      [
+        -27.456,
+        153.024
+      ],
+      [
+        -27.455,
+        153.025
+      ]
+    ]
+  },
+  "panels": {
+    "title": "Dashboard map test",
+    "graphQuestion": "d_choice",
+    "geomQuestion": "d_loc",
+    "lineQuestion": "d_trace"
+  },
+  "expect": {
+    "showOn": "This Map"
+  }
+}

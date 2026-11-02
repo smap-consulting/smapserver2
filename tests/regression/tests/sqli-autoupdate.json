@@ -1,0 +1,45 @@
+{
+  "name": "sqli-autoupdate",
+  "description": "Auto update source question. The auto update batch looked up the question named by a parameter source=${...} with the name put into the SQL text of the question query; it is now a bound parameter (SurveyManager.getGroupQuestionsMap, 2026-11-01). The name was already checked against the results table's columns first, so the old code could not be reached with SQL from a survey; this guards that the lookup still finds the source question. s_tr translates s_src from English to French. The survey has parameters, so it is uploaded as an xlsx with the setup's survey step, not made through MCP. The record is submitted with data_submit, which picks its instance id: find it with data_query by answers and put it in place of {record} in the probe. Each run clears s_tr on the kept record with data_update_record (value \"\") and the probe waits for the batch to translate it again: it needs the subscribers auto update process (aws.properties present) and uses one AWS Translate request a run, counted against the organisation's translate limit.",
+  "kind": "sqli",
+  "survey": {
+    "name": "SQL injection auto update test",
+    "project": "A project",
+    "questions": [
+      {
+        "name": "s_src",
+        "type": "string",
+        "label": "Text"
+      },
+      {
+        "name": "s_tr",
+        "type": "string",
+        "label": "Translation",
+        "parameters": "source=${s_src} auto_annotate=true from_lang=en to_lang=fr"
+      }
+    ]
+  },
+  "records": [
+    {
+      "answers": {
+        "s_src": "Good morning"
+      }
+    }
+  ],
+  "clear": {
+    "question": "s_tr"
+  },
+  "probes": [
+    {
+      "name": "auto update: source question found, translation filled",
+      "url": "/surveyKPI/items/{fId}?rec_limit=50",
+      "expect": {
+        "filled": {
+          "instanceID": "{record}",
+          "column": "s_tr",
+          "waitSecs": 300
+        }
+      }
+    }
+  ]
+}

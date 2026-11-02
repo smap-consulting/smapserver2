@@ -1,0 +1,33 @@
+{
+  "name": "sqli-rowfilter",
+  "description": "Role row filters. A row filter stored in the old JSON format was loaded with gson and its sql used as is, and SqlFrag turned an unknown {...} token into nothing, so a JSON filter passed the check when saved. Now a filter starting with { is refused on save (console, bundle copy, XLS settings) and on read, and an unknown {...} token is an error (2026-10-31). Uses the sqli-filter survey and its own role, kept. The last probe clears the filter it set, so the role is left with no filter.",
+  "kind": "sqli",
+  "uses": "sqli-filter",
+  "role": "SQL injection test role",
+  "probes": [
+    {
+      "name": "row filter: expression",
+      "url": "/surveyKPI/role/survey/{sId}/row_filter",
+      "form": { "role": { "id": "{roleId}", "enabled": true, "row_filter": "${s_text} = 'a'" } },
+      "expect": { "status": 200 }
+    },
+    {
+      "name": "row filter: json",
+      "url": "/surveyKPI/role/survey/{sId}/row_filter",
+      "form": { "role": { "id": "{roleId}", "enabled": true, "row_filter": "{\"sql\":\"true\",\"params\":[],\"columns\":[],\"humanNames\":[]}" } },
+      "expect": { "notStatus": 200 }
+    },
+    {
+      "name": "row filter: unknown brace token",
+      "url": "/surveyKPI/role/survey/{sId}/row_filter",
+      "form": { "role": { "id": "{roleId}", "enabled": true, "row_filter": "${s_text} = 'a' {x}" } },
+      "expect": { "notStatus": 200 }
+    },
+    {
+      "name": "row filter: cleared",
+      "url": "/surveyKPI/role/survey/{sId}/row_filter",
+      "form": { "role": { "id": "{roleId}", "enabled": true, "row_filter": "" } },
+      "expect": { "status": 200 }
+    }
+  ]
+}

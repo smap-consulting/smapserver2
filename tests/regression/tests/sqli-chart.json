@@ -1,0 +1,31 @@
+{
+  "name": "sqli-chart",
+  "description": "Chart (time series) key from a chart_s file name. A pulldata('chart_self', column, key, value) in a calculation makes the file chart_<ident>_<key>, and the key was appended to the ORDER BY of the survey data query unchanged and saved with it in csvtable. The key must now be one of the columns found for the file, and a saved query whose key is not one of its columns is rebuilt (SurveyTableManager, 2026-11-01). c_bad uses the key '1', which the old code ran as 'order by 1' and returned data; it is now refused. The records are kept.",
+  "kind": "sqli",
+  "survey": {
+    "name": "SQL injection chart test",
+    "project": "A project",
+    "questions": [
+      { "name": "s_text", "type": "string", "label": "Text" },
+      { "name": "s_int", "type": "int", "label": "Number" },
+      { "name": "c_ok", "type": "calculate", "label": "Chart", "calculation": "pulldata('chart_self','s_text','s_int',${s_int})" },
+      { "name": "c_bad", "type": "calculate", "label": "Chart not a column", "calculation": "pulldata('chart_self','s_text','1',${s_int})" }
+    ]
+  },
+  "records": [
+    { "answers": { "s_text": "a", "s_int": "1" } },
+    { "answers": { "s_text": "b", "s_int": "1" } }
+  ],
+  "probes": [
+    {
+      "name": "chart: key is a column",
+      "url": "/surveyKPI/lookup/{ident}/chart_{ident}_s_int/s_int/1",
+      "expect": { "status": 200 }
+    },
+    {
+      "name": "chart: key is not a column",
+      "url": "/surveyKPI/lookup/{ident}/chart_{ident}_1/s_int/1",
+      "expect": { "refusedOrEmpty": true }
+    }
+  ]
+}
