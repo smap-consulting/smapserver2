@@ -194,6 +194,17 @@ cat ./sd.sql | sudo -i -u postgres $PSQL -q -d survey_definitions 2>&1 | grep -v
 echo "applying patches to results"
 cat ./results.sql | sudo -i -u postgres $PSQL -q -d results 2>&1 | grep -v "already exists"
 
+# Map regions from before 26.11 have no survey bundle and can no longer be used or deleted.  Their
+# tables are in the results database, so they are dropped here, where both databases can be reached.
+# A table is only dropped if its name is one the old code could make and no grid uses it
+echo "select r.table_name from regions r where r.group_survey_ident is null and r.table_name ~ '^r_[0-9]+_[a-z0-9_]+$' and not exists (select 1 from regions g where g.table_name = r.table_name and g.group_survey_ident is not null)" \
+        | sudo -i -u postgres $PSQL -tA -d survey_definitions 2>/dev/null \
+        | while read t; do
+    echo "Dropping old map region table $t"
+    echo "drop table if exists $t" | sudo -i -u postgres $PSQL -q -d results
+done
+echo "delete from regions where group_survey_ident is null" | sudo -i -u postgres $PSQL -q -d survey_definitions
+
 echo "Archiving records in survey_definitions"
 cat ./archive.sql | sudo -i -u postgres $PSQL -q -d survey_definitions 2>&1 
 
