@@ -47,6 +47,7 @@ import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.managers.CaseManager;
 import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.KeyManager;
+import org.smap.sdal.managers.UploadEventManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SubmissionEventManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -804,7 +805,7 @@ public class SubRelationalDB extends Subscriber {
 					acquireAdvisoryLock(cResults, uuid);
 					keys.duplicateKeys = checkDuplicate(cResults, tableName, uuid);
 					if (keys.duplicateKeys.size() > 0 && getDuplicatePolicy() == DUPLICATE_DROP) {
-						throw new Exception("Duplicate survey: " + uuid);
+						throw new Exception(UploadEventManager.DUPLICATE_REASON + " " + uuid);
 					}
 					
 					/*

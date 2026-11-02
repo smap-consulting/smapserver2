@@ -382,11 +382,11 @@ public class EventList extends Application {
 				 if(
 						 (status == null && !hideNotLoaded) ||
 						 (status != null && !hideSuccess && status.equals("success")) ||
-						 (status != null && !hideErrors && status.equals("error") && (reason == null || !reason.startsWith("Duplicate survey:"))) ||
-						 (status != null && !hideDuplicates && status.equals("error") && (reason != null && reason.startsWith("Duplicate survey:")) ||
+						 (status != null && !hideErrors && status.equals("error") && !UploadEventManager.isDuplicate(status, reason)) ||
+						 (!hideDuplicates && UploadEventManager.isDuplicate(status, reason)) ||
 						 (status != null && !hideMerged && status.equals("merged")) ||
 						 (upload_status != null && upload_status.equals("error") && !hideUploadErrors)
-						 )) {
+						 ) {
 					
 					
 					// Only return max limit
@@ -1248,12 +1248,9 @@ public class EventList extends Application {
 		if(status.equals("success")) {
 			condition = "ue.db_status = 'success'";
 		} else if(status.equals("errors")) {
-			// Written without coalesce() so that an index can be used.  coalesce(db_status,'')
-			// could never equal 'error' anyway, so this matches the same rows.
-			condition = "ue.db_status = 'error' "
-					+ "and (ue.db_reason is null or ue.db_reason not like 'Duplicate survey:%')";
+			condition = UploadEventManager.SQL_ERROR;
 		} else if(status.equals("duplicates")) {
-			condition = "ue.db_status = 'error' and ue.db_reason like 'Duplicate survey:%'";
+			condition = UploadEventManager.SQL_DUPLICATE;
 		} else if(status.equals("merged")) {
 			condition = "ue.db_status = 'merged'";
 		} else if(status.equals("not_loaded")) {

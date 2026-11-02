@@ -30,6 +30,22 @@ import org.smap.sdal.model.UploadEvent;
 
 public class UploadEventManager {
 	
+	/*
+	 * The subscriber refuses a submission it already has with an error whose reason starts with this.
+	 * It is reported as a duplicate rather than an error, and is not retried, as that would only fail again.
+	 * The conditions are on an upload_event aliased ue.  An error with no reason is an error: "not like"
+	 * is never true of a null.
+	 */
+	public static final String DUPLICATE_REASON = "Duplicate survey:";
+	public static final String SQL_ERROR = "ue.db_status = 'error' "
+			+ "and (ue.db_reason is null or ue.db_reason not like '" + DUPLICATE_REASON + "%')";
+	public static final String SQL_DUPLICATE = "ue.db_status = 'error' "
+			+ "and ue.db_reason like '" + DUPLICATE_REASON + "%'";
+	
+	public static boolean isDuplicate(String dbStatus, String dbReason) {
+		return "error".equals(dbStatus) && dbReason != null && dbReason.startsWith(DUPLICATE_REASON);
+	}
+	
 	PreparedStatement pstmtInsert = null;
 	String sql = "insert into upload_event ("
 			+ "ue_id, "
@@ -129,8 +145,7 @@ public class UploadEventManager {
 	 *
 	 * Clearing results_db_applied and the subscriber's status is all it takes: the batch processor
 	 * picks up anything not yet applied.  Duplicates are left alone because applying them again
-	 * would only fail again.  An error with no reason is retried too - "not like" is never true of
-	 * a null, so writing the condition without the null check skipped those silently.
+	 * would only fail again.  An error with no reason is retried too.
 	 *
 	 * ueIds narrows it to particular uploads; null or empty means every failed upload of the
 	 * survey.  Returns the uploads that were queued.
@@ -139,13 +154,12 @@ public class UploadEventManager {
 			throws SQLException {
 
 		boolean some = ueIds != null && !ueIds.isEmpty();
-		String sql = "update upload_event "
+		String sql = "update upload_event ue "
 				+ "set results_db_applied = 'false', "
 				+ "db_status = null, "
 				+ "db_reason = null "
-				+ "where db_status = 'error' "
-				+ "and (db_reason is null or db_reason not like 'Duplicate survey:%') "
-				+ "and ident = ? "
+				+ "where " + SQL_ERROR + " "
+				+ "and ue.ident = ? "
 				+ (some ? "and ue_id = any(?) " : "")
 				+ "returning ue_id";
 

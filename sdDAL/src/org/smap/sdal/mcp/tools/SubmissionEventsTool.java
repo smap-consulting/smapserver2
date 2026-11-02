@@ -12,6 +12,7 @@ import java.util.Set;
 
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.managers.UploadEventManager;
 import org.smap.sdal.mcp.AbstractMcpTool;
 import org.smap.sdal.mcp.McpToolContext;
 import org.smap.sdal.model.MCPToolResult;
@@ -30,7 +31,7 @@ import org.smap.sdal.model.MCPToolResult;
  * Each row gets one state, worked out the way the monitor page shows it.  An upload that failed to
  * arrive is an upload_error whatever else it holds; one that arrived but has no result from the
  * subscriber yet is not_loaded; otherwise the subscriber's own status decides, with an error whose
- * reason starts "Duplicate survey:" reported as a duplicate.
+ * reason starts UploadEventManager.DUPLICATE_REASON reported as a duplicate.
  */
 public class SubmissionEventsTool extends AbstractMcpTool {
 
@@ -43,11 +44,9 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 		case "success":
 			return "ue.status is distinct from 'error' and ue.db_status = 'success'";
 		case "error":
-			return "ue.status is distinct from 'error' and ue.db_status = 'error' "
-					+ "and (ue.db_reason is null or ue.db_reason not like 'Duplicate survey:%')";
+			return "ue.status is distinct from 'error' and " + UploadEventManager.SQL_ERROR;
 		case "duplicate":
-			return "ue.status is distinct from 'error' and ue.db_status = 'error' "
-					+ "and ue.db_reason like 'Duplicate survey:%'";
+			return "ue.status is distinct from 'error' and " + UploadEventManager.SQL_DUPLICATE;
 		case "merged":
 			return "ue.status is distinct from 'error' and ue.db_status = 'merged'";
 		case "not_loaded":
@@ -259,8 +258,7 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 				} else if(dbStatus == null) {
 					state = "not_loaded";
 					reason = "Not yet added to the database";
-				} else if("error".equals(dbStatus) && dbReason != null
-						&& dbReason.startsWith("Duplicate survey:")) {
+				} else if(UploadEventManager.isDuplicate(dbStatus, dbReason)) {
 					state = "duplicate";
 					reason = dbReason;
 				} else {
