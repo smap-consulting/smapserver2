@@ -94,6 +94,9 @@ public class PeopleManager {
 					if(subStatus.emailKey == null) {
 						subStatus.emailKey = getSubscriptionKey(sd, oId, email);
 					}
+				} else if(isSuppressed(sd, oId, email)) {
+					// Their contact was deleted after they unsubscribed
+					subStatus.unsubscribed = true;
 				} else {
 					// Create a key for this email and save it in the people table
 					subStatus.emailKey = UUID.randomUUID().toString();
@@ -198,6 +201,7 @@ public class PeopleManager {
 					pstmtCreate.setString(3, key);
 					log.fine(pstmtCreate.toString());
 					pstmtCreate.executeUpdate();
+					takeSuppression(sd, oId, email);		// The new entry is unsubscribed and records it
 				}
 			}
 
@@ -456,8 +460,8 @@ public class PeopleManager {
 	public void addPerson(Connection sd, int oId, People person) throws SQLException, ApplicationException {
 		
 		String sql = "insert into people "
-				+ "(o_id, email, name) "
-				+ "values(?, ?, ?)";
+				+ "(o_id, email, name, unsubscribed) "
+				+ "values(?, ?, ?, ?)";
 		
 		PreparedStatement pstmt = null;
 		
@@ -466,12 +470,15 @@ public class PeopleManager {
 			if(email != null) {
 				email = email.toLowerCase();
 			}
+			email = HtmlSanitise.checkCleanName(email, localisation);
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
-			pstmt.setString(2,  HtmlSanitise.checkCleanName(email, localisation));
+			pstmt.setString(2, email);
 			pstmt.setString(3, HtmlSanitise.checkCleanName(person.name, localisation));
+			pstmt.setBoolean(4, isSuppressed(sd, oId, email));
 			log.fine("Add person: " + pstmt.toString());
 			pstmt.executeUpdate();
+			takeSuppression(sd, oId, email);
 		
 		} catch(Exception e) {
 			String msg = e.getMessage();
@@ -510,7 +517,8 @@ public class PeopleManager {
 				+ "opted_in_status_msg = null,"
 				+ "when_subscribed = null,"
 				+ "when_requested_subscribe = null,"
-				+ "uuid = ? "
+				+ "uuid = ?,"
+				+ "unsubscribed = ? "
 				+ "where id = ?";
 		
 		PreparedStatement pstmt = null;
@@ -535,7 +543,8 @@ public class PeopleManager {
 				pstmt.setString(1, email);
 				pstmt.setString(2, name);
 				pstmt.setString(3, UUID.randomUUID().toString());
-				pstmt.setInt(4, person.id);
+				pstmt.setBoolean(4, isSuppressed(sd, current.oId, email));
+				pstmt.setInt(5, person.id);
 			} else {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, email);
@@ -545,6 +554,9 @@ public class PeopleManager {
 			
 			log.fine("Update person: " + pstmt.toString());
 			pstmt.executeUpdate();
+			if(newAddress) {
+				takeSuppression(sd, current.oId, email);
+			}
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
@@ -554,6 +566,7 @@ public class PeopleManager {
 	 * The email address of a contact and whether they have unsubscribed
 	 */
 	private static class ContactStatus {
+		int oId;
 		String email;
 		boolean unsubscribed;
 	}
@@ -563,7 +576,7 @@ public class PeopleManager {
 	 */
 	private ContactStatus getPerson(Connection sd, int id) throws SQLException {
 		ContactStatus person = null;
-		String sql = "select email, unsubscribed from people where id = ?";
+		String sql = "select email, unsubscribed, o_id from people where id = ?";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
@@ -573,6 +586,7 @@ public class PeopleManager {
 				person = new ContactStatus();
 				person.email = rs.getString(1);
 				person.unsubscribed = rs.getBoolean(2);
+				person.oId = rs.getInt(3);
 			}
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -641,24 +655,86 @@ public class PeopleManager {
 	/*
 	 * Remove a contact
 	 */
-	public void deletePerson(Connection sd, int id) throws SQLException, ApplicationException {
+	public void deletePerson(Connection sd, int id) throws SQLException {
 		
-		// The record of an unsubscribe is what stops emails to that address, so it stays
-		ContactStatus current = getPerson(sd, id);
-		if(current != null && current.unsubscribed) {
-			throw new ApplicationException(localisation.getString("contact_uns_del").replace("%s1", current.email));
-		}
-		
+		/*
+		 * The record of an unsubscribe is what stops emails to that address.  When the contact
+		 * is deleted only the sha256 of the address is kept, which still stops them
+		 */
 		String sql = "delete from people "
-				+ "where id = ?";
+				+ "where id = ? "
+				+ "returning o_id, email, unsubscribed";
+		
+		String sqlSuppress = "insert into email_suppression (o_id, email_hash) "
+				+ "values(?, ?) "
+				+ "on conflict do nothing";
 		
 		PreparedStatement pstmt = null;
+		boolean autoCommit = sd.getAutoCommit();
 		
 		try {
+			sd.setAutoCommit(false);
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, id);
 			
 			log.fine("Delete contact: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next() && rs.getBoolean(3) && rs.getString(2) != null) {
+				int oId = rs.getInt(1);
+				String email = rs.getString(2);
+				pstmt.close();
+				pstmt = sd.prepareStatement(sqlSuppress);
+				pstmt.setInt(1, oId);
+				pstmt.setString(2, emailHash(email));
+				pstmt.executeUpdate();
+			}
+			sd.commit();
+		} catch (SQLException e) {
+			try {sd.rollback();} catch (SQLException ex) {}
+			throw e;
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			try {sd.setAutoCommit(autoCommit);} catch (SQLException e) {}
+		}
+	}
+	
+	private static String emailHash(String email) {
+		return ApiTokenManager.hash(email.toLowerCase());
+	}
+	
+	/*
+	 * True if the address unsubscribed and its contact was then deleted
+	 */
+	public static boolean isSuppressed(Connection sd, int oId, String email) throws SQLException {
+		if(email == null) {
+			return false;
+		}
+		String sql = "select 1 from email_suppression where o_id = ? and email_hash = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, emailHash(email));
+			return pstmt.executeQuery().next();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+	}
+	
+	/*
+	 * Called once a contact for the address exists again, created unsubscribed if it was suppressed,
+	 * from then on the contact records whether they are unsubscribed
+	 */
+	public static void takeSuppression(Connection sd, int oId, String email) throws SQLException {
+		if(email == null) {
+			return;
+		}
+		String sql = "delete from email_suppression where o_id = ? and email_hash = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, emailHash(email));
 			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}

@@ -997,6 +997,15 @@ drop index if exists idx_people_subscribe_token;
 alter table people drop column if exists subscribe_token;
 alter table people drop column if exists subscribe_token_expiry;
 
+-- An unsubscribed contact can be deleted.  Only the sha256 of their address is kept, which still stops emails to it
+create table if not exists email_suppression (
+	o_id integer references organisation(id) on delete cascade,
+	email_hash text,
+	created timestamp with time zone default now(),
+	constraint pk_email_suppression primary key (o_id, email_hash)
+);
+alter table email_suppression owner to ws;
+
 -- The initial admin / admin, if still in use, must be changed when the user next logs on to the console,
 -- and until then devices and the API refuse it.  A password_set of 'epoch' marks this whatever the expiry
 -- setting.  Only that account, other users who have never set a password, such as enumerators, are left alone.

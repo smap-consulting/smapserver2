@@ -1899,6 +1899,16 @@ create TABLE subscribe_token (
 	);
 create index idx_subscribe_token_person on subscribe_token(p_id);
 ALTER TABLE subscribe_token OWNER TO ws;
+
+-- Addresses whose unsubscribed contact was deleted, only the sha256 is kept.  Stops emails to them
+DROP TABLE IF EXISTS email_suppression cascade;
+create TABLE email_suppression (
+	o_id integer references organisation(id) on delete cascade,
+	email_hash text,
+	created TIMESTAMP WITH TIME ZONE default now(),
+	constraint pk_email_suppression primary key (o_id, email_hash)
+	);
+ALTER TABLE email_suppression OWNER TO ws;
 ALTER TABLE people OWNER TO ws;
 
 DROP SEQUENCE IF EXISTS mailout_seq CASCADE;

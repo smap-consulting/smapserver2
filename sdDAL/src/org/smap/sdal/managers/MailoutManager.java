@@ -399,8 +399,8 @@ public class MailoutManager {
 		PreparedStatement pstmtGetPerson = null;
 		
 		String sqlAddPerson = "insert into people "
-				+ "(o_id, email, name) "
-				+ "values(?, ?, ?)";		
+				+ "(o_id, email, name, unsubscribed) "
+				+ "values(?, ?, ?, ?)";		
 		PreparedStatement pstmtAddPerson = null;
 		
 		String sqlUpdatePerson = "update people "
@@ -461,8 +461,10 @@ public class MailoutManager {
 					// 2. Add person to people table if they do not exist
 					pstmtAddPerson.setString(2, person.email);
 					pstmtAddPerson.setString(3, person.name);
+					pstmtAddPerson.setBoolean(4, PeopleManager.isSuppressed(sd, oId, person.email));
 					log.fine("Add person to people: " + pstmtAddPerson.toString());
 					pstmtAddPerson.executeUpdate();
+					PeopleManager.takeSuppression(sd, oId, person.email);
 					ResultSet rsKeys = pstmtAddPerson.getGeneratedKeys();
 					if(rsKeys.next()) {
 						personId = rsKeys.getInt(1);
