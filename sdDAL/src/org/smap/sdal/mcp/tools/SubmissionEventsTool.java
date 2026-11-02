@@ -134,10 +134,7 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 		 */
 		String surveyIdent = null;
 		if(surveyId > 0) {
-			surveyIdent = GeneralUtilityMethods.getSurveyIdent(ctx.sd, surveyId);
-			if(surveyIdent == null) {
-				return new MCPToolResult("There is no survey " + surveyId + ".", true);
-			}
+			surveyIdent = GeneralUtilityMethods.getSurveyIdent(ctx.sd, surveyId);	// Null if there is no such survey, which then matches nothing
 		}
 
 		/*
@@ -153,7 +150,7 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 		if(projectId > 0) {
 			scope.append("and ue.p_id = ? ");
 		}
-		if(surveyIdent != null) {
+		if(surveyId > 0) {
 			scope.append("and ue.ident = ? ");
 		}
 		if(ignoreOld) {
@@ -179,7 +176,7 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 		totalsSql.append(" ").append(scope);
 
 		try (PreparedStatement pstmt = ctx.sd.prepareStatement(totalsSql.toString())) {
-			bindScope(pstmt, 1, ctx.user, oId, projectId, surveyIdent);
+			bindScope(pstmt, 1, ctx.user, oId, projectId, surveyId, surveyIdent);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				for(String s : STATES) {
@@ -217,7 +214,7 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 		try (PreparedStatement pstmt = ctx.sd.prepareStatement(sql.toString())) {
 			int idx = 1;
 			pstmt.setString(idx++, tz);
-			idx = bindScope(pstmt, idx, ctx.user, oId, projectId, surveyIdent);
+			idx = bindScope(pstmt, idx, ctx.user, oId, projectId, surveyId, surveyIdent);
 			if(cursor > 0) {
 				pstmt.setInt(idx++, cursor);
 			}
@@ -323,13 +320,13 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 
 	/* Bind the parameters of the scope clause in the order it was built.  Returns the next index */
 	private int bindScope(PreparedStatement pstmt, int idx, String user, int oId, int projectId,
-			String surveyIdent) throws Exception {
+			int surveyId, String surveyIdent) throws Exception {
 		pstmt.setString(idx++, user);
 		pstmt.setInt(idx++, oId);
 		if(projectId > 0) {
 			pstmt.setInt(idx++, projectId);
 		}
-		if(surveyIdent != null) {
+		if(surveyId > 0) {
 			pstmt.setString(idx++, surveyIdent);
 		}
 		return idx;
