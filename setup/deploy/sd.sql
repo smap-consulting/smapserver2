@@ -1025,3 +1025,6 @@ create index if not exists regions_group_survey_ident on regions(group_survey_id
 
 -- Password reset and email lookups match the address ignoring case, with lower() rather than ilike
 create index concurrently if not exists idx_users_lower_email on users(lower(email));
+
+-- The value a map panel shows, chosen in its drawer, is kept with the panel
+alter table dashboard_settings add column if not exists ds_map_option text;

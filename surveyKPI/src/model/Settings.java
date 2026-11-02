@@ -38,4 +38,5 @@ public class Settings {
 	public String chartType;
 	public boolean tShowMeta;
 	public boolean tWrapText;
+	public String mapOption;		// The value a map shows, chosen in its drawer
 }

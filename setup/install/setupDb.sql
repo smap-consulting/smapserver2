@@ -1253,7 +1253,8 @@ CREATE TABLE dashboard_settings (
 	ds_selected_geom_question text,
 	ds_chart_type text default 'histogram',
 	ds_show_meta boolean default true,
-	ds_wrap_text boolean default true
+	ds_wrap_text boolean default true,
+	ds_map_option text			-- the value a map shows, chosen in its drawer
 	);
 alter table dashboard_settings add constraint ds_user_ident FOREIGN KEY (ds_user_ident)
 	REFERENCES users (ident) MATCH SIMPLE
