@@ -549,8 +549,12 @@ public class QuestionInfo {
 		if(qType != null) {
 			String col = tableName + "." + columnName;
 			if(qType.equals("select")) {
+				/*
+				 * The answer holds the options chosen separated by spaces, so the option must be a whole one of them.
+				 * Only ASCII punctuation is escaped, in Postgres a backslash before a letter, such as é, is an error
+				 */
 				frag.add(col + " ~* ?");
-				addTextParam(frag, "\\m" + (value1 == null ? "" : value1.replaceAll("([^A-Za-z0-9_])", "\\\\$1")) + "\\M");
+				addTextParam(frag, "(^|\\s)" + (value1 == null ? "" : value1.replaceAll("([^A-Za-z0-9_\\x{80}-\\x{10FFFF}])", "\\\\$1")) + "(\\s|$)");
 			} else if(qType.equals("select1") || qType.equals("string") || qType.equals("calculate")) {
 				frag.add(col + " = ?");
 				addTextParam(frag, value1);
