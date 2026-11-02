@@ -416,6 +416,8 @@ CREATE TABLE users (
 	reset_total_tasks boolean default false	 -- Set to true to recalculate total number of tasks
 	);
 CREATE UNIQUE INDEX idx_users_ident ON users(ident);
+-- Password reset and email lookups match the address ignoring case
+CREATE INDEX idx_users_lower_email ON users(lower(email));
 ALTER TABLE users OWNER TO ws;
 
 -- Store the final status of a temporary user here in case someone want to know
