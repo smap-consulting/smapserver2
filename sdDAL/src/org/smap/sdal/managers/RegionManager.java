@@ -142,8 +142,9 @@ public class RegionManager {
 		if(cellSize < MIN_CELL_SIZE) {
 			throw new ApplicationException(localisation.getString("rg_size").replace("%s1", String.valueOf(MIN_CELL_SIZE)));
 		}
-		if(extent == null || extent.length != 4 || extent[0] >= extent[2] || extent[1] >= extent[3]
-				|| extent[0] < -180 || extent[2] > 180 || extent[1] < -85 || extent[3] > 85) {
+		// Written as what is valid, any comparison with NaN is false so a NaN is refused
+		if(extent == null || extent.length != 4 || !(extent[0] < extent[2] && extent[1] < extent[3]
+				&& extent[0] >= -180 && extent[2] <= 180 && extent[1] >= -85 && extent[3] <= 85)) {
 			throw new ApplicationException(localisation.getString("rg_extent"));
 		}
 
