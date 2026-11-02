@@ -98,8 +98,7 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 				"project_id", property("integer", "Optional. Only surveys in this project."),
 				"states", states,
 				"ignore_old", property("boolean", "Optional. Leave out uploads more than 100 days old, "
-						+ "from the list and the totals, as the monitor page does by default. Default true; "
-						+ "false counts every upload ever made, which is slow on a busy server."),
+						+ "as the monitor page does by default. Default false."),
 				"limit", property("integer", "Optional. Maximum uploads to return. Default 50."),
 				"cursor", property("integer", "Optional. next_cursor from a previous call, to read "
 						+ "older uploads."));
@@ -110,7 +109,7 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 
 		int surveyId = intArg(arguments, "survey_id", 0);
 		int projectId = intArg(arguments, "project_id", 0);
-		boolean ignoreOld = boolArg(arguments, "ignore_old", true);
+		boolean ignoreOld = boolArg(arguments, "ignore_old", false);
 		int limit = ctx.cap(intArg(arguments, "limit", 50));
 		int cursor = intArg(arguments, "cursor", 0);
 
@@ -163,26 +162,46 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 
 		/*
 		 * Totals over the whole scope, before states and the cursor narrow it, so the caller can
-		 * see how many failures there are while reading a page of something else.  Every row in the
-		 * scope is counted, so by default the scope leaves out old uploads
+		 * see how many failures there are while reading a page of something else.
+		 *
+		 * Nearly every upload is a success, and those are counted from idx_ue_p_status_ident
+		 * alone without reading the rows.  That leaves out the upload status, which an upload
+		 * that failed to arrive cannot need: it is never processed, so its db_status stays null.
+		 * The rest are the rare db_status values that idx_ue_db_status_rare holds, so only those
+		 * rows are read for the conditions that split them.
 		 */
 		Map<String, Object> totals = new LinkedHashMap<>();
-		StringBuilder totalsSql = new StringBuilder("select ");
-		for(int i = 0; i < STATES.size(); i++) {
-			if(i > 0) {
-				totalsSql.append(", ");
+		totals.put("success", 0);
+		try (PreparedStatement pstmt = ctx.sd.prepareStatement("select count(*) " + scope
+				+ "and ue.db_status = 'success'")) {
+			bindScope(pstmt, 1, ctx.user, oId, projectId, surveyId, surveyIdent);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				totals.put("success", rs.getInt(1));
 			}
-			totalsSql.append("count(*) filter (where ").append(condition(STATES.get(i)))
-					.append(") as ").append(STATES.get(i));
 		}
-		totalsSql.append(" ").append(scope);
+
+		StringBuilder totalsSql = new StringBuilder("select ");
+		int c = 0;
+		for(String state : STATES) {
+			if(!"success".equals(state)) {
+				if(c++ > 0) {
+					totalsSql.append(", ");
+				}
+				totalsSql.append("count(*) filter (where ").append(condition(state))
+						.append(") as ").append(state);
+			}
+		}
+		totalsSql.append(" ").append(scope).append("and ue.db_status is distinct from 'success'");
 
 		try (PreparedStatement pstmt = ctx.sd.prepareStatement(totalsSql.toString())) {
 			bindScope(pstmt, 1, ctx.user, oId, projectId, surveyId, surveyIdent);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
-				for(String s : STATES) {
-					totals.put(s, rs.getInt(s));
+				for(String state : STATES) {
+					if(!"success".equals(state)) {
+						totals.put(state, rs.getInt(state));
+					}
 				}
 			}
 		}
@@ -278,7 +297,7 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 		}
 
 		StringBuilder text = new StringBuilder();
-		text.append(ignoreOld ? "Totals, last 100 days: " : "Totals: ");
+		text.append("Totals: ");
 		int t = 0;
 		for(String s : STATES) {
 			if(t++ > 0) {
@@ -308,7 +327,6 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 
 		Map<String, Object> data = new LinkedHashMap<>();
 		data.put("totals", totals);
-		data.put("ignore_old", ignoreOld);
 		data.put("uploads", rows);
 		data.put("count", rows.size());
 		data.put("timezone", tz);
