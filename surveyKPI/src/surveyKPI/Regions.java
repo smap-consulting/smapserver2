@@ -41,6 +41,7 @@ import org.smap.sdal.managers.RegionManager;
 import org.smap.sdal.model.RegionGrid;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -164,8 +165,8 @@ public class Regions extends Application {
 			response = Response.ok(new Gson().toJson(list)).build();
 
 		} catch (Exception e) {
-			log.log(Level.SEVERE, "Error", e);
-			response = Response.serverError().entity(e.getMessage()).build();
+				log.log(Level.SEVERE, "Error", e);
+			response = serverError(sd, request);
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			SDDataSource.closeConnection(connectionString, sd);
@@ -188,7 +189,12 @@ public class Regions extends Application {
 	        throw new AuthorisationException();
 		}
 
-		NewGrid grid = new Gson().fromJson(gridString, NewGrid.class);
+		NewGrid grid = null;
+		try {
+			grid = new Gson().fromJson(gridString, NewGrid.class);
+		} catch (JsonSyntaxException e) {
+			log.info("Invalid grid: " + e.getMessage());
+		}
 		if(grid == null) {
 			return Response.status(Response.Status.BAD_REQUEST).build();
 		}
@@ -215,8 +221,8 @@ public class Regions extends Application {
 		} catch (ApplicationException e) {
 			response = Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).build();
 		} catch (Exception e) {
-			log.log(Level.SEVERE, "Error", e);
-			response = Response.serverError().entity(e.getMessage()).build();
+				log.log(Level.SEVERE, "Error", e);
+			response = serverError(sd, request);
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);
@@ -253,8 +259,8 @@ public class Regions extends Application {
 			}
 
 		} catch (Exception e) {
-			log.log(Level.SEVERE, "Error", e);
-			response = Response.serverError().entity(e.getMessage()).build();
+				log.log(Level.SEVERE, "Error", e);
+			response = serverError(sd, request);
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);
@@ -269,6 +275,18 @@ public class Regions extends Application {
 		} catch (Exception e) {
 			return false;
 		}
+	}
+
+	/*
+	 * The details of an unexpected error, which can include sql and table names, go to the log and not to the browser
+	 */
+	private Response serverError(Connection sd, HttpServletRequest request) {
+		String msg = "The request failed, the details have been written to the server log";
+		try {
+			msg = getLocalisation(sd, request).getString("c_err_log");
+		} catch (Exception e) {
+		}
+		return Response.serverError().entity(msg).build();
 	}
 
 	private ResourceBundle getLocalisation(Connection sd, HttpServletRequest request) throws SQLException {
