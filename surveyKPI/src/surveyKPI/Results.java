@@ -333,24 +333,7 @@ public class Results extends Application {
 						if(!superUser) {
 							regionRbac = new RoleManager(localisation).getSurveyRowFilter(sd,
 									GeneralUtilityMethods.getSurveyIdent(sd, shapeSId), request.getRemoteUser());
-							for(SqlFrag rf : regionRbac) {
-								if(rf.columns.size() > 0) {
-									for(int i = 0; i < rf.columns.size(); i++) {
-										int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, shapeSId, rf.humanNames.get(i));
-										if(rqId > 0) {
-											QuestionInfo fRbac = new QuestionInfo(shapeSId, rqId, sd);
-											shapeTables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
-										} else {
-											Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, shapeSId);
-											shapeTables.add(tlf.tableName, tlf.id, tlf.parentform);
-										}
-									}
-									if(shapeFilter.length() > 0) {
-										shapeFilter.append(" or");
-									}
-									shapeFilter.append(" (").append(rf.sql.toString()).append(")");
-								}
-							}
+							shapeFilter.append(shapeTables.addRowFilters(sd, regionRbac));
 						}
 						shapeTables.addIntermediateTables(sd);
 						String shapeJoin = shapeTables.getTableJoinSQL();
@@ -451,31 +434,10 @@ public class Results extends Application {
 			ArrayList<SqlFrag> rfArray = null;
 			if(!superUser) {
 				rfArray = rm.getSurveyRowFilter(sd, sIdent, request.getRemoteUser());
-				StringBuffer rfString = new StringBuffer("");
-				if(rfArray.size() > 0) {
-					for(SqlFrag rf : rfArray) {
-						if(rf.columns.size() > 0) {
-							for(int i = 0; i < rf.columns.size(); i++) {
-								int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, rf.humanNames.get(i));
-								if(rqId > 0) {
-									QuestionInfo fRbac = new QuestionInfo(sId, rqId, sd);
-									tables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
-								} else {
-									// Assume meta and get top level table
-									Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
-									tables.add(tlf.tableName, tlf.id, tlf.parentform);
-								}
-							}
-							if(rfString.length() > 0) {
-								rfString.append(" or");
-							}
-							rfString.append(" (").append(rf.sql.toString()).append(")");
-							hasRbacRowFilter = true;
-						}
-					}
-					if(rfString.length() > 0) {
-						sqlFilter.append(" and ").append("(").append(rfString.toString()).append(")");
-					}
+				String rfString = tables.addRowFilters(sd, rfArray);
+				if(rfString.length() > 0) {
+					sqlFilter.append(" and ").append("(").append(rfString).append(")");
+					hasRbacRowFilter = true;
 				}
 			}
 				

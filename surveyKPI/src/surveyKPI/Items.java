@@ -469,38 +469,14 @@ public class Items extends Application {
 				ArrayList<SqlFrag> rfArray = null;
 				if(!superUser) {
 					rfArray = rm.getSurveyRowFilter(sd, sIdent, request.getRemoteUser());
-					String rfString = "";
-					if(rfArray.size() > 0) {
-						for(SqlFrag rf : rfArray) {
-							if(rf.columns.size() > 0) {
-								for(int i = 0; i < rf.columns.size(); i++) {
-									int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, rf.humanNames.get(i));
-									if(rqId > 0) {
-										QuestionInfo fRbac = new QuestionInfo(sId, rqId, sd);
-										tables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
-									} else {
-										// Assume meta and get top level table
-										Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
-										tables.add(tlf.tableName, tlf.id, tlf.parentform);
-
-										// Qualify the meta column as it is in every results table
-										rf.qualifyColumn(rf.columns.get(i), tlf.tableName);
-									}
-								}
-								if(rfString.length() > 0) {
-									rfString += " or";
-								}
-								rfString += " (" + rf.sql.toString() + ")";
-								hasRbacRowFilter = true;
-							}
+					String rfString = tables.addRowFilters(sd, rfArray);
+					if(rfString.length() > 0) {
+						if(sqlFilter.length() > 0) {
+							sqlFilter += " and " + "(" + rfString + ")";
+						} else {
+							sqlFilter = "(" + rfString + ")";
 						}
-						if(rfString.trim().length() > 0) {
-							if(sqlFilter.length() > 0) {
-								sqlFilter += " and " + "(" + rfString + ")";
-							} else {
-								sqlFilter = "(" + rfString + ")";
-							}
-						}
+						hasRbacRowFilter = true;
 					}
 				}
 				

@@ -10,6 +10,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.logging.Logger;
 
+import org.smap.sdal.model.Form;
+import org.smap.sdal.model.SqlFrag;
+
 
 /*
 This file is part of SMAP.
@@ -251,6 +254,38 @@ public class Tables {
 		}
 		
 		return sqlFrag;
+	}
+	
+	/*
+	 * Add the tables that a survey's role row filters refer to and return the filters or'd together,
+	 * empty if none of them has a column.  A column that is not a question is meta, which is in every
+	 * results table, so it is qualified with the top level table
+	 */
+	public String addRowFilters(Connection sd, ArrayList<SqlFrag> rfArray) throws Exception {
+		StringBuilder rfString = new StringBuilder("");
+		if(rfArray == null) {
+			return "";
+		}
+		for(SqlFrag rf : rfArray) {
+			if(rf.columns.size() > 0) {
+				for(int i = 0; i < rf.columns.size(); i++) {
+					int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, rf.humanNames.get(i));
+					if(rqId > 0) {
+						QuestionInfo fRbac = new QuestionInfo(sId, rqId, sd);
+						add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
+					} else {
+						Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+						add(tlf.tableName, tlf.id, tlf.parentform);
+						rf.qualifyColumn(rf.columns.get(i), tlf.tableName);
+					}
+				}
+				if(rfString.length() > 0) {
+					rfString.append(" or");
+				}
+				rfString.append(" (").append(rf.sql.toString()).append(")");
+			}
+		}
+		return rfString.toString();
 	}
 	
 }
