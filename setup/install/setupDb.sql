@@ -1883,14 +1883,22 @@ create TABLE people (
 	uuid text,								-- Uniquely identify this person
 	when_unsubscribed TIMESTAMP WITH TIME ZONE,
 	when_subscribed TIMESTAMP WITH TIME ZONE,
-	when_requested_subscribe TIMESTAMP WITH TIME ZONE,		-- prevent spamming
-	subscribe_token text,					-- sha256 of the single use token in an opt in or re-subscribe link
-	subscribe_token_expiry TIMESTAMP WITH TIME ZONE
+	when_requested_subscribe TIMESTAMP WITH TIME ZONE		-- prevent spamming
 	);
 create unique index idx_people on people(o_id, email);
-create index if not exists idx_people_subscribe_token on people(subscribe_token);
 create index if not exists opted_in_people_idx on people(opted_in);
 create index if not exists unsub_people_idx on people(unsubscribed);
+
+-- The tokens in opt in and re-subscribe links, only the sha256 is stored.  Each email has its own so
+-- the link in an earlier one still works.  Single use, all of a person's go when one is used
+DROP TABLE IF EXISTS subscribe_token cascade;
+create TABLE subscribe_token (
+	token_hash text constraint pk_subscribe_token primary key,
+	p_id integer references people(id) on delete cascade,
+	expiry TIMESTAMP WITH TIME ZONE
+	);
+create index idx_subscribe_token_person on subscribe_token(p_id);
+ALTER TABLE subscribe_token OWNER TO ws;
 ALTER TABLE people OWNER TO ws;
 
 DROP SEQUENCE IF EXISTS mailout_seq CASCADE;

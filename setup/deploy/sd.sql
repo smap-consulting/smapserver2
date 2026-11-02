@@ -981,12 +981,21 @@ create table if not exists reply_token (
 alter table reply_token owner to ws;
 create index if not exists idx_reply_token_created on reply_token(created);
 
--- The token in an opt in or re-subscribe link.  These used the address's unsubscribe key, which is
+-- The tokens in opt in and re-subscribe links.  These used the address's unsubscribe key, which is
 -- in every email sent to it, so anyone with an old or forwarded email could subscribe someone again
--- after they had unsubscribed.  Single use and lapses after 30 days.  Only the sha256 is stored.
-alter table people add column if not exists subscribe_token text;
-alter table people add column if not exists subscribe_token_expiry timestamp with time zone;
-create index if not exists idx_people_subscribe_token on people(subscribe_token);
+-- after they had unsubscribed.  Single use and lapse after 30 days.  Only the sha256 is stored.  Each
+-- email has its own, so the link in an earlier one still works, and all of a person's go when one is used
+create table if not exists subscribe_token (
+	token_hash text constraint pk_subscribe_token primary key,
+	p_id integer references people(id) on delete cascade,
+	expiry timestamp with time zone
+);
+alter table subscribe_token owner to ws;
+create index if not exists idx_subscribe_token_person on subscribe_token(p_id);
+-- Replaced by subscribe_token before release, the columns only exist where a development version ran
+drop index if exists idx_people_subscribe_token;
+alter table people drop column if exists subscribe_token;
+alter table people drop column if exists subscribe_token_expiry;
 
 -- The initial admin / admin, if still in use, must be changed when the user next logs on to the console,
 -- and until then devices and the API refuse it.  A password_set of 'epoch' marks this whatever the expiry

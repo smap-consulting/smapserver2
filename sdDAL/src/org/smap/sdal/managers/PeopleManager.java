@@ -278,15 +278,16 @@ public class PeopleManager {
 		 * A subscribe token from an opt in or re-subscribe email.  Used once, and only for
 		 * SUBSCRIBE_DAYS.  This is the only way back for an address that has unsubscribed.
 		 */
-		String sql = "update people "
+		String sql = "with t as (delete from subscribe_token where token_hash = ? and expiry > now() returning p_id) "
+				+ "update people "
 				+ "set unsubscribed = false,"
 				+ "opted_in = true, "
-				+ "when_subscribed = now(), "
-				+ "subscribe_token = null, "
-				+ "subscribe_token_expiry = null "
-				+ "where subscribe_token = ? "
-				+ "and subscribe_token_expiry > now() "
-				+ "returning o_id, email";
+				+ "when_subscribed = now() "
+				+ "where id in (select p_id from t) "
+				+ "returning o_id, email, id";
+		
+		// The person's other links are not needed now
+		String sqlDelOthers = "delete from subscribe_token where p_id = ?";
 		
 		/*
 		 * The address's unsubscribe key, which opt in emails sent before subscribe tokens used.
@@ -306,7 +307,13 @@ public class PeopleManager {
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, ApiTokenManager.hash(key));			
 			ResultSet rs = pstmt.executeQuery();
-			if(!rs.next()) {
+			if(rs.next()) {
+				int pId = rs.getInt(3);
+				try (PreparedStatement pstmtDel = sd.prepareStatement(sqlDelOthers)) {
+					pstmtDel.setInt(1, pId);
+					pstmtDel.executeUpdate();
+				}
+			} else {
 				try {pstmt.close();} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sqlKey);
 				pstmt.setString(1, key);
@@ -338,8 +345,8 @@ public class PeopleManager {
 	
 	/*
 	 * A single use token for the link in an opt in or re-subscribe email to an address.  Only its
-	 * sha256 is kept, and a new one replaces the last.  Null if the address is not a contact of
-	 * the organisation.
+	 * sha256 is kept.  Tokens already sent stay valid until they lapse or one is used.  Null if the
+	 * address is not a contact of the organisation.
 	 */
 	public String createSubscribeToken(Connection sd, int oId, String email) throws SQLException {
 		
@@ -347,21 +354,27 @@ public class PeopleManager {
 		random.nextBytes(bytes);
 		String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 		
-		String sql = "update people "
-				+ "set subscribe_token = ?, "
-				+ "subscribe_token_expiry = now() + interval '" + SUBSCRIBE_DAYS + " days' "
+		String sql = "insert into subscribe_token (token_hash, p_id, expiry) "
+				+ "select ?, id, now() + interval '" + SUBSCRIBE_DAYS + " days' from people "
 				+ "where o_id = ? "
 				+ "and email = ?";
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = sd.prepareStatement(sql);
+		
+		// Lapsed tokens of the person, there is no reason to keep them
+		String sqlLapsed = "delete from subscribe_token where expiry < now() "
+				+ "and p_id in (select id from people where o_id = ? and email = ?)";
+		
+		String address = email == null ? null : email.trim().toLowerCase();
+		try (PreparedStatement pstmt = sd.prepareStatement(sqlLapsed)) {
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, address);
+			pstmt.executeUpdate();
+		}
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
 			pstmt.setString(1, ApiTokenManager.hash(token));
 			pstmt.setInt(2, oId);
-			pstmt.setString(3, email == null ? null : email.trim().toLowerCase());
+			pstmt.setString(3, address);
 			int count = pstmt.executeUpdate();
 			return count > 0 ? token : null;
-		} finally {
-			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
 	}
 	
