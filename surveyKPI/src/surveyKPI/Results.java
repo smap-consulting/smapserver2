@@ -818,6 +818,19 @@ public class Results extends Application {
 					JSONArray prikeys = (JSONArray) groupInfo.featureProps.get("prikeys");
 					prikeys.put(resultSet.getString("prikey"));
 					
+					/*
+					 * A region holds many records, list each with its answer so they can be looked at one by
+					 * one, as the points of a cluster can
+					 */
+					if(regionSource != null) {
+						if(!groupInfo.featureProps.has("records")) {
+							groupInfo.featureProps.put("records", new JSONArray());
+							groupInfo.featureProps.put("sourceData", new JSONArray());
+						}
+						groupInfo.featureProps.getJSONArray("records").put(resultSet.getString("prikey"));
+						groupInfo.featureProps.getJSONArray("sourceData").put(countOnly ? "" : getAnswer(aQ, resultSet));
+					}
+					
 					
 					if(countOnly) {
 						values.add(new RecordValues(recordsKey, 1));
@@ -1107,6 +1120,38 @@ public class Results extends Application {
 	/*
 	 * Returns the SQL fragment that restricts results to a specific record
 	 */
+	/*
+	 * A record's answer to the question as it is shown, choices by their labels
+	 */
+	private String getAnswer(QuestionInfo q, ResultSet rs) throws SQLException {
+		if(q.isGeom()) {
+			return "";
+		}
+		String type = q.getType();
+		StringBuilder answer = new StringBuilder("");
+		if(type.equals("select") && !q.isCompressed()) {
+			for(OptionInfo oi : q.getOptions()) {
+				if("1".equals(rs.getString(oi.getColumnName()))) {
+					answer.append(answer.length() > 0 ? ", " : "").append(oi.getLabel());
+				}
+			}
+		} else if(type.startsWith("select")) {
+			String v = rs.getString(q.getColumnName());
+			if(v != null) {
+				for(String name : v.trim().split(" ")) {
+					if(name.length() > 0) {
+						String label = q.getOptionLabelForName(name);
+						answer.append(answer.length() > 0 ? ", " : "").append(label == null ? name : label);
+					}
+				}
+			}
+		} else {
+			String v = rs.getString(q.getColumnName());
+			answer.append(v == null ? "" : v);
+		}
+		return answer.toString();
+	}
+	
 	private String restrictToRecordId(QuestionInfo q, int rId) {
 		String sqlFrag = "";
 		

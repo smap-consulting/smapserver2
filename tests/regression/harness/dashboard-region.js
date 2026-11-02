@@ -11,6 +11,8 @@
 //       too many cells    a grid of more than 20,000 cells is refused
 //       shape counts      grouped by the polygons and labelled by the label question, each polygon
 //                         holds expect.shapes, the record outside both is left out
+//       region records    each polygon lists its records with their answers, by choice label, so they
+//                         can be looked at one by one as the points of a cluster can
 //       old format        a region sent without its survey, as panels saved before bundle polygons do,
 //                         gives the same counts
 //       bundle counts     grouped by the bundle survey's polygons, labelled by its label question
@@ -78,8 +80,16 @@ if (CONFIG.part === 'api') {
 	check('too many cells', big.status === 400, String(big.status));
 
 	const ident = (await getJson('/surveyKPI/surveys?projectId=' + CONFIG.project + '&blocked=true')).find(s => s.id == CONFIG.sId).ident;
-	const shapeNew = counts(await results(withQ + '&regionSurvey=' + ident + '&regionShape=' + P.shape + '&regionLabel=' + P.label), l => Object.keys(E.shapes[l] || {}));
+	const shapeRes = await results(withQ + '&regionSurvey=' + ident + '&regionShape=' + P.shape + '&regionLabel=' + P.label);
+	const shapeNew = counts(shapeRes, l => Object.keys(E.shapes[l] || {}));
 	check('shape counts', JSON.stringify(shapeNew) === JSON.stringify(E.shapes), JSON.stringify(shapeNew));
+	const listed = {};
+	(shapeRes.d ? shapeRes.d.features : []).forEach(f => {
+		const p = f.properties, recs = p.records || [], vals = p.sourceData || [];
+		listed[p.group_label] = recs.length === p.prikeys.length && vals.length === recs.length
+			? Object.fromEntries(Object.keys(E.shapes[p.group_label] || {}).map(k => [k, vals.filter(v => v === k).length])) : 'records ' + recs.length + ' of ' + p.prikeys.length;
+	});
+	check('region records', JSON.stringify(listed) === JSON.stringify(E.shapes), JSON.stringify(listed));
 	const shapeOld = counts(await results(withQ + '&regionShape=' + P.shape + '&regionLabel=' + P.label), l => Object.keys(E.shapes[l] || {}));
 	check('old format', JSON.stringify(shapeOld) === JSON.stringify(shapeNew), JSON.stringify(shapeOld));
 	const bundle = counts(await results(withQ + '&regionSurvey=' + encodeURIComponent(CONFIG.bundleIdent) + '&regionShape=' + B.shape + '&regionLabel=' + B.label), l => Object.keys(E.bundle[l] || {}));
