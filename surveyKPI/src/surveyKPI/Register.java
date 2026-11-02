@@ -173,17 +173,19 @@ public class Register extends Application {
 			/*
 			 * Registration is public, creates an organisation, a user and a project, and emails
 			 * the address given.  Where the server has Turnstile keys the person must pass the
-			 * challenge, and there is a limit on how many can be made.  The challenge is checked
+			 * challenge, and there is a limit on how many can be made.  The limit for the whole
+			 * server only applies without the challenge, see RegistrationThrottle.  The challenge is checked
 			 * first so that requests failing it do not use up the limit for genuine ones.
 			 */
 			ServerData serverData = new ServerManager().getServer(sd, localisation);
-			if(hasTurnstile(serverData)) {
+			boolean turnstile = hasTurnstile(serverData);
+			if(turnstile) {
 				if(!TurnstileVerifier.verify(cfToken, serverData.turnstile_secret_key.trim(), request.getRemoteAddr())) {
 					log.info("Registration refused, Turnstile check failed for " + request.getRemoteAddr());
 					throw new ApplicationException(localisation.getString("reg_captcha"));
 				}
 			}
-			if(!RegistrationThrottle.tryRegister(request)) {
+			if(!RegistrationThrottle.tryRegister(request, !turnstile)) {
 				log.warning("Registration refused, too many registrations, client " + request.getRemoteAddr());
 				throw new ApplicationException(localisation.getString("reg_too_many"));
 			}
