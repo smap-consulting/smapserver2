@@ -85,6 +85,9 @@ public class Results extends Application {
 	
 	private static Logger log =
 			 Logger.getLogger(Results.class.getName());
+
+	// Temporary table holding the polygons a map is grouped by, dropped at the end of the request
+	private static final String REGION_TABLE = "smap_map_regions";
 	
 	LogManager lm = new LogManager();		// Application log
 	
@@ -148,6 +151,8 @@ public class Results extends Application {
 		boolean hasGeo = true;
 		String regionSource = null;		// Sub query giving the polygons to group by
 		ArrayList<SqlFrag> regionRbac = null;	// Role row filters on the survey holding the polygons
+		boolean regionShapes = false;		// The regions are polygons from a survey, see REGION_TABLE
+		boolean regionTableMade = false;
 		HashMap<String, String> regionLabels = new HashMap<> ();
 		QuestionInfo date = null;
 		QuestionInfo group = null;
@@ -357,6 +362,7 @@ public class Results extends Application {
 								+ " and " + shapeTable + "." + shape.getColumnName() + " is not null"
 								+ (shapeFilter.length() > 0 ? " and (" + shapeFilter + ")" : "")
 								+ ")";
+						regionShapes = true;
 					}
 				}
 			}
@@ -475,10 +481,35 @@ public class Results extends Application {
 				
 			// Add any tables required to complete the join
 			tables.addIntermediateTables(sd);
-			
+
+			/*
+			 * Polygons from a survey have no spatial index, and finding the region of each record means
+			 * testing it against every polygon.  Copy them, after the role filters, to a temporary table
+			 * with an index.  Grids already have one.
+			 */
+			if(regionShapes) {
+				try (PreparedStatement pstmtRegion = cResults.prepareStatement("drop table if exists " + REGION_TABLE)) {
+					pstmtRegion.executeUpdate();
+				}
+				regionTableMade = true;
+				try (PreparedStatement pstmtRegion = cResults.prepareStatement("create temp table " + REGION_TABLE
+						+ " as select * from " + regionSource + " s")) {
+					GeneralUtilityMethods.setArrayFragParams(pstmtRegion, regionRbac, 1, tz);
+					pstmtRegion.executeUpdate();
+				}
+				try (PreparedStatement pstmtRegion = cResults.prepareStatement("create index on " + REGION_TABLE + " using gist(region_geom)")) {
+					pstmtRegion.executeUpdate();
+				}
+				try (PreparedStatement pstmtRegion = cResults.prepareStatement("analyze " + REGION_TABLE)) {
+					pstmtRegion.executeUpdate();
+				}
+				regionSource = REGION_TABLE;
+				regionRbac = null;		// Applied when the table was made
+			}
+
 			/*
 			 * Create the sql statement
-			 */	
+			 */
 			boolean doneWhere = false;
 			String sqlSelect = getSelect(q);
 			if(regionSource != null) {
@@ -1045,6 +1076,14 @@ public class Results extends Application {
 
 			try {if (resultSet != null) {resultSet.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			if(regionTableMade) {
+				// The connection goes back to the pool, so the session and its temporary tables live on
+				try (PreparedStatement pstmtRegion = cResults.prepareStatement("drop table if exists " + REGION_TABLE)) {
+					pstmtRegion.executeUpdate();
+				} catch (SQLException e) {
+					log.log(Level.WARNING, "Could not drop " + REGION_TABLE, e);
+				}
+			}
 
 			SDDataSource.closeConnection("surveyKPI-Results", sd);
 			ResultsDataSource.closeConnection("surveyKPI-Results", cResults);
