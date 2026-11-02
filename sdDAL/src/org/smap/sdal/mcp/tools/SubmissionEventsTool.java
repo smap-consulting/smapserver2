@@ -98,7 +98,8 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 				"project_id", property("integer", "Optional. Only surveys in this project."),
 				"states", states,
 				"ignore_old", property("boolean", "Optional. Leave out uploads more than 100 days old, "
-						+ "as the monitor page does by default. Default false."),
+						+ "from the list and the totals, as the monitor page does by default. Default true; "
+						+ "false counts every upload ever made, which is slow on a busy server."),
 				"limit", property("integer", "Optional. Maximum uploads to return. Default 50."),
 				"cursor", property("integer", "Optional. next_cursor from a previous call, to read "
 						+ "older uploads."));
@@ -109,7 +110,7 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 
 		int surveyId = intArg(arguments, "survey_id", 0);
 		int projectId = intArg(arguments, "project_id", 0);
-		boolean ignoreOld = boolArg(arguments, "ignore_old", false);
+		boolean ignoreOld = boolArg(arguments, "ignore_old", true);
 		int limit = ctx.cap(intArg(arguments, "limit", 50));
 		int cursor = intArg(arguments, "cursor", 0);
 
@@ -162,7 +163,8 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 
 		/*
 		 * Totals over the whole scope, before states and the cursor narrow it, so the caller can
-		 * see how many failures there are while reading a page of something else
+		 * see how many failures there are while reading a page of something else.  Every row in the
+		 * scope is counted, so by default the scope leaves out old uploads
 		 */
 		Map<String, Object> totals = new LinkedHashMap<>();
 		StringBuilder totalsSql = new StringBuilder("select ");
@@ -276,7 +278,7 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 		}
 
 		StringBuilder text = new StringBuilder();
-		text.append("Totals: ");
+		text.append(ignoreOld ? "Totals, last 100 days: " : "Totals: ");
 		int t = 0;
 		for(String s : STATES) {
 			if(t++ > 0) {
@@ -306,6 +308,7 @@ public class SubmissionEventsTool extends AbstractMcpTool {
 
 		Map<String, Object> data = new LinkedHashMap<>();
 		data.put("totals", totals);
+		data.put("ignore_old", ignoreOld);
 		data.put("uploads", rows);
 		data.put("count", rows.size());
 		data.put("timezone", tz);
