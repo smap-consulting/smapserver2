@@ -97,7 +97,7 @@ if (STEP.do === 'survey') {
 } else if (STEP.do === 'records') {
 	const meta = await getJson('/surveyKPI/survey/' + STEP.sId + '/getMeta');
 	const top = meta.forms.find(f => f.name === meta.top_table) || meta.forms[0];
-	const have = (await getJson('/surveyKPI/items/' + top.f_id + '?rec_limit=500')).features || [];
+	const have = (await getJson('/surveyKPI/items/' + top.f_id + '?rec_limit=500&mustHaveGeom=no')).features || [];
 	const ids = new Set(have.map(f => f.properties && f.properties.instanceid));
 	const xmlEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 	result.submitted = [];

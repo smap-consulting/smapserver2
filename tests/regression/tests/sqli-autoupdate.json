@@ -32,7 +32,7 @@
   "probes": [
     {
       "name": "auto update: source question found, translation filled",
-      "url": "/surveyKPI/items/{fId}?rec_limit=50",
+      "url": "/surveyKPI/items/{fId}?rec_limit=50&mustHaveGeom=no",
       "expect": {
         "filled": {
           "instanceID": "{record}",
