@@ -172,6 +172,16 @@ if [ "$DBHOST" = "127.0.0.1" ]; then
         echo "alter system set pg_stat_statements.track = 'top'" | sudo -i -u postgres $PSQL -q -d survey_definitions
         echo "alter system set pg_stat_statements.track_utility = off" | sudo -i -u postgres $PSQL -q -d survey_definitions
     fi
+
+    # Each web application gets its own pair of pools from context.xml, so the default of 100
+    # connections is used up at tomcat startup.  install.sh only sets 400 where it copies its
+    # postgresql.conf (Debian and Ubuntu), so other installs and older servers are raised here.
+    # Takes effect when postgres restarts.  Never lowered
+    max_conn=`echo "show max_connections" | sudo -i -u postgres $PSQL -tA -d survey_definitions 2>/dev/null`
+    if [ -n "$max_conn" ] && [ "$max_conn" -lt 400 ]; then
+        echo "Raising max_connections from $max_conn to 400 (takes effect when postgres restarts)"
+        echo "alter system set max_connections = 400" | sudo -i -u postgres $PSQL -q -d survey_definitions
+    fi
 fi
 
 # Apply database patches
