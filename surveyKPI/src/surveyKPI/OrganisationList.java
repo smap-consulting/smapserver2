@@ -91,6 +91,7 @@ public class OrganisationList extends Application {
 	
 	Authorise a = null;
 	Authorise aAdminAnalyst = null;
+	Authorise aAdmin = null;
 	Authorise aAdminOrg = null;
 	Authorise aSecurity = null;
 	Authorise aAdminOrgSecurity = null;
@@ -115,6 +116,8 @@ public class OrganisationList extends Application {
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
 		aAdminAnalyst = new Authorise(authorisations, null);
+		
+		aAdmin = new Authorise(null, Authorise.ADMIN);
 		
 		aSecurity = new Authorise(null, Authorise.SECURITY);
 		
@@ -1333,7 +1336,7 @@ public class OrganisationList extends Application {
 		String connectionString = "surveyKPI-OrganisationList-updateAppearanceSettings";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdminAnalyst.isAuthorised(sd, request, request.getRemoteUser());
+		aAdmin.isAuthorised(sd, request, request.getRemoteUser());
 		// End Authorisation
 		
 
@@ -1422,6 +1425,9 @@ public class OrganisationList extends Application {
 				}
 			}	
 			
+			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request), localisation);
+			cm.checkName(ao.css);
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setBoolean(1, ao.set_as_theme);
@@ -1434,7 +1440,6 @@ public class OrganisationList extends Application {
 			pstmt.executeUpdate();
 			
 			// Set the css custom styling file
-			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request), localisation);
 			cm.setCurrentCssFile(ao.css, oId);
 			
 			// Save the main logo, if it has been passed

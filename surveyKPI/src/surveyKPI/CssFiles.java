@@ -65,19 +65,22 @@ import java.util.logging.Logger;
 @Path("/css")
 public class CssFiles extends Application {
 
-	// Allow analysts and admin to upload resources for the whole organisation
+	// Admins can change organisation css, analysts can list it, owners change server css
 	Authorise auth = null;
+	Authorise authView = null;
 	Authorise authServer = null;
 
 	LogManager lm = new LogManager();		// Application log
 
 	public CssFiles() {
 
-		// Administrators
+		// Administrators can change organisation css, analysts can view the list
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
-		auth = new Authorise(authorisations, null);
+		authView = new Authorise(authorisations, null);
+		
+		auth = new Authorise(null, Authorise.ADMIN);
 
 		// Owner / server level
 		authorisations = new ArrayList<String> ();	
@@ -148,7 +151,11 @@ public class CssFiles extends Application {
 
 					if(item.getFieldName().equals("file")) {
 						String fileName = item.getName();
+						if(fileName == null) {
+							throw new ApplicationException(localisation.getString("css_name"));
+						}
 						fileName = fileName.replaceAll(" ", "_"); // Remove spaces from file name
+						cm.checkName(fileName);
 	
 						// Validation
 						if(item.getSize() > 300000) {
@@ -159,9 +166,8 @@ public class CssFiles extends Application {
 						dum.validateDocument(fileName, item, DocumentUploadManager.CSS_TYPES);
 						
 						// save the file
-						File folder = cm.getCssLoadedFolder(orgId);
-						String filePath = folder.getAbsolutePath() + File.separator + fileName;
-						File savedFile = new File(filePath);
+						File savedFile = cm.getLoadedFile(fileName, orgId);
+						String filePath = savedFile.getAbsolutePath();
 						item.write(savedFile.toPath());  // Save the new file
 						
 						String msg = localisation.getString("c_add_css") + " " + filePath;
@@ -203,7 +209,7 @@ public class CssFiles extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		if(org) {
-			auth.isAuthorised(sd, request, request.getRemoteUser());	
+			authView.isAuthorised(sd, request, request.getRemoteUser());	
 		} else {
 			authServer.isAuthorised(sd, request, request.getRemoteUser());	
 		}
