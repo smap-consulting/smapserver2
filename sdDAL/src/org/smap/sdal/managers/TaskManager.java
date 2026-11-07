@@ -3609,6 +3609,57 @@ public class TaskManager {
 	}
 	
 	/*
+	 * Get the survey, with the record's data, that the task group of an email task was created from
+	 * Null if there is no record, no source survey or the source is the target
+	 */
+	private Survey getEmailTaskSourceSurvey(Connection sd, Connection cResults, SurveyManager sm,
+			EmailTaskMessage msg, String basePath) {
+
+		Survey sourceSurvey = null;
+		if(msg.instanceId == null || msg.aId <= 0) {
+			return null;
+		}
+
+		String sql = "select tg.source_s_id from assignments a, tasks t, task_group tg, survey s "
+				+ "where a.id = ? "
+				+ "and a.task_id = t.id "
+				+ "and t.tg_id = tg.tg_id "
+				+ "and s.s_id = tg.source_s_id "
+				+ "and not s.deleted";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, msg.aId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				int sourceSId = rs.getInt(1);
+				if(sourceSId > 0 && sourceSId != msg.sId) {
+					sourceSurvey = sm.getById(sd, cResults, msg.user, msg.temporaryUser, sourceSId, true, basePath,
+							msg.instanceId, true, false, true, false, true, "real",
+							false, false, true, "geojson",
+							false,		// Do not include child surveys
+							false,		// launched only
+							false		// Don't merge set value into default values
+							);
+					if(!hasInstanceData(sourceSurvey)) {
+						sourceSurvey = null;
+					}
+				}
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error getting source survey for email task: " + msg.aId, e);
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+		return sourceSurvey;
+	}
+
+	private boolean hasInstanceData(Survey s) {
+		return s != null && s.surveyData != null && s.surveyData.instance != null
+				&& s.surveyData.instance.results != null && s.surveyData.instance.results.size() > 0;
+	}
+
+	/*
 	 * Process an email task
 	 */
 	public void emailTask(
@@ -3658,24 +3709,47 @@ public class TaskManager {
 				 * Task messages are only sent by email.  The subject is plain text, the content is
 				 * HTML so the values put into it are escaped
 				 */
-				if(survey != null) {
-					msg.subject = sm.fillStringTemplate(survey, msg.subject);
-					msg.content = sm.fillStringTemplate(survey, msg.content, true);
+				/*
+				 * The record is in the target survey when the task updates it, or the target is in a
+				 * bundle with the source.  Otherwise it is only in the source survey so values not
+				 * found in the target come from the source
+				 */
+				Survey sourceSurvey = getEmailTaskSourceSurvey(sd, cResults, sm, msg, basePath);
+				Survey metaSurvey = survey;
+				if(!hasInstanceData(survey) && hasInstanceData(sourceSurvey)) {
+					metaSurvey = sourceSurvey;
+				}
+				if(metaSurvey != null) {
+					msg.subject = sm.fillStringTemplate(metaSurvey, msg.subject);
+					msg.content = sm.fillStringTemplate(metaSurvey, msg.content, true);
 				}
 				log.fine("xxxxxxxxxxxxx2: " + msg.content);
 				TextManager tm = new TextManager(localisation, tz);
 				ArrayList<String> text = new ArrayList<> ();
 				text.add(msg.subject);
 				text.add(msg.content);
+				boolean[] html = new boolean[] {false, true};
 				tm.createTextOutput(sd,
 							cResults,
 							text,
-							basePath, 
+							basePath,
 							msg.user,
 							survey,
 							"none",
 							organisation.id,
-							new boolean[] {false, true});
+							html);
+				if(sourceSurvey != null) {
+					// Only placeholders not filled from the target are left
+					tm.createTextOutput(sd,
+							cResults,
+							text,
+							basePath,
+							msg.user,
+							sourceSurvey,
+							"none",
+							organisation.id,
+							html);
+				}
 				msg.subject = text.get(0);
 				msg.content = text.get(1);
 				log.fine("xxxxxxxxxxxxx3: " + msg.content);
