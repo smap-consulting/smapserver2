@@ -782,11 +782,12 @@ public class Survey {
 				+ "server_calculate,"
 				+ "set_value,"
 				+ "flash,"
-				+ "trigger"
+				+ "trigger,"
+				+ "pii"
 				+ ") "
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?"
 					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		
 		try {
 			
@@ -912,6 +913,7 @@ public class Survey {
 			pstmt.setString(35, q.getSetValueArrayAsString(gson));
 			pstmt.setInt(36, q.flash);
 			pstmt.setString(37, q.trigger);
+			pstmt.setString(38, GeneralUtilityMethods.validPii(q.pii));
 				
 			pstmt.executeUpdate();
 			

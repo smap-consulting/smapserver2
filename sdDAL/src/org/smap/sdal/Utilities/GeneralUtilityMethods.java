@@ -171,6 +171,19 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * The pii setting of a question: null, "pii" or "anonymise"
+	 */
+	static public String validPii(String in) {
+		if(in != null) {
+			String v = in.trim().toLowerCase();
+			if(v.equals("pii") || v.equals("anonymise")) {
+				return v;
+			}
+		}
+		return null;
+	}
+
+	/*
 	 * Remove white space and replace any other ascii character that is not a letter, digit or underscore with x
 	 * Characters outside ascii are valid in a postgres name and are kept
 	 */
