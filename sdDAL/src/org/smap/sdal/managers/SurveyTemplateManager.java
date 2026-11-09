@@ -416,6 +416,7 @@ public class SurveyTemplateManager {
 			}
 			
 			if(!valid) {
+				new RoleManager(localisation).deleteSurveyRoles(sd, s.surveyData.ident);
 				sm.delete(sd, 
 						cResults, 
 						s.surveyData.id, 
@@ -443,6 +444,20 @@ public class SurveyTemplateManager {
 						"no",		// Do not delete the tables
 						s.surveyData.id		   // New Survey Id for replacement 
 					);		
+				
+				/*
+				 * The new survey now has the ident of the survey it replaced.  Apply the roles
+				 * from an XLSForm to it.  An XForm has no roles, the survey keeps the ones it has
+				 */
+				if(isExcel) {
+					RoleManager rm = new RoleManager(localisation);
+					ArrayList<String> kept = rm.applyReplacementRoles(sd, s.surveyData.ident, existingSurvey.getIdent());
+					if(kept.size() > 0) {
+						String rMsg = localisation.getString("tu_roles_kept");
+						rMsg = rMsg.replace("%s1", GeneralUtilityMethods.getSafeText(String.join(", ", kept), true));
+						warnings.add(new ApplicationWarning(rMsg));
+					}
+				}
 			}
 			
 			/*

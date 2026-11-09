@@ -1028,3 +1028,6 @@ create index concurrently if not exists idx_users_lower_email on users(lower(ema
 
 -- The value a map panel shows, chosen in its drawer, is kept with the panel
 alter table dashboard_settings add column if not exists ds_map_option text;
+
+-- Survey roles that refer to no survey grant nothing, remove them
+delete from survey_role sr where not exists (select 1 from survey s where s.ident = sr.survey_ident);

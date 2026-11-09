@@ -59,6 +59,101 @@ public class RoleManager {
 	
 	Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 	
+	/*
+	 * When an XLSForm replaces a survey its roles are written against the ident the new survey
+	 * had before it took over the ident of the survey it replaces.  Apply them to the survey:
+	 *  - a role in the XLSForm that the survey already has gets the filters and group from the XLSForm
+	 *  - a role in the XLSForm that the survey does not have is added
+	 *  - a role the survey has that is not in the XLSForm is kept, its name is returned so the user can
+	 *    be told.  Removing it could make the survey visible to everyone in the project
+	 */
+	public ArrayList<String> applyReplacementRoles(Connection sd, String fromIdent, String toIdent) throws SQLException {
+
+		ArrayList<String> kept = new ArrayList<> ();
+		if(fromIdent == null || toIdent == null || fromIdent.equals(toIdent)) {
+			return kept;
+		}
+
+		String sqlNew = "select r_id, column_filter, row_filter, role_group from survey_role where survey_ident = ?";
+		String sqlExisting = "select sr.id, sr.r_id, r.name from survey_role sr, role r "
+				+ "where sr.r_id = r.id and sr.survey_ident = ?";
+		String sqlUpdate = "update survey_role set column_filter = ?, row_filter = ?, role_group = coalesce(?, role_group) where id = ?";
+		String sqlMove = "update survey_role set survey_ident = ? where survey_ident = ? and r_id = ?";
+		String sqlDelete = "delete from survey_role where survey_ident = ?";
+
+		boolean autoCommit = sd.getAutoCommit();
+		try (PreparedStatement pstmtNew = sd.prepareStatement(sqlNew);
+				PreparedStatement pstmtExisting = sd.prepareStatement(sqlExisting);
+				PreparedStatement pstmtUpdate = sd.prepareStatement(sqlUpdate);
+				PreparedStatement pstmtMove = sd.prepareStatement(sqlMove);
+				PreparedStatement pstmtDelete = sd.prepareStatement(sqlDelete)) {
+
+			sd.setAutoCommit(false);
+
+			// Roles the survey already has
+			HashMap<Integer, Integer> existingRows = new HashMap<> ();		// r_id -> survey_role id
+			HashMap<Integer, String> existingNames = new HashMap<> ();
+			pstmtExisting.setString(1, toIdent);
+			ResultSet rs = pstmtExisting.executeQuery();
+			while(rs.next()) {
+				existingRows.put(rs.getInt("r_id"), rs.getInt("id"));
+				existingNames.put(rs.getInt("r_id"), rs.getString("name"));
+			}
+
+			// Roles in the XLSForm
+			HashSet<Integer> inXls = new HashSet<> ();
+			pstmtNew.setString(1, fromIdent);
+			rs = pstmtNew.executeQuery();
+			while(rs.next()) {
+				int rId = rs.getInt("r_id");
+				inXls.add(rId);
+				Integer existingId = existingRows.get(rId);
+				if(existingId != null) {
+					pstmtUpdate.setString(1, rs.getString("column_filter"));
+					pstmtUpdate.setString(2, rs.getString("row_filter"));
+					pstmtUpdate.setString(3, rs.getString("role_group"));
+					pstmtUpdate.setInt(4, existingId);
+					pstmtUpdate.executeUpdate();
+				} else {
+					pstmtMove.setString(1, toIdent);
+					pstmtMove.setString(2, fromIdent);
+					pstmtMove.setInt(3, rId);
+					pstmtMove.executeUpdate();
+				}
+			}
+
+			// Anything left against the old ident is no longer needed
+			pstmtDelete.setString(1, fromIdent);
+			pstmtDelete.executeUpdate();
+
+			sd.commit();
+
+			for(Integer rId : existingRows.keySet()) {
+				if(!inXls.contains(rId)) {
+					kept.add(existingNames.get(rId));
+				}
+			}
+		} catch (SQLException e) {
+			try {sd.rollback();} catch (Exception ex) {}
+			throw e;
+		} finally {
+			try {sd.setAutoCommit(autoCommit);} catch (Exception e) {}
+		}
+		return kept;
+	}
+
+	/*
+	 * Remove the roles written for a survey that was not saved
+	 */
+	public void deleteSurveyRoles(Connection sd, String sIdent) throws SQLException {
+		if(sIdent != null) {
+			try (PreparedStatement pstmt = sd.prepareStatement("delete from survey_role where survey_ident = ?")) {
+				pstmt.setString(1, sIdent);
+				pstmt.executeUpdate();
+			}
+		}
+	}
+
 	public RoleManager(ResourceBundle l) {
 		localisation = l;
 	}
