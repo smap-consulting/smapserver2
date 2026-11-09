@@ -23,7 +23,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -33,24 +32,7 @@ public class JdbcFormManager {
 	private static Logger log =
 			 Logger.getLogger(SurveyTemplate.class.getName());
 	
-	PreparedStatement pstmt = null;
-	String sql = "insert into form ("
-			+ "f_id, "
-			+ "s_id, "
-			+ "name, "
-			+ "table_name, "
-			+ "parentform, "
-			+ "parentquestion, "
-			+ "repeats, "
-			+ "path) "
-			+ "values (nextval('f_seq'), ?, ?, ?, ?, ?, ?, ?);";
 	
-	PreparedStatement pstmtUpdate = null;
-	String sqlUpdate = "update form set "
-			+ "parentform = ?,"
-			+ "parentquestion = ?,"
-			+ "repeats = ? "
-			+ "where f_id = ?;";
 	
 	PreparedStatement pstmtGetBySurveyId = null;
 	String sqlGet = "select "
@@ -70,40 +52,10 @@ public class JdbcFormManager {
 	 * Constructor
 	 */
 	public JdbcFormManager(Connection sd) throws SQLException {
-		pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-		pstmtUpdate = sd.prepareStatement(sqlUpdate);
 		pstmtGetBySurveyId = sd.prepareStatement(sqlGet + sqlGetBySurveyId);
 	}
 	
-	/*
-	 * Write a new form to the database
-	 */
-	public void write(Form f) throws Exception {
-		pstmt.setInt(1, f.getSurveyId());
-		pstmt.setString(2, f.getName());
-		pstmt.setString(3, f.getTableName());
-		pstmt.setInt(4, f.getParentForm());
-		pstmt.setInt(5, f.getParentQuestionId());
-		pstmt.setString(6, f.getRepeats(false, null));
-		pstmt.setString(7, "path in database deprecated");
-		pstmt.executeUpdate();
-		
-		ResultSet rs = pstmt.getGeneratedKeys();
-		if(rs.next()) {
-			f.setId(rs.getInt(1));
-		}
-	}
 	
-	/*
-	 * Update a form
-	 */
-	public void update(Form f) throws Exception {
-		pstmtUpdate.setInt(1, f.getParentForm());
-		pstmtUpdate.setInt(2, f.getParentQuestionId());
-		pstmtUpdate.setString(3, f.getRepeats(false, null));
-		pstmtUpdate.setInt(4, f.getId());
-		pstmtUpdate.executeUpdate();
-	}
 	
 	/*
 	 * Get a list of forms for the specified survey id
@@ -117,8 +69,6 @@ public class JdbcFormManager {
 	 * Close statements
 	 */
 	public void close() {
-		try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {};
-		try {if(pstmtUpdate != null) {pstmtUpdate.close();}} catch(Exception e) {};
 		try {if(pstmtGetBySurveyId != null) {pstmtGetBySurveyId.close();}} catch(Exception e) {};
 	}
 	

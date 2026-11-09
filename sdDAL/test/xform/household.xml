@@ -1,0 +1,157 @@
+<?xml version="1.0"?>
+<!-- An XForm in the style pyxform creates: root "data", two languages, relative references -->
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:jr="http://openrosa.org/javarosa" xmlns:odk="http://www.opendatakit.org/xforms" xmlns:orx="http://openrosa.org/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <h:head>
+    <h:title>Household</h:title>
+    <model odk:xforms-version="1.0.0">
+      <itext>
+        <translation default="true()" lang="English (en)">
+          <text id="/data/name:label"><value>Name</value></text>
+          <text id="/data/age:label"><value>Age of <output value=" /data/name "/></value></text>
+          <text id="/data/age:hint"><value>In years</value><value form="guidance">Ask for a birth certificate</value></text>
+          <text id="/data/age:jr:constraintMsg"><value>Too old</value></text>
+          <text id="static_instance-yn-0"><value>Yes</value></text>
+          <text id="static_instance-yn-1"><value>No</value></text>
+          <text id="/data/likes:label"><value>Likes</value><value form="image">jr://images/likes.png</value></text>
+          <text id="/data/likes/a:label"><value>Apples</value></text>
+          <text id="/data/likes/b:label"><value>Bananas</value></text>
+          <text id="/data/member:label"><value>Member</value></text>
+          <text id="/data/member/mname:label"><value>Member name</value></text>
+          <text id="/data/member/older:label"><value>Older than <output value=" ../../age "/>?</value></text>
+          <text id="/data/fav:label"><value>Favourite member</value></text>
+          <text id="/data/details:label"><value>Details</value></text>
+          <text id="/data/details/photo:label"><value>Photo</value></text>
+          <text id="/data/details/note1:label"><value>Thanks</value></text>
+          <text id="/data/details/score:label"><value>Score</value></text>
+        </translation>
+        <translation lang="French (fr)">
+          <text id="/data/name:label"><value>Nom</value></text>
+          <text id="/data/age:label"><value>Age de <output value=" /data/name "/></value></text>
+          <text id="/data/age:jr:constraintMsg"><value>Trop vieux</value></text>
+          <text id="static_instance-yn-0"><value>Oui</value></text>
+          <text id="static_instance-yn-1"><value>Non</value></text>
+          <text id="/data/likes:label"><value>Aime</value></text>
+          <text id="/data/likes/a:label"><value>Pommes</value></text>
+          <text id="/data/likes/b:label"><value>Bananes</value></text>
+          <text id="/data/member:label"><value>Membre</value></text>
+          <text id="/data/member/mname:label"><value>Nom du membre</value></text>
+          <text id="/data/member/older:label"><value>Plus de <output value=" ../../age "/>?</value></text>
+          <text id="/data/fav:label"><value>Membre favori</value></text>
+          <text id="/data/details:label"><value>Details</value></text>
+          <text id="/data/details/photo:label"><value>Photo</value></text>
+          <text id="/data/details/note1:label"><value>Merci</value></text>
+          <text id="/data/details/score:label"><value>Score</value></text>
+        </translation>
+      </itext>
+      <instance>
+        <data id="household" version="1">
+          <start/>
+          <end/>
+          <deviceid/>
+          <name/>
+          <age>10</age>
+          <likes/>
+          <member_count/>
+          <member jr:template="">
+            <mname/>
+            <older/>
+          </member>
+          <fav/>
+          <details>
+            <photo/>
+            <note1/>
+            <score/>
+            <calc/>
+          </details>
+          <yn/>
+          <stamp/>
+          <meta>
+            <instanceID/>
+            <instanceName/>
+            <audit/>
+          </meta>
+        </data>
+      </instance>
+      <instance id="yesno">
+        <root>
+          <item><itextId>static_instance-yn-0</itextId><name>yes</name></item>
+          <item><itextId>static_instance-yn-1</itextId><name>no</name></item>
+        </root>
+      </instance>
+      <bind nodeset="/data/start" jr:preload="timestamp" type="dateTime" jr:preloadParams="start"/>
+      <bind nodeset="/data/end" jr:preload="timestamp" type="dateTime" jr:preloadParams="end"/>
+      <bind nodeset="/data/deviceid" jr:preload="property" type="string" jr:preloadParams="deviceid"/>
+      <bind nodeset="/data/name" type="string" required="true()"/>
+      <bind nodeset="/data/age" type="int" constraint=". &lt; 120" jr:constraintMsg="jr:itext('/data/age:jr:constraintMsg')" relevant=" /data/name  != ''"/>
+      <bind nodeset="/data/likes" type="string" required=" /data/age  &gt; 5"/>
+      <bind nodeset="/data/member_count" type="string" readonly="true()" calculate=" /data/age  div 5"/>
+      <bind nodeset="/data/member/mname" type="string"/>
+      <bind nodeset="/data/member/older" type="string" relevant=" ../mname  != ''"/>
+      <bind nodeset="/data/fav" type="string"/>
+      <bind nodeset="/data/details" relevant="selected( /data/likes , 'a')"/>
+      <bind nodeset="/data/details/photo" type="binary" orx:max-pixels="1024"/>
+      <bind nodeset="/data/details/note1" type="string" readonly="true()"/>
+      <bind nodeset="/data/details/score" type="int"/>
+      <bind nodeset="/data/details/calc" type="string" calculate="jr:choice-name( /data/likes ,' /data/likes ')"/>
+      <bind nodeset="/data/yn" type="string"/>
+      <bind nodeset="/data/stamp" type="dateTime"/>
+      <bind nodeset="/data/meta/instanceID" type="string" readonly="true()" jr:preload="uid"/>
+      <bind nodeset="/data/meta/instanceName" type="string" calculate="concat( /data/name , '-', /data/age )"/>
+      <bind nodeset="/data/meta/audit" type="binary" odk:track-changes="true"/>
+      <setvalue event="odk-instance-first-load" ref="/data/stamp" value="now()"/>
+    </model>
+  </h:head>
+  <h:body class="pages">
+    <input ref="/data/name">
+      <label ref="jr:itext('/data/name:label')"/>
+    </input>
+    <input ref="/data/age">
+      <label ref="jr:itext('/data/age:label')"/>
+      <hint ref="jr:itext('/data/age:hint')"/>
+    </input>
+    <select appearance="minimal" ref="/data/likes">
+      <label ref="jr:itext('/data/likes:label')"/>
+      <item><label ref="jr:itext('/data/likes/a:label')"/><value>a</value></item>
+      <item><label ref="jr:itext('/data/likes/b:label')"/><value>b</value></item>
+    </select>
+    <group ref="/data/member">
+      <label ref="jr:itext('/data/member:label')"/>
+      <repeat jr:count=" /data/member_count " nodeset="/data/member">
+        <input ref="/data/member/mname">
+          <label ref="jr:itext('/data/member/mname:label')"/>
+        </input>
+        <select1 ref="/data/member/older">
+          <label ref="jr:itext('/data/member/older:label')"/>
+          <itemset nodeset="instance('yesno')/root/item">
+            <value ref="name"/>
+            <label ref="jr:itext(itextId)"/>
+          </itemset>
+        </select1>
+      </repeat>
+    </group>
+    <select1 ref="/data/fav">
+      <label ref="jr:itext('/data/fav:label')"/>
+      <itemset nodeset="/data/member[mname != '']">
+        <value ref="mname"/>
+        <label ref="mname"/>
+      </itemset>
+    </select1>
+    <group appearance="field-list" ref="/data/details">
+      <label ref="jr:itext('/data/details:label')"/>
+      <upload mediatype="image/*" ref="/data/details/photo">
+        <label ref="jr:itext('/data/details/photo:label')"/>
+      </upload>
+      <input ref="/data/details/note1">
+        <label ref="jr:itext('/data/details/note1:label')"/>
+      </input>
+      <range end="10" ref="/data/details/score" start="1" step="1">
+        <label ref="jr:itext('/data/details/score:label')"/>
+      </range>
+    </group>
+    <select1 ref="/data/yn">
+      <label>Yes or no</label>
+      <item><label ref="jr:itext('static_instance-yn-0')"/><value>yes</value></item>
+      <item><label ref="jr:itext('static_instance-yn-1')"/><value>no</value></item>
+    </select1>
+  </h:body>
+</h:html>

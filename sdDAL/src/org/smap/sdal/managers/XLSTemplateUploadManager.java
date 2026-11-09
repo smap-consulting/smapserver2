@@ -27,16 +27,13 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.Stack;
-import java.util.regex.Pattern;
 
 import org.apache.poi.ss.usermodel.*;
-import org.javarosa.xpath.XPathParseTool;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.constants.SmapQuestionTypes;
-import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.constants.XLSFormColumns;
 import org.smap.sdal.model.Condition;
 import org.smap.sdal.model.Form;
@@ -98,14 +95,8 @@ public class XLSTemplateUploadManager {
 	HashMap<String, String> optionNames;			// Mapping between option name and truncated name
 	boolean merge;
 
-	HashMap<String, Integer> qNameMap = new HashMap<> ();							// Use in question name validation
-	HashMap<String, Integer> qNameMapCaseInsensitive = new HashMap<> ();			// Use in question name uniqueness
-	HashMap<String, HashMap<String, Integer>> oNameMap = new HashMap<> ();		// Use in option name validation
-	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@&\\-\\.\\+%,():/ ]*$");
-	Pattern validListName = Pattern.compile("^[A-Za-z0-9_@&\\-\\.\\+%,():/]*$");	// Like choices but spaces are not valid
+	SurveyUploadValidator v;			// Checks shared with the XForm upload
 
-	HashMap<Integer, Stack<Question>> groupStackMap = new HashMap<>();			// Keep track of groups in forms
-	boolean inFieldList = false;												// Only some questions are allowed inside a field list
 	
 	boolean useDefaultLanguage = false;
 	
@@ -147,8 +138,7 @@ public class XLSTemplateUploadManager {
 			qb.type = "begin group";
 			qb.name = matrixName + "_" + choiceName;
 			qb.appearance = "w" + groupWidth;
-			qNameMap.put(qb.name, rowNumber);
-			qNameMapCaseInsensitive.put(qb.name.toLowerCase(), rowNumber);
+			v.addName(qb.name, rowNumber);
 			questions.add(qb);
 			
 			Question qb2 = new Question();
@@ -162,8 +152,7 @@ public class XLSTemplateUploadManager {
 			} else {
 				qb2.labels = copyLabelsFrom(choice.labels, "hash");
 			}
-			qNameMap.put(qb2.name, rowNumber);
-			qNameMapCaseInsensitive.put(qb2.name.toLowerCase(), rowNumber);
+			v.addName(qb2.name, rowNumber);
 			questions.add(qb2);
 			
 			for(Question qm : member) {
@@ -214,18 +203,6 @@ public class XLSTemplateUploadManager {
 		}
 	}
 	
-	private class FunctionCheck {
-		String name;
-		int args;
-		String template;
-		
-		FunctionCheck(String n, int a, String t) {
-			name = n;
-			args = a;
-			template = t;
-		}
-	}
-	private ArrayList<FunctionCheck> functions = new ArrayList<> ();
 	private ResourceBundle localisation = null;
 	private ArrayList<ApplicationWarning> warnings = null;
 
@@ -234,15 +211,7 @@ public class XLSTemplateUploadManager {
 		localisation = l;
 		warnings = w;
 		
-		// Initialise Function Check array
-		functions.add(new FunctionCheck("count", 1, "count(nodeset)"));
-		functions.add(new FunctionCheck("if", 3, "if(condition, a, b)"));
-		
-		// Initialise question name map with internal names
-		qNameMap.put("_user", -1);
-		qNameMap.put(SmapServerMeta.UPLOAD_TIME_NAME, -1);
-		qNameMap.put("_hrk", -1);
-		qNameMap.put("_version", -1);
+		v = new SurveyUploadValidator(l, w, new SurveyUploadValidator.XlsErrorFormatter(l));
 		
 	}
 
@@ -278,6 +247,7 @@ public class XLSTemplateUploadManager {
 		survey.surveyData.loadedFromXLS = true;
 		survey.surveyData.deleted = false;
 		survey.surveyData.blocked = false;
+		v.setSurvey(survey);
 		survey.surveyData.meta.add(new MetaItem(metaId--, "string", "instanceID", null, "instanceid", null, false, null, null));
 		survey.surveyData.meta.add(new MetaItem(metaId--, "string", "instanceName", null, "instancename", null, false, null, null));
 
@@ -402,7 +372,7 @@ public class XLSTemplateUploadManager {
 		if(survey.surveyData.forms.get(0).questions.size() == 0) {
 			throw new ApplicationException(localisation.getString("tu_nq"));
 		}
-		validateForm(1, f);
+		v.validateForm(1, f);
 
 		/*
 		 * 5, Process the settings sheet
@@ -493,7 +463,7 @@ public class XLSTemplateUploadManager {
 								RoleManager.checkNotJson(filter, localisation);
 								SqlFrag sq = new SqlFrag();
 								sq.addSqlFragment(filter, false, localisation, 0);
-								settingsQuestionInSurvey(sq.humanNames, h);		// validate question names
+								v.settingsQuestionInSurvey(sq.humanNames, h);		// validate question names
 								r.row_filter = filter;
 							}
 						}
@@ -561,7 +531,7 @@ public class XLSTemplateUploadManager {
 			survey.surveyData.meta.add(new MetaItem(metaId--, "string", "_device", "deviceid", "_device", "property", true, "device", null));
 		}
 		
-		validateSurvey();	// 4. Final Validation
+		v.validateSurvey();	// 4. Final Validation
 
 		return survey;
 
@@ -606,7 +576,7 @@ public class XLSTemplateUploadManager {
 		}
 
 		o.published = false;		// Default to unpublished TODO work out when this can be set to published
-		validateOption(o, rowNumChoices);
+		v.validateOption(o, rowNumChoices);
 
 		return o;
 	}
@@ -842,7 +812,7 @@ public class XLSTemplateUploadManager {
 					MetaItem item = GeneralUtilityMethods.getPreloadItem(q.type, q.name, q.display_name, metaId, q.appearance, q.paramArray);
 					if(item != null) {
 						metaId--;
-						validateQuestion(q, rowNumSurvey, thisFormIndex);
+						v.validateQuestion(q, rowNumSurvey, thisFormIndex);
 						survey.surveyData.meta.add(item);
 					} else {
 						if(q.type.equals("end repeat")) {
@@ -857,7 +827,7 @@ public class XLSTemplateUploadManager {
 						mi = GeneralUtilityMethods.addManifestFromCalculate(q.calculation, mi.manifest);
 						survey.surveyData.manifest = mi.manifest;
 						
-						validateQuestion(q, rowNumSurvey, thisFormIndex);
+						v.validateQuestion(q, rowNumSurvey, thisFormIndex);
 						
 						if(q.type.equals("begin matrix")) {
 							matrix = new MatrixWidget(q, rowNumSurvey);
@@ -879,7 +849,7 @@ public class XLSTemplateUploadManager {
 						if(q.type.equals("begin repeat")) {
 							int repeatRowNumber = rowNumSurvey;
 							Form subForm = getForm(q.name, thisFormIndex, f.questions.size() - 1, q.paramArray);
-							validateForm(repeatRowNumber, subForm);
+							v.validateForm(repeatRowNumber, subForm);
 						}
 						
 					}
@@ -1100,7 +1070,7 @@ public class XLSTemplateUploadManager {
 		 * Handle Groups
 		 */
 		if(q.type.equals("begin group") || q.type.equals("begin matrix")) {
-			Stack<Question> groupStack = getGroupStack(formIndex);
+			Stack<Question> groupStack = v.getGroupStack(formIndex);
 			groupStack.push(q);
 			if(q.appearance != null && q.appearance.contains("table-list")) {
 				inTableListGroup = true;
@@ -1111,7 +1081,7 @@ public class XLSTemplateUploadManager {
 			}
 		}
 		if(q.type.equals("end group") || q.type.equals("end matrix")) {
-			Stack<Question> groupStack = getGroupStack(formIndex);
+			Stack<Question> groupStack = v.getGroupStack(formIndex);
 			if(groupStack.isEmpty()) { 
 				Form f = survey.surveyData.forms.get(formIndex);
 				throw XLSUtilities.getApplicationException(localisation, "tu_eegm", rowNumSurvey, "survey", f.name, null, null);
@@ -1178,21 +1148,7 @@ public class XLSTemplateUploadManager {
 		 * Validate question type compatability
 		 */
 		if(merge) {
-			QuestionForm qt = questionNames.get(q.name);
-			if(qt != null) {
-				if(q.source != null && qt.published) {
-					String newColType = GeneralUtilityMethods.getPostgresColType(q.type);
-					String oldColType = GeneralUtilityMethods.getPostgresColType(qt.qType);
-					if(!newColType.equals(oldColType) &&
-							!newColType.equals("end repeat") &&	// Not sure why these are needed as source type should be null
-							!oldColType.equals("end repeat")&& 
-							!newColType.equals("end group") &&
-							!oldColType.equals("end group")
-							) {
-						throw XLSUtilities.getApplicationException(localisation, "tu_it", rowNumSurvey, "survey", q.name, q.type, qt.qType);
-					}
-				}
-			} 
+			v.validateTypeCompatible(q, questionNames, rowNumSurvey);
 		} 	
 		
 		return q;
@@ -1412,65 +1368,6 @@ public class XLSTemplateUploadManager {
 		return visible;
 	}
 
-	private void validateForm(int rowNumber, Form f) throws Exception {
-		
-		if(f.questions.size() == 0) {
-			// Form must have at least one question
-			throw XLSUtilities.getApplicationException(localisation, "tu_er", rowNumber, "survey", null, null, null);
-		} else {
-			// Questions must be visible
-			boolean hasVisibleQuestion = false;
-			for(Question qx : f.questions) {
-				if(!qx.type.equals("calculate")) {
-					hasVisibleQuestion = true;
-					break;
-				}
-			}
-			
-			if(!hasVisibleQuestion) {
-				ApplicationException e = XLSUtilities.getApplicationException(localisation, "tu_er", rowNumber, "survey", null, null, null);
-				warnings.add(new ApplicationWarning(e.getMessage()));
-			}
-		}
-		
-		/*
-		 * Validate groups
-		 */
-		for(int i = 0; i < f.questions.size(); i++) {
-			Question q = f.questions.get(i);
-			if(q.type.equals("begin group")) {
-				validateGroup(f.questions, q, i);
-			}
-		}
-		
-	}
-	
-	private int validateGroup(ArrayList<Question> questions, Question groupQuestion, int start) throws ApplicationException {
-		
-		Question q;
-		String name = groupQuestion.name;
-		int i;
-		boolean hasVisibleQuestion = false;
-		for(i = start + 1; i < questions.size(); i++) {
-			q = questions.get(i);
-			if(q.type.equals("begin group")) {
-				hasVisibleQuestion = true;		// Count another group as a visible question, as long as this embedded group has a visible question then all is good
-				validateGroup(questions, q, i);	// recursive validation
-			} else if(q.type.equals("end group")) {
-				break;
-			} else {
-				hasVisibleQuestion = true;
-			}
-		}
-		
-		if(!hasVisibleQuestion) {
-			Integer rowNumber = qNameMap.get(name);
-			ApplicationException e = XLSUtilities.getApplicationException(localisation, "tu_er_g", rowNumber, "survey", null, null, null);
-			warnings.add(new ApplicationWarning(e.getMessage()));
-		}
-		return i + 1;
-	}
-	
 	private void validateUserSpecifiedHeader(String worksheet, String h) throws ApplicationException {
 		if(h.contains(":")) {
 			String msg = localisation.getString("tu_ih");
@@ -1480,374 +1377,7 @@ public class XLSTemplateUploadManager {
 		}
 	}
 	
-	private void validateQuestion(Question q, int rowNumber, int formIndex) throws Exception {
-
-		/*
-		 * Check Name
-		 */
-		if (q.name == null || q.name.trim().length() == 0) {
-			// Check for a missing name
-			throw XLSUtilities.getApplicationException(localisation, "tu_mn", rowNumber, "survey", null, null, null);
-
-		} else if(!GeneralUtilityMethods.isValidQuestionName(q.name)) {
-			// Check for a valid name
-			throw XLSUtilities.getApplicationException(localisation, "tu_qn", rowNumber, "survey", q.name, null, null);
-
-		} else if(!q.type.equals("end group") && !q.type.equals("end matrix") && qNameMapCaseInsensitive.get(q.columnName) != null) {
-			// Check for a duplicate name
-			// Temporary - allow multiple question names of the_geom
-			if(!q.name.equals("the_geom")) {
-				throw XLSUtilities.getApplicationException(localisation, "tu_dq", rowNumber, "survey", q.name, null, null);
-			}
-		}
-		
-		if(!q.type.equals("end group") && !q.type.equals("end matrix")) {		
-			qNameMap.put(q.name, rowNumber);
-			qNameMapCaseInsensitive.put(q.columnName, rowNumber);
-		}
-		
-		// check relevance
-		if(q.relevant != null) {
-			ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.relevant);
-			if(refs.contains(q.name)) {		// Circular references
-				throw XLSUtilities.getApplicationException(localisation, "tu_cr", rowNumber, "survey", "relevant", q.name, q.relevant);
-			}
-			
-			checkParentheses(localisation, q.relevant, rowNumber, "survey", "relevant", q.name);
-			try {
-				XPathParseTool.parseXPath(GeneralUtilityMethods.convertAllxlsNamesToPseudoXPath(q.relevant));
-			} catch (Exception e) {
-				throw XLSUtilities.getApplicationException(localisation, "tu_jr", rowNumber, "survey", "relevant", e.getMessage(), null);
-			}
-			testXExprFunctions(q.relevant, localisation, true, rowNumber, "relevant");
-		}
-		
-		// check constraint
-		if(q.constraint != null) {
-			checkParentheses(localisation, q.constraint, rowNumber, "survey", "constraint", q.name);
-			try {
-				XPathParseTool.parseXPath(GeneralUtilityMethods.convertAllxlsNamesToPseudoXPath(q.constraint));
-			} catch (Exception e) {
-				throw XLSUtilities.getApplicationException(localisation, "tu_jr", rowNumber, "survey", "constraint", e.getMessage(), null);
-			}
-			testXExprFunctions(q.constraint, localisation, true, rowNumber, "constraint");
-		}
-		
-		// check calculate
-		if(q.calculation != null) {
-			checkParentheses(localisation, q.calculation, rowNumber, "survey", "calculation", q.name);
-			checkCalculationCircularReferences(localisation, q.calculation, rowNumber, "survey", "calculation", q.name);
-			try {
-				XPathParseTool.parseXPath(GeneralUtilityMethods.convertAllxlsNamesToPseudoXPath(q.calculation));
-			} catch (Exception e) {
-				throw XLSUtilities.getApplicationException(localisation, "tu_jr", rowNumber, "survey", "calculation", e.getMessage(), null);
-			}
-			testXExprFunctions(q.calculation, localisation, true, rowNumber, "calculation");
-		}
-		
-		// check appearance
-		if(q.appearance != null) {
-			checkParentheses(localisation, q.appearance, rowNumber, "survey", "appearance", q.name);
-			testXExprFunctions(q.appearance, localisation, true, rowNumber, "appearance");		
-		}
-		
-		// Check choice filter
-		if(q.choice_filter != null) {
-			checkParentheses(localisation, q.choice_filter, rowNumber, "survey", "choice_filter", q.name);
-			try {
-				XPathParseTool.parseXPath(GeneralUtilityMethods.convertAllxlsNamesToPseudoXPath(q.choice_filter));
-			} catch (Exception e) {
-				throw XLSUtilities.getApplicationException(localisation, "tu_jr", rowNumber, "survey", "choice_filter", e.getMessage(), null);
-			}
-			testXExprFunctions(q.choice_filter, localisation, true, rowNumber, "choice_filter");
-		}
-		
-		// Check intent
-		if(q.intent != null ) {
-			boolean valid = false;
-			if(q.type.equals("begin group")) {
-				if(q.appearance != null && q.appearance.contains("field-list")) {
-					valid = true;
-				}
-			}
-			if(!valid) {
-				throw XLSUtilities.getApplicationException(localisation, "tu_int", rowNumber, "survey", null, null, null);
-			}
-		}
-		
-		// invalid question in field-list
-		if(inFieldList) {
-			if(q.type.equals("end group")) {
-				inFieldList = false;
-			//} else if(q.type.equals("begin group") || q.type.equals("begin repeat")) {
-			} else if(q.type.equals("begin repeat")) {		// Tentatively should be ok to have a group inside a fieldlist group
-				Stack<Question> groupStack = getGroupStack(formIndex);
-				String groupName = groupStack.pop().name;
-				throw XLSUtilities.getApplicationException(localisation, "tu_fl", rowNumber, "survey", q.type, groupName, null);
-			}
-		} else {
-			if(q.type.equals("begin group")) {
-				if(q.appearance != null && q.appearance.contains("field-list")) {
-					inFieldList = true;
-				}
-			}
-		}
-		
-		// List name not in choices
-		if(q.list_name != null  && !q.list_name.startsWith("$")) {
-			if(survey.surveyData.optionLists.get(q.list_name) == null) {
-				throw XLSUtilities.getApplicationException(localisation, "tu_lnf", rowNumber, "survey", q.list_name, null, null);
-			}
-		}
-		
-		// Matrix
-		if(q.type.equals("begin matrix")) {
-			// Missing list
-			if(q.list_name == null) {
-				throw XLSUtilities.getApplicationException(localisation, "tu_mat_list", rowNumSurvey, "survey", null, null, null);
-			}
-		}
-		
-		// check parameters
-		if(q.paramArray != null) {
-			ArrayList<KeyValueSimp> noDups = new ArrayList<KeyValueSimp> ();
-			HashMap<String, String> paramHashMap = new HashMap<> ();
-			for(KeyValueSimp kv : q.paramArray) {
-				String existing = paramHashMap.get(kv.k);
-				if(existing == null) {
-					noDups.add(kv);
-					paramHashMap.put(kv.k, kv.v);
-				} else {
-					if(existing.equals(kv.v)) {
-						// Its a duplicate just discard by not adding to the noDups output
-					} else {
-						// Conflicting values
-						throw XLSUtilities.getApplicationException(localisation, "tu_cf", rowNumber, "survey", kv.k, null, null);
-					}
-				}
-			}
-			q.paramArray = noDups;
-			
-		}
-		
-		// Check that parent and child forms have the form_identifier parameter
-		if(q.type.equals("parent_form") || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
-			boolean hasFormIdentifier = false;
-			for(KeyValueSimp kv : q.paramArray) {
-				if(kv.k.equals("form_identifier")) {
-					hasFormIdentifier = true;
-					break;
-				}
-			}
-			if(!hasFormIdentifier) {
-				throw XLSUtilities.getApplicationException(localisation, "tu_form_launch", rowNumber, "survey", null, null, null);
-			}
-		}
-		
-	}
-	
-	private void checkParentheses(ResourceBundle localisation, String expression, int rowNumber, String sheet, String column, String name) throws ApplicationException {
-		checkMatchedParenthesies(localisation, '{', '}', expression, rowNumber, sheet, column);
-		checkMatchedParenthesies(localisation, '(', ')', expression, rowNumber, sheet, column);
-	}
-	
-	private void checkMatchedParenthesies(ResourceBundle localisation, char p1, char p2, String expression, int rowNumber, String sheet, String column) throws ApplicationException {
-		int depth = 0; 
-		int locn = 0;
-		if(expression != null) {
-             for(int i = 0; i < expression.length(); i++) {
-                 char c = expression.charAt(i);
-                 if( c == p1) {
-                     depth++;
-                     locn = i;
-                 } else if( c == p2) {
-                     depth--;
-                     locn = i;
-                 }
-                 if(depth < 0) {
-                     break;
-                 }
-             }
-
-             if(depth != 0) {
-            	 	if(p1 == '(') {
-            	 		throw XLSUtilities.getApplicationException(localisation, "tu_mbs", rowNumber, sheet, column, String.valueOf(locn), null);
-            	 	} else if(p1 == '{') {
-            	 		throw XLSUtilities.getApplicationException(localisation, "tu_mbc", rowNumber, sheet, column, String.valueOf(locn), null);
-            	 	}
-                
-             }
-         }
-	}
-	
-	private void checkCalculationCircularReferences(ResourceBundle localisation, String expression, int rowNumber, String sheet, String column, String name) throws ApplicationException {
-		
-		Pattern pattern = Pattern.compile("\\$\\{.+?\\}");
-		java.util.regex.Matcher matcher = pattern.matcher(expression);
-		while (matcher.find()) {
-			String matched = matcher.group();
-			String qname = matched.substring(2, matched.length() - 1);
-			if(qname.equals(name)) {
-				throw XLSUtilities.getApplicationException(localisation, "tu_cr", rowNumber, sheet, column, name, expression);
-			}
-		}		
-	}
-	
-	private void validateSurvey() throws Exception {
-		
-		// Validate forms and questions
-		for(Form f : survey.surveyData.forms) {
-			if(f.reference) {
-				Integer rowNumber = qNameMap.get(f.name);
-				if(f.name.equals(f.referenceName)) {
-					throw XLSUtilities.getApplicationException(localisation, "tu_ref_self", rowNumber, "survey", f.name, null, null);
-				} else {
-					boolean validRef = false;
-					for(Form refForm : survey.surveyData.forms) {
-						if(refForm.name.equals(f.referenceName)) {
-							if(refForm.reference) {
-								throw XLSUtilities.getApplicationException(localisation, "tu_ref_ref", rowNumber, "survey", f.name, refForm.name, null);
-							} else {
-								validRef = true;
-								break;
-							}
-						}
-					}
-					if(!validRef) {
-						throw XLSUtilities.getApplicationException(localisation, "tu_ref_nf", rowNumber, "survey", f.referenceName, f.name, null);
-					}
-				}
-			}
-			for(Question q : f.questions) {
-				if(q.relevant != null) {
-					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.relevant);
-					if(refs.size() > 0) {
-						questionInSurvey(refs, "relevant", q);
-					}
-				}
-				if(q.constraint != null) {
-					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.constraint);
-					if(refs.size() > 0) {
-						questionInSurvey(refs, "constraint", q);
-					}
-				}
-				if(q.repeatCount != null) {
-					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.repeatCount);
-					if(refs.size() > 0) {
-						questionInSurvey(refs, "repeat_count", q);
-					}
-					// Make sure there is not a question with a name that will clash with the automatically generated repeat count name
-					repeatCountClash(q);
-				}
-				if(q.choice_filter != null) {
-					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.choice_filter);
-					if(refs.size() > 0) {
-						questionInSurvey(refs, "choice_filter", q);
-					}
-				}
-				if(q.labels != null) {
-					int idx = 0;
-					for(Label l : q.labels) {
-						ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(l.text);
-						if(refs.size() > 0) {
-							questionInSurvey(refs, "label::" + survey.surveyData.languages.get(idx).name, q);
-							
-							if(refs.contains(q.name)) {		// Check for self reference
-								Integer rowNumber = qNameMap.get(q.name);
-								throw XLSUtilities.getApplicationException(localisation, "tu_cr", rowNumber, "survey", 
-										"label::" + survey.surveyData.languages.get(idx).name, q.name, q.relevant);
-							}
-						}
-						idx++;
-					}
-				}
-				if(q.calculation != null) {
-					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.calculation);
-					if(refs.size() > 0) {
-						questionInSurvey(refs, "calculation", q);
-					}
-				}
-				if(q.appearance != null) {
-					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.appearance);
-					if(refs.size() > 0) {
-						questionInSurvey(refs, "appearance", q);
-					}
-				}
-				// check default
-				if(q.setValues != null) {
-					for(SetValue sv : q.setValues) {
-						if(sv.value != null) {
-							if(sv.value.contains("last-saved#")) {
-								int idx1 = sv.value.indexOf('#');
-								int idx2 = sv.value.indexOf('}', idx1);
-								if(idx2 > 0) {
-									String sourceQuestion = sv.value.substring(idx1 + 1, idx2);
-									if(sourceQuestion != null) {
-										ArrayList<String> refs = new ArrayList<String> ();
-										refs.add(sourceQuestion);
-										questionInSurvey(refs, "default", q);
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		
-		// Validate Settings
-		if(survey.surveyData.instanceNameDefn != null) {
-			ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(survey.surveyData.instanceNameDefn );
-			if(refs.size() > 0) {
-				settingsQuestionInSurvey(refs, "instance_name");
-			}
-		}
-		
-		// Validate groups
-		for(Integer formIndex : groupStackMap.keySet()) {
-			Stack<Question> groupStack = groupStackMap.get(formIndex);
-		
-			if(!groupStack.isEmpty()) {
-				String groupName = groupStack.pop().name;
-				Integer rowNumber = qNameMap.get(groupName);
-				throw XLSUtilities.getApplicationException(localisation, "tu_meg", rowNumber, "survey", groupName, null, null);
-			}
-		}
-		
-	}
-
-	private void validateOption(Option o, int rowNumber) throws ApplicationException {
-
-		HashMap<String, Integer> listMap = oNameMap.get(o.optionList);
-		if(listMap == null) {
-			listMap = new HashMap<String, Integer> ();
-			oNameMap.put(o.optionList, listMap);
-		}
-
-		if(o.value == null || o.value.trim().length() == 0) {
-			// Check for a missing value
-			throw XLSUtilities.getApplicationException(localisation, "tu_vr", rowNumber, "choices", o.optionList, null, null);
-
-		} else if(!validChoiceName.matcher(o.value).matches()) {
-			// Check for a valid value
-			throw XLSUtilities.getApplicationException(localisation, "tu_cn",rowNumber, "choices", o.value, null, null);
-
-		} else if(!validListName.matcher(o.optionList).matches()) {
-			// Check for a valid value
-			throw XLSUtilities.getApplicationException(localisation, "tu_ln",rowNumber, "choices", o.optionList, null, null);
-
-		} else if(listMap.get(o.value) != null) {
-			// Check for a duplicate value
-			ApplicationException e = XLSUtilities.getApplicationException(localisation, "tu_do", rowNumber, "choices", o.value, o.optionList, null);
-			warnings.add(new ApplicationWarning(e.getMessage()));
-		}
-
-		listMap.put(o.value, rowNumber);
-
-	}
-	
 	private void validateStyle(TableColumnMarkup s, int rowNumber, String styleName) throws ApplicationException {
-
 
 		if(s.value == null || s.value.trim().length() == 0) {
 			// Check for a missing value
@@ -1858,23 +1388,6 @@ public class XLSTemplateUploadManager {
 			throw XLSUtilities.getApplicationException(localisation, "tu_cn",rowNumber, "styles", s.classes, null, null);
 
 		} 
-	}
-	
-	private void questionInSurvey(ArrayList<String> names, String context, Question q) throws ApplicationException {
-		for(String name : names) {
-			if(qNameMap.get(name) == null) {
-				Integer rowNumber = qNameMap.get(q.name);
-				throw XLSUtilities.getApplicationException(localisation, "tu_mq", rowNumber, "survey", context, name, null);
-			}
-		}
-	}
-	
-	private void repeatCountClash(Question q) throws ApplicationException {
-		String name = q.name.toLowerCase() + "_count";
-		if(qNameMap.get(name) != null) {
-			Integer rowNumber = qNameMap.get(name);
-			throw XLSUtilities.getApplicationException(localisation, "tu_rc", rowNumber, "survey", name, q.name, null);
-		}
 	}
 	
 	/*
@@ -1890,18 +1403,6 @@ public class XLSTemplateUploadManager {
 		return rf;
 	}
 
-	private void settingsQuestionInSurvey(ArrayList<String> names, String colname) throws ApplicationException {
-		for(String name : names) {
-			if(qNameMap.get(name) == null) {
-				String msg = localisation.getString("tu_mq");
-				msg = msg.replace("%s1", colname);
-				msg = msg.replace("%s2", "settings");
-				msg = msg.replaceAll("%s3", name);
-				throw new ApplicationException(msg);
-			}
-		}
-	}
-	
 	private String getValidQuestionType(String in) {
 		
 		String out = null;	
@@ -2063,75 +1564,4 @@ public class XLSTemplateUploadManager {
 		}
 	}
 	
-	/*
-	 * Test for valid javarosa functions in an XPath expression
-	 * If the call is for an appearance then only the search function is valid and "search" without parameters is also valid
-	 */
-	private void testXExprFunctions(String in, ResourceBundle localisation, 
-			boolean isAppearance,
-			int rowNumber,
-			String column) throws Exception {
-		
-		// 1. remove any text inside quotes
-		boolean inside = false;
-		StringBuffer noText = new StringBuffer("");
-		for(int i = 0; i < in.length(); i++) {
-			if(in.charAt(i) == '\'') {
-				inside = !inside;
-			} else if(!inside) {
-				noText.append(in.charAt(i));
-			}
-		}
-		
-		if(noText.length() > 0) {
-			String process = noText.toString();
-			for(FunctionCheck f : functions) {
-				Pattern pattern = Pattern.compile(f.name + "[\\s]*\\(");
-				java.util.regex.Matcher matcher = pattern.matcher(process);
-	
-				while (matcher.find()) {
-	
-					StringBuffer toTest = new StringBuffer("");
-					String matched = matcher.group();			
-					
-					// remove sub functions
-					int depth = 0;
-					boolean end = false;
-					for(int i = matcher.start(); i < noText.length(); i++) {
-						if(noText.charAt(i) == '(') {
-							depth++;
-						} else if(noText.charAt(i) == ')') {
-							depth--;
-							if(depth == 0) {
-								end = true;
-							}
-						}
-						if(depth <= 1) {
-							toTest.append(noText.charAt(i));
-						}
-						if(end) {
-							break;
-						}
-					}
-					
-					String[] args = toTest.toString().split(",");
-					if(args.length != f.args) {
-						throw XLSUtilities.getApplicationException(localisation, "tu_args", rowNumber, "survey", column, 
-								f.name, f.template);
-					}
-				}
-			}
-		}
-	}
-	
-	private Stack<Question> getGroupStack(Integer formIdx) {
-		Stack<Question> gs = null;
-		gs = groupStackMap.get(formIdx);
-		if(gs == null) {
-			gs = new Stack<Question> ();
-			groupStackMap.put(formIdx, gs);
-		}
-		return gs;
-	}
-
 }

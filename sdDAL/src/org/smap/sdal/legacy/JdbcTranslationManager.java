@@ -24,24 +24,16 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
 
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.HtmlSanitise;
 
 public class JdbcTranslationManager {
 
 	private static Logger log =
 			 Logger.getLogger(JdbcTranslationManager.class.getName());
 	
-	private HtmlSanitise sanitise = new HtmlSanitise();
 	
-	PreparedStatement pstmt = null;
-	String sql = "insert into translation (s_id, language, text_id, type, value) values (?, ?, ?, ?, ?);";
 	
 	PreparedStatement pstmtGetBySurveyId = null;
 	PreparedStatement pstmtGetBySurveyIdNoExternal = null;
@@ -63,46 +55,11 @@ public class JdbcTranslationManager {
 	 * Constructor
 	 */
 	public JdbcTranslationManager(Connection sd) throws SQLException {
-		pstmt = sd.prepareStatement(sql);
 		pstmtGetBySurveyId = sd.prepareStatement(sqlGet + sqlOrder);
 		pstmtGetBySurveyIdNoExternal = sd.prepareStatement(sqlGet + sqlNoExternal + sqlOrder);
 	}
 	
-	/*
-	 * Write a new translation object to the database
-	 */
-	public void write(int sId, String language, String text_id, String type, String value) throws SQLException {
-		pstmt.setInt(1, sId);
-		pstmt.setString(2, language);
-		pstmt.setString(3, text_id);
-		pstmt.setString(4, type);
-		
-		String noPathValue = GeneralUtilityMethods.convertAllXpathLabels(value, true);
-		pstmt.setString(5, sanitise.cleanText(noPathValue));
-		
-		//log.fine("Write translation: " + pstmt.toString());
-		pstmt.executeUpdate();
-	}
 	
-	/*
-	 * Write multiple translation objects to the database
-	 */
-	public void persistBatch(int sId, Collection<HashMap<String, Translation>> l) throws SQLException {
-		
-		Iterator<HashMap<String,Translation>> itrL = l.iterator();
-		while(itrL.hasNext()) {								
-			HashMap<String,Translation> types = (HashMap<String, Translation>) itrL.next();
-			
-			Collection<Translation> t = types.values();
-			Iterator<Translation> itrT = t.iterator();
-
-			while(itrT.hasNext()) {
-				Translation trans = (Translation) itrT.next();
-				write(sId, trans.getLanguage(), trans.getTextId(), trans.getType(), trans.getValue());
-			}
-		}
-			
-	}
 	
 	/*
 	 * Get translations by survey id
@@ -120,7 +77,6 @@ public class JdbcTranslationManager {
 	 * Close prepared statements
 	 */
 	public void close() {
-		try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {};
 		try {if(pstmtGetBySurveyId != null) {pstmtGetBySurveyId.close();}} catch(Exception e) {};
 		try {if(pstmtGetBySurveyIdNoExternal != null) {pstmtGetBySurveyIdNoExternal.close();}} catch(Exception e) {};
 	}

@@ -20,10 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 package org.smap.sdal.legacy;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -474,69 +471,6 @@ public class Question {
 		l_id = v;
 	}
 	
-	/*
-	 * Applicable to select type questions, the list id links the question to the set of choices
-	 * A list id will already be set if the question was read from the database else the question came from an xml file
-	 * If no list id then
-	 *   If a listname has been set for the question use the list id for that list, creating it if the list has not already been created
-	 *   Else create a list based on the question name
-	 */
-	public void setListId(Connection sd, int sId) {
-		
-		if(this.l_id == 0) {		// No list has been set for this question
-			
-			// Create a list name if the question is a select type
-			if(this.qType.startsWith("select") || this.qType.equals("rank")) {
-				
-				String sqlCheck = "select l_id from listname where s_id = ? and name = ?;";
-				PreparedStatement pstmtCheck = null;
-				
-				String sql = "insert into listname (s_id, name) values(?, ?);";
-				PreparedStatement pstmtCreate = null;
-				
-				try {
-					
-					// Set the list name to the question name if a list name has not already been specified
-					if(listname == null) {
-						listname = this.name;
-					}
-					
-					// Get the list id for this list
-					pstmtCheck = sd.prepareStatement(sqlCheck);
-					pstmtCheck.setInt(1, sId);
-					pstmtCheck.setString(2, listname);
-					ResultSet rs = pstmtCheck.executeQuery();
-					if(rs.next()) {
-						this.l_id = rs.getInt(1);
-					} else {
-						pstmtCreate = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-						pstmtCreate.setInt(1, sId);
-						pstmtCreate.setString(2, listname);
-						pstmtCreate.executeUpdate();
-						
-						ResultSet rsCreate = pstmtCreate.getGeneratedKeys();
-						rsCreate.next();
-						this.l_id = rsCreate.getInt(1);
-					}
-			
-				} catch (Exception e) {
-					e.printStackTrace();
-				} finally {
-					if(pstmtCreate != null) try {pstmtCreate.close();} catch(Exception e) {};
-				}
-			}
-			
-		} else {
-			// Get the list name
-			try {
-				this.listname = GeneralUtilityMethods.getListName(sd, this.l_id);
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		
-	}
 
 	public void setPublished(boolean v) {
 		published = v;

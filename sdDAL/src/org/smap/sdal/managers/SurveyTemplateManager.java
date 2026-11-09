@@ -28,7 +28,6 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.Form;
@@ -244,8 +243,7 @@ public class SurveyTemplateManager {
 				throw new ApplicationException(msg);
 			}
 			
-			Survey s = null;					// Used for XLS uploads (The new way)
-			SurveyTemplate model = null;		// Used for XML uploads (The old way), Convert to Survey after loading
+			Survey s = null;
 			if(isExcel) {
 				XLSTemplateUploadManager tum = new XLSTemplateUploadManager(localisation, warnings);
 				s = tum.getSurvey(sd, 
@@ -259,32 +257,44 @@ public class SurveyTemplateManager {
 						merge,
 						existingVersion);
 			} else if(type.equals("xml")) {
-
-				// Parse the form into an object model
-				PutXForm loader = new PutXForm(localisation);
-				model = loader.put(fileItem.getInputStream(), 
-						request.getRemoteUser(),
-						basePath);	// Load the XForm into the model
-				
-				// Set the survey name to the one entered by the user 
-				if(displayName != null && displayName.length() != 0) {
-					model.getSurvey().setDisplayName(displayName);
-				} else {
-					throw new Exception("No Survey name");
+				XFormTemplateUploadManager xum = new XFormTemplateUploadManager(localisation, warnings);
+				s = xum.getSurvey(oId, 
+						fileItem.getInputStream(), 
+						displayName,
+						projectId,
+						questionNames,
+						optionNames,
+						merge,
+						existingVersion);
+				if(!action.equals("replace") && !s.surveyData.displayName.equals(displayName)
+						&& sm.surveyExists(sd, s.surveyData.displayName, projectId)) {
+					// The name came from the title of the XForm
+					String msg = localisation.getString("tu_ae");
+					msg = msg.replace("%s1", s.surveyData.displayName);
+					throw new ApplicationException(msg);
 				}
-
-				// Set the project id to the one entered by the user 
-				if(projectId != -1) {
-					model.getSurvey().setProjectId(projectId);
-				} 
+				displayName = s.surveyData.displayName;
 				
+				/*
+				 * An XForm cannot hold many of the settings of a survey, when it replaces a survey
+				 * keep the settings of the survey it replaces
+				 */
+				if(action.equals("replace")) {
+					Survey fullExisting = sm.getById(sd, cResults, user, false, surveyId, 
+							true, basePath, null, false, false, true, 
+							false, false, "internal", false, false, superUser, null, 
+							false,
+							false,		// launched only
+							false		// Don't merge set values into default value
+							);
+					xum.keepExistingSettings(fullExisting);
+				}
 			} else {
 				throw new ApplicationException("Unsupported file type");
 			}
 				
 			/*
 			 * Get information on a survey group if this survey is to be added to one
-			 * TODO make XML uploads work with this
 			 */
 			if(surveyId > 0) {
 				if(!action.equals("replace")) {
@@ -319,7 +329,7 @@ public class SurveyTemplateManager {
 			/*
 			 * Save the survey to the database
 			 */
-			if(isExcel) {
+			{
 				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms, existingSurveyId, oId);
 				String msg = null;
 				String title = null;
@@ -327,7 +337,7 @@ public class SurveyTemplateManager {
 					msg = localisation.getString("log_sr");
 					title = LogManager.REPLACE;
 				} else {
-					msg = localisation.getString("log_sc");
+					msg = localisation.getString(isExcel ? "log_sc" : "log_sc_xml");
 					title = LogManager.CREATE;
 				}
 				
@@ -367,24 +377,6 @@ public class SurveyTemplateManager {
 					}	
 				}
 				
-			} else {
-				int sId = model.writeDatabase();
-				s = sm.getById(sd, cResults, user, false, sId, true, basePath, 
-						null,					// instance id 
-						false, 					// get results
-						false, 					// generate dummy values
-						true, 					// get property questions
-						false, 					// get soft deleted
-						false, 					// get HRK
-						"internal", 			// Get External options
-						false, 					// get change history
-						true, 					// get roles
-						superUser, 
-						null	,				// geom format
-						false,					// Include child surveys
-						false,					// launched only
-						false		// Don't merge set values into default value
-						);
 			}
 			
 			/*

@@ -3,7 +3,6 @@ package org.smap.sdal.legacy;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -17,7 +16,6 @@ import java.util.Vector;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
@@ -66,18 +64,8 @@ public class SurveyTemplate {
 		return translations;
 	}
 	
-	public void resetNextQuestionSeq() {
-		nextQuestionSeq = 0;
-	}
 	
-	public int getNextQuestionSeq() {
-		nextQuestionSeq++;
-		return nextQuestionSeq-1;
-	}
 	
-	public void setDefaultLanguage(String v) {
-		survey.setDefLang(v);
-	}
 	
 	public String getDefaultLanguage() {
 		if(survey != null) {
@@ -107,13 +95,7 @@ public class SurveyTemplate {
 		return triggers;
 	}
 	
-	public void setNextOptionSeq(int seq) {
-		nextOptionSeq = seq;
-	}
 	
-	public int getNextOptionSeq() {
-		return nextOptionSeq;
-	}
 	
 	public boolean hasCascade() {
 		if(cascadeInstances.size() == 0) {
@@ -145,14 +127,6 @@ public class SurveyTemplate {
 		return cascadeInstances;
 	}
 	
-	/*
-	 * Method to create a new unnamed survey
-	 * 
-	 * @param surveyName the name of the survey
-	 */
-	public void createSurvey() {
-		survey = new Survey();
-	}
 	
 	public void setUser(String v) {
 		user = v;
@@ -162,9 +136,6 @@ public class SurveyTemplate {
 		basePath = v;
 	}
 	
-	public String getUser() {
-		return user;
-	}
 	
 	public String getBasePath() {
 		return basePath;
@@ -256,28 +227,8 @@ public class SurveyTemplate {
 		return table;
 	}
 
-	/*
-	 * Method to set the reference for the first form
-	 * 
-	 * @param formRef the reference for the form to be set
-	 */
-	public void setFirstFormRef(String formRef) {
-		firstFormRef = formRef;
-	}
 	
-	/*
-	 * Method to set the reference for the first form used in an Xform import
-	 * This is converted to "main" by smap
-	 * 
-	 * @param formRef the reference for the form to be set
-	 */
-	public void setXFormFormName(String formName) {
-		xFormFormName = formName;
-	}
 	
-	public void setFirstFormName(String formName) {
-		firstFormName = formName;
-	}
 
 	/*
 	 * Method to get the reference for the first form
@@ -288,75 +239,18 @@ public class SurveyTemplate {
 		return firstFormRef;
 	}
 	
-	public String getFirstFormName() {
-		return firstFormName;
-	}
 	
 	public String getXFormFormName() {
 		return xFormFormName;
 	}
 
-	public void addIText(String lCode, String id, String type, String value) {
 	
-		HashMap <String, HashMap<String, Translation>> l = translations.get(lCode);
-		
-		if (l == null) {	// Create new language
-			l = new HashMap <String, HashMap<String, Translation>> ();
-			translations.put(lCode, l);
-		}
-		
-		HashMap <String, Translation> types = l.get(id);	// Get the types for this string identifier
-		if(types == null) {	// Create a new Hashmap of translation types
-			types = new HashMap<String, Translation> ();
-			l.put(id, types);
-		}
-		
-		if(value.startsWith("jr://")) {
-			int idx = value.lastIndexOf('/');
-			if(idx > -1) {
-				value = value.substring(idx + 1);
-			}
-		}
-		Translation t = new Translation();
-		t.setLanguage(lCode);
-		t.setTextId(id);
-		t.setType(type);
-		t.setValue(value);
-		types.put(type, t);
-		
-	}
 	
-	public void addDummyTranslation(String id, String value) {
-		
-		Translation t = new Translation();
-		t.setTextId(id);
-		t.setValue(value);
-		dummyTranslations.add(t);
-	}
-	
-	public void addDefault(String ref, String value) {
-		defaults.put(ref, value);
-	}
 	
 	public String getDefault(String ref) {
 		return defaults.get(ref);
 	}
 	
-	/*
-	 * Method to create a new question
-	 * 
-	 * @param questionRef the reference for the question to be created
-	 * 
-	 * @param questionName The name of the question
-	 */
-	public void createQuestion(String questionRef, String questionName) {
-		Question q = new Question();
-		q.setName(questionName);
-		//q.setReference(questionRef);
-		q.setPath(questionRef);		// Store path when loaded from xForm
-		q.setSeq(-1);	// Default to -1 until actual sequence is known
-		questions.put(questionRef, q);
-	}
 
 	/*
 	 * Method to get an existing question
@@ -369,114 +263,11 @@ public class SurveyTemplate {
 		return questions.get(questionRef);
 	}
 	
-	/*
-	 * Method to delete a question
-	 * 
-	 * @param questionRef the reference for the question to be deleted
-	 * 
-	 */
-	public void removeQuestion(String questionRef) {
-		questions.remove(questionRef);
-	}
 
-	/*
-	 * Method to create a new option
-	 * 
-	 * @param optionRef the reference for the option to be created
-	 * @param label The label of the option
-	 */
-	public void createOption(String optionRef, String questionRef) {
-		Option o = new Option();
-		o.setQuestionRef(questionRef);
-		options.put(optionRef, o);
-	}
 	
-	/*
-	 * Method to create a cascade option
-	 *  These options have a different reference than other options and hence
-	 *  are stored in a different hashmap, however their attributes are more or less 
-	 *  the same as standard options and they are stored in an Option object
-	 */
-	public void createCascadeOption(String optionRef, String cascadeInstanceId) {
-		Option o = new Option();
-		o.setListName(cascadeInstanceId);
-		cascade_options.put(optionRef, o);
-	}
 	
-	/*
-	 * Create real options for this question by copying the cascade options that match the passed in instance id
-	 */
-	public void createCascadeOptions(String cascadeInstanceId, String questionRef) {
-		Collection<Option> c = null;
-		Iterator<Option> itr = null;
-
-		c = cascade_options.values();
-		itr = c.iterator();
-		while (itr.hasNext()) {
-			Option o = itr.next();
-			if(o.getListName().equals(cascadeInstanceId)) {
-				Option oNew = new Option(o);
-				oNew.setQuestionRef(questionRef);
-				String optionRef = questionRef + "/" + oNew.getSeq();
-				options.put(optionRef, oNew);
-			}
-		}
-	}
 	
-	/*
-	 * Set the value on all cascade options that match the passed in instance id and the value key
-	 */
-	public void setCascadeValue(String questionRef, String valueKey) {
-		Collection<Option> c = null;
-		Iterator<Option> itr = null;
-
-		// Cascade option has already been copied to options list
-		c = options.values();		
-		itr = c.iterator();
-		while (itr.hasNext()) {
-			Option o = itr.next();
-			if(o.getQuestionRef().equals(questionRef)) {
-				HashMap<String, String> kv_pairs = o.getCascadeKeyValues();
-				String value = kv_pairs.get(valueKey);
-				o.setValue(value);
-				kv_pairs.remove(valueKey);	// Remove this kv pair as its been identified as a value
-			}
-		}
-	}
 	
-	/*
-	 * Set the label_id on all cascade options that match the passed in instance id and the label key
-	 */
-	public void setCascadeLabel(String questionRef, String labelKey) {
-		Collection<Option> c = null;
-		Iterator<Option> itr = null;
-
-		boolean itext = false;
-		if(labelKey.startsWith("jr:itext")); {
-			// Text id reference, set the label_id
-			itext = true;
-			int idx1 = labelKey.indexOf('(');
-			int idx2 = labelKey.indexOf(')', idx1 + 1);
-			labelKey = labelKey.substring(idx1 + 1, idx2);
-		}
-
-		c = options.values();
-		itr = c.iterator();
-		while (itr.hasNext()) {
-			Option o = itr.next();
-			if(o.getQuestionRef().equals(questionRef)) {
-				HashMap<String, String> kv_pairs = o.getCascadeKeyValues();
-				String label = kv_pairs.get(labelKey);
-
-				if(itext) {
-					o.setLabelId(label);
-				} else {
-					o.setLabel(label);
-				}
-				kv_pairs.remove(labelKey);	// Remove this kv pair as its been identified as a label
-			}
-		}
-	}
 
 	/*
 	 * Method to get an existing option
@@ -490,518 +281,14 @@ public class SurveyTemplate {
 	}
 	
 	// Get an option from the cascade option bucket
-	public Option getCascadeOption(String optionRef) {
-		return cascade_options.get(optionRef);
-	}
 
-	/*
-	 * Method to count total questions per form and  table columns per form
-	 * Total table columns are limited by Postgres to 1,600
-	 */
-	private class FormDesc {
-		int questions = 0;
-		int options = 0;
-	}
 	
-	public ArrayList<String> multipleGeoms() {
-		HashMap <String, FormDesc> forms = new HashMap <String, FormDesc> ();
-		ArrayList<String> badForms = new ArrayList<String> ();
-		
-		List<Question> questionList = new ArrayList<Question>(questions.values());
-		for (Question q : questionList) {
-			Form f = getForm(q.getFormRef());
-			String fName = null;
-			if(f != null) {
-				fName = f.getName();
-			} else {
-				fName = "_topLevelForm";
-			}
-			FormDesc fd = forms.get(fName);
-			if(fd == null) {
-				fd = new FormDesc();
-				forms.put(fName, fd);					
-			}
-			
-			// Count the questions ignoring select multiple as the number of columns created by a select multiple is
-			//  determined by the number of its columns
-			String qType = q.getType();
-			if(!qType.equals("select") && !qType.equals("end group") && !qType.equals("begin group")) {
-				fd.questions++;
-			}
-			
-		}
-		
-		// Each select multiple creates a column for every options, count these
-		/* Select multiple questions are stored in a single column now
-		List<Option> optionList = new ArrayList<Option>(options.values());
-		for (Option o : optionList) {
-
-			Question q = questions.get(o.getQuestionRef());
-			Form f = getForm(q.getFormRef());
-			String fName = null;
-			if(f != null) {
-				fName = f.getName();
-			} else {
-				fName = "_topLevelForm";
-			}
-			FormDesc fd = forms.get(fName);
-			if(fd == null) {
-				fd = new FormDesc();
-				forms.put(fName, fd);					
-			}
-			if(q != null) {
-				String qType = q.getType();
-				if(qType != null && qType.equals("select")) {
-					fd.options++;
-				}
-			} 
-			
-		}
-		*/
 	
-		Iterator itr = forms.keySet().iterator();
-		while(itr.hasNext()) {
-			String k = itr.next().toString();
-			FormDesc fd = forms.get(k);
-			if((fd.questions + fd.options) > MAX_COLUMNS) {
-				badForms.add("Error: There are " + fd.questions + " questions and " + fd.options + 
-						" multiple choice options in form:" + k +
-						". Each of these create a data base column (in total " + (fd.questions + fd.options) + ")" +
-						" and there is a maximum of " + MAX_COLUMNS +
-						" allowed. You will need to put some questions in a sub form. " +
-						"Refer to http://blog.smap.com.au/limits-number-questions-per-form/ for details.");
-			}
-
-		}
-		return badForms;
-	}
 	
-	/*
-	 * Method to check for duplicate names in a survey
-	 */
-	public ArrayList <String> duplicateNames() {
-		// Hashmap of form names each of which contains a hashmap of question in that form
-		//HashMap <String, HashMap<String, String>> forms = new HashMap <String, HashMap<String, String>> ();
-		
-		HashMap<String, String> questionMap = new HashMap<String, String> ();
-		ArrayList<String> badNames = new ArrayList<String> ();
-		
-		List<Question> questionList = new ArrayList<Question>(questions.values());
-		for (Question q : questionList) {
-			String qName = q.getName();
-
-			Form f = getForm(q.getFormRef());
-			String fName = null;
-			if(f != null) {
-				fName = f.getName();
-			} else {
-				fName = "_topLevelForm";
-			}
-
-			String existingQuestion = questionMap.get(qName.trim().toLowerCase());
-			if(existingQuestion != null) {
-				badNames.add(qName + " in forms(" + fName + "," + existingQuestion + ")");
-				log.fine("Duplicate Question:" + qName + " in form:" + fName);
-			} else {
-				questionMap.put(qName.trim().toLowerCase(), fName);
-			}
-		}
-		
-		return badNames;
-	}
-	
-	/*
-	 * Method to check for:
-	 *  	a) read only mandatory questions
-	 *  	b) constraints that don't have a "."
-	 */
-	public ArrayList <String> manReadQuestions() throws Exception {
-		
-		ArrayList<String> badNames = new ArrayList<String> ();
-		
-		List<Question> questionList = new ArrayList<Question>(questions.values());
-		for (Question q : questionList) {
-			String qName = q.getName();
-			String qType = q.getType();
-			boolean man = q.isMandatory();
-			boolean ro = q.isReadOnly() || (qType != null && qType.equals("note"));
-			String relevance = q.getRelevant(true, questionPaths, getXFormFormName());
-			String constraint = q.getConstraint(true, questionPaths, getXFormFormName());
-		
-			// Check for mandatory and readonly
-			if(man && ro && relevance == null) {
-				log.fine("check man read: " + qName + " : " + man + " : " + ro + " : " + relevance);
-				String roMsg = "Question '" + qName + "' is mandatory, read only and has nothing in the 'relevance' column - remove the 'yes' in the required column" ;
-				badNames.add(roMsg);
-			}
-			
-			// Check for constraints without dots
-			if(constraint !=null && !constraint.contains(".") && !constraint.contains("false()")) {
-				log.fine("check constraint: " + qName + " : " + constraint);
-				String roMsg = "Constraint '" + constraint + "' for question " + qName + " must refer to the answer using a '.' (dot)";
-				badNames.add(roMsg);
-			}
-					
-		}
-		
-		return badNames;
-	}
 	
 
 	
-	/*
-	 * Method to write the model to the database
-	 */
-	public int writeDatabase() throws Exception {
-		
-		Connection sd = org.smap.sdal.Utilities.SDDataSource.getConnection("SurveyTemplate-Write Database");
-		// log.fine("Set autocommit false");
-		sd.setAutoCommit(false);
-		
-		JdbcSurveyManager sm = null;
-		JdbcFormManager fm = null;
-		JdbcQuestionManager qm = null;
-		JdbcOptionManager om = null;
-		JdbcTranslationManager tm = null;
-		
-		try {
-			Collection c = null;
-			Iterator itr = null;
-	
-			if(forms.values().size() == 0) {
-				throw new Exception("No forms in this survey");
-			}
-			sm = new JdbcSurveyManager(sd, localisation);
-			// log.fine("Persisting survey");
-			sm.write(survey);
-	
-			/*
-			 * Forms 1. Create record for each form and get its primary key
-			 */
-			List<Form> formList = new ArrayList<Form>(forms.values());
-			fm = new JdbcFormManager(sd);
-			for(Form f : formList) {
-				f.setSurveyId(survey.getId());
-				fm.write(f);
-			}
-			
-			/*
-			 * Questions.
-			 */
-			List<Question> questionList = new ArrayList<Question>(questions.values());
-			
-			/*
-			 * Hack
-			 * Add four preload questions that arn't currently supported by odkBuild editor
-			 * These questions will be added to the top level form as the form_ref is null
-			 */
-			boolean alreadyHas_device = false;
-			boolean alreadyHas_start = false;
-			boolean alreadyHas_end = false;
-			boolean alreadyHas_instanceid = false;
-			boolean alreadyHas_instancename = false;
-			boolean alreadyHas_task_key = false;
-			for (Question q : questionList) {
-				if(q.getSourceParam() != null) {
-					if(q.getSourceParam().equals("deviceid")) {
-						alreadyHas_device = true;
-					} else if(q.getSourceParam().equals("start")) {
-						alreadyHas_start = true;
-					} else if(q.getSourceParam().equals("end")) {
-						alreadyHas_end = true;
-					} 
-				}
-	
-				if(q.getName().trim().toLowerCase().equals("_instanceid") ||
-						q.getName().trim().equals("instanceID")) {
-						alreadyHas_instanceid = true;
-				} else if(q.getName().equals("_task_key")) {
-						alreadyHas_task_key = true;
-				} else if(q.getName().toLowerCase().equals("instancename")) {
-						alreadyHas_instancename = true;
-						q.setSource("user");	// Always add instance name as a column in the results database even if not initially set in client
-				}
-	
-			}
-	
-			if(!alreadyHas_device) {
-				Question q = new Question();	// Device id
-				q.setName("_device");
-				q.setSeq(-3);
-				q.setVisible(false);
-				q.setSource("property");
-				q.setSourceParam("deviceid");
-				questionList.add(q);
-			}
-			
-			if(!alreadyHas_start) {
-				Question q = new Question();	// Start time
-				q.setName("_start");
-				q.setSeq(-2);
-				q.setVisible(false);
-				q.setSource("timestamp");
-				q.setSourceParam("start");
-				q.setType("dateTime");
-				questionList.add(q);
-			}
-			
-			if(!alreadyHas_end) {
-				Question q = new Question();	// End time
-				q.setName("_end");
-				q.setSeq(-1);
-				q.setVisible(false);
-				q.setSource("timestamp");
-				q.setSourceParam("end");
-				q.setType("dateTime");
-				questionList.add(q);
-			}
-			
-			if(!alreadyHas_instanceid) {
-				Question q = new Question();	// Instance Id
-				q.setName("_instanceid");
-				q.setSeq(-1);
-				q.setVisible(false);
-				q.setSource("user");
-				q.setCalculate("concat('uuid:', uuid())");
-				q.setReadOnly(true);
-				q.setType("string");
-				questionList.add(q);
-			}
-			
-			if(!alreadyHas_instancename) {
-				Question q = new Question();	// Instance Name
-				q.setName("instanceName");
-				q.setPath("/main/meta/instanceName");	
-				q.setSeq(-1);
-				q.setVisible(false);
-				q.setSource("user");
-				q.setCalculate("");
-				q.setReadOnly(true);
-				q.setType("string");
-				questionList.add(q);
-			}
-			
-			if(!alreadyHas_task_key) {
-				Question q = new Question();	// Task Key
-				q.setName("_task_key");
-				q.setSeq(-1);
-				q.setVisible(false);
-				q.setSource("tasks");
-				q.setType("string");
-				questionList.add(q);
-			}
-			
-			/*
-			 * Set the sequence number of any questions that have the default sequence "-1" but
-			 * need to be placed within a non repeat group
-			 */
-			for (Question q : questionList) {
-				if(q.getSeq() == -1) {
-					String ref = q.getPath();
-					//String ref = questionPaths.get(q.getName());
-					String group = UtilityMethods.getGroupFromPath(ref);
-					if(group != null) {
-						for(Question q2 : questionList) {
-							
-							//String q2Path = questionPaths.get(q2.getName());
-							String q2Path = q2.getPath();
-							if(q2Path != null) {
-								if(q2Path.endsWith(group)) {
-									q.setSeq(q2.getSeq() + 1);
-		
-								}
-							}
-						}
-					}
-				}
-			}
-			
-			/*
-			 * Sort the list by sequence
-			 */
-			java.util.Collections.sort(questionList, new Comparator<Question>() {
-				@Override
-				public int compare(Question object1, Question object2) {
-					if (object1.getSeq() < object2.getSeq())
-						return -1;
-					else if (object1.getSeq() == object2.getSeq())
-						return 0;
-					else
-						return 1;
-				}
-			});
-			
-			qm  = new JdbcQuestionManager(sd);
-			for (Question q : questionList) {
-				Form f = getForm(q.getFormRef());
-				if(f == null) {
-					
-					/*
-					 * Try and get the formRef from the question path
-					 */
-					String qPath = q.getPath();
-					if(qPath != null) {
-						String formRef = getFormFromQuestionPath(qPath);
-						f = getForm(formRef);
-					}
-					
-					if(f == null) {
-						// Still no form then allocate this question to the top level form
-						f = getForm(firstFormRef);
-						//q.setPath(f.getPath() + "/" + q.getName());   path change - no longer save path
-					}
-	
-	
-				}
-	
-				if(f != null) {
-					q.setFormId(f.getId());
-					q.setSeq(f.qSeq++);
-					q.setListId(sd, survey.getId());
-					if(!q.isRepeatCount()) {
-						qm.write(q, getXFormFormName());
-					}
-				} 			
-			}
-	
-			/*
-			 * Forms 2. Update the form record with parent form and question keys
-			 */
-			for(Form f : formList) {
-				if (f.getParentFormRef() != null) {
-					f.setParentForm(forms.get(f.getParentFormRef()).getId());
-					f.setParentQuestionId(questions.get(f.getParentQuestionRef()).getId());
-				}
-				if(f.getRepeatsRef() != null) {		// Set the repeat count from the dummy calculation question
-					String rRef = f.getRepeatsRef().trim();
-					Question qRef = questions.get(rRef);
-					f.setRepeats(qRef.getCalculate(false, null, getXFormFormName()));
-				}
-				fm.update(f);
-			}
-	
-			/*
-			 * Persist the options
-			 */
-			
-			// Sort options by sequence number
-			List<Option> optionList = new ArrayList<Option>(options.values());
-			java.util.Collections.sort(optionList, new Comparator<Option>() {
-				@Override
-				public int compare(Option object1, Option object2) {
-					if (object1.getSeq() < object2.getSeq())
-						return -1;
-					else if (object1.getSeq() == object2.getSeq())
-						return 0;
-					else
-						return 1;
-				}
-			});
-			
-			om = new JdbcOptionManager(sd);
-			for (Option o : optionList) {
-				Question q = getQuestion(o.getQuestionRef()); // Get the question id
-				o.setListId(q.getListId());
-				o.setSeq(q.oSeq++);
-				o.setCascadeFilters();	// Set the filter value based on the key value pairs
-				om.write(o);
-			}
-			
-			// Write the translation objects
-			Set<String> langs = translations.keySet();
-			String[] languages = (String[]) langs.toArray(new String[0]);
-			int sId = survey.getId();
-			tm = new JdbcTranslationManager(sd);
-			if(languages.length > 0) {
-				for(int langIndex = 0; langIndex < languages.length; langIndex++) {
-					HashMap<?, HashMap<String, Translation>> aLanguageTranslation = translations.get(languages[langIndex]);	// A single language
-					Collection<HashMap<String, Translation>> l = aLanguageTranslation.values();
-					
-					tm.persistBatch(sId, l);
-					//tPersist.persistBatch(l, survey);
-					
-					for(int i = 0; i < dummyTranslations.size(); i++) {
-						Translation trans = dummyTranslations.elementAt(i);
-						tm.write(sId, languages[langIndex], trans.getTextId(), "none", trans.getValue());
-					}
-				}
-			} else {
-				// No languages specified, just create the dummy elements with a language of "default"
-				for(int i = 0; i < dummyTranslations.size(); i++) {
-					Translation trans = dummyTranslations.elementAt(i);
-					tm.write(sId, "default", trans.getTextId(), "none", trans.getValue());
-					
-				}
-			}
-			
-			// Record the message so that devices can be notified
-			MessagingManager mm = new MessagingManager(localisation);
-			mm.surveyChange(sd, sId, 0);
-			// Update the form dependencies so that when new results are received it is simple to identify the impacted forms			
-			GeneralUtilityMethods.updateFormDependencies(sd, sId);
-			
-			String msg = localisation.getString("log_sc_xml");
-			msg = msg.replace("%s1", survey.getDisplayName()).replace("%s2", survey.getIdent());
-			lm.writeLog(sd, sId, user, LogManager.CREATE, msg, 0, null);
-			
-			sd.commit();
-		} catch (Exception e) {
-			try{sd.rollback();} catch(Exception ex) {}
-			throw e;
-		} finally {
-			
-			// log.fine("Set autocommit true");
-			sd.setAutoCommit(true);
-			if(sm != null) {sm.close();};
-			if(fm != null) {fm.close();};
-			if(qm != null) {qm.close();};
-			if(om != null) {om.close();};
-			if(tm != null) {tm.close();};
-			
-			org.smap.sdal.Utilities.SDDataSource.closeConnection("SurveyTemplate-Write Database", sd);
-		}
-		
-		return survey.getId();
 
-	}
-
-	/*
-	 * Get the form name for the question path by finding the longest form that
-	 *  can be the base of the question path
-	 *  The path to the question cannot be used as this may include a group
-	 */
-	private String getFormFromQuestionPath(String qPath) {
-
-		List<String> kList = new ArrayList<String>(forms.keySet());
-		String longestPath = null;
-		int maxLength = -1;
-		for(String formPath : kList) {
-			String exPath;
-			if(formPath.endsWith("/")) {
-				exPath = formPath;
-			} else {
-				exPath= formPath + "/";    // Make sure path does not match part of a question name
-			}
-			if(qPath.startsWith(exPath)) {
-				int l = formPath.length();
-				if(l > maxLength) {
-					maxLength = l;
-					longestPath = formPath;
-				}
-			}
-		}
-
-		return longestPath;
-		
-		/*
-		String formPath = null;
-		int idx = qPath.lastIndexOf('/');
-		if(idx > 0) {
-			formPath = qPath.substring(0, idx);
-		}
-		return formPath;
-		*/
-	}
 	/*
 	 * Method to read the survey template from the database when passed the key of the survey
 	 * 
@@ -1326,24 +613,6 @@ public class SurveyTemplate {
 		}
 	}
 	
-	/*
-	 * Method to check to see whether the cascade option has already been loaded
-	 * Compare against the value as pyxform can create two sets of options one
-	 *  in an instance and the other not which differ in label id's but are otherwise duplicates
-	 */
-	public String cascadeOptionLoaded(String listName, String labelId, String value) {
-		String existingRef = null;
-		
-		Set<String> keys = cascade_options.keySet();
-		for (String ref : keys) {
-			Option o = cascade_options.get(ref);
-			if(o.getListName().equals(listName) && o.getValue().equals(value)) {
-				existingRef = ref;
-				break;
-			}
-		}
-		return existingRef;
-	}
 	
 	/*
 	 * Method to check to see whether the cascade instance has already been loaded
@@ -1365,34 +634,8 @@ public class SurveyTemplate {
 		return loaded;
 	}
 	
-	/*
-	 * Add a survey level manifest such as a csv file from an appearance attribute
-	 */
-	public void addManifestFromAppearance(String appearance) {
-		
-		ManifestInfo mi = GeneralUtilityMethods.addManifestFromAppearance(appearance, survey.getManifest());
-		survey.setManifest(mi.manifest);
-	}
 	
-	/*
-	 * Add a survey level manifest such as a csv file from a calculate attribute
-	 */
-	public void addManifestFromCalculate(String calculate) {
-		
-		ManifestInfo mi = GeneralUtilityMethods.addManifestFromCalculate(calculate, survey.getManifest());
-		survey.setManifest(mi.manifest);
-			
-	}
 	
-	/*
-	 * Add a survey level name from the calculate (if its a instanceName question)
-	 */
-	public void addSurveyInstanceNameFromCalculate(String calculate, String questionRef) {
-		
-		if(questionRef.toLowerCase().trim().equals("/main/meta/instancename")) {
-			survey.setInstanceName(calculate);
-		}
-	}
 	
 	/*
 	 * Method to extend a survey instance with information from the template
