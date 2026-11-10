@@ -29,6 +29,7 @@ import com.google.gson.GsonBuilder;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.CMS;
+import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.CaseCount;
 import org.smap.sdal.model.OpsAlert;
 import org.smap.sdal.model.OpsCase;
@@ -409,7 +410,8 @@ public class OpsMonitorManager {
 		// record key/duplicate policy (KeyManager - settings null). Only rows with case
 		// settings are real bundles; without this filter, key-only surveys would be counted
 		// as bundles and every open record on them would inflate the open-case totals.
-		String sql = "select distinct cs.group_survey_ident "
+		// Settings with no status question are a bundle whose case management was turned off.
+		String sql = "select cs.group_survey_ident, cs.settings "		// group_survey_ident is unique
 				+ "from cms_setting cs "
 				+ "where cs.group_survey_ident is not null "
 				+ "and cs.settings is not null "
@@ -425,8 +427,18 @@ public class OpsMonitorManager {
 				pstmt.setString(2, requestingUser);
 			}
 			ResultSet rs = pstmt.executeQuery();
+			Gson gson = new Gson();
 			while(rs.next()) {
-				bundles.add(rs.getString(1));
+				CaseManagementSettings settings = null;
+				try {
+					settings = gson.fromJson(rs.getString(2), CaseManagementSettings.class);
+				} catch (Exception e) {
+					log.log(Level.SEVERE, "Case settings for " + rs.getString(1), e);
+				}
+				if(settings != null && settings.statusQuestion != null
+						&& settings.statusQuestion.trim().length() > 0) {
+					bundles.add(rs.getString(1));
+				}
 			}
 		} finally {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
