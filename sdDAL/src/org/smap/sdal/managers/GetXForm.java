@@ -2255,10 +2255,18 @@ public class GetXForm {
 						 * If this is a compound question add the marker array
 						 */
 						if(value != null && qType.equals("geocompound")) {						
-							value = GeneralUtilityMethods.applyCompoundValue(instance.markers, value);			
+							value = GeneralUtilityMethods.applyCompoundValue(instance.markers, value);
 						}
 					}
-					
+
+					// No geometry supplied, use an answer given in ODK format, as a record submitted from values does
+					if((value == null || value.isEmpty()) && instance.values != null) {
+						String qValue = instance.values.get(qName);
+						if(qValue != null) {
+							value = qValue;
+						}
+					}
+
 				} else {
 					String qValue = instance.values.get(qName); 
 					if(qValue != null) {

@@ -83,7 +83,9 @@ public class DataSubmitTool extends AbstractMcpTool {
 		answers.put("description", "The answers, keyed by question name, as they would have been "
 				+ "typed into the form. Read smap://survey/{ident}/definition for the names. A "
 				+ "question given null is left unanswered, and when continues is used it keeps the "
-				+ "value the record already has; an empty string takes that answer away.");
+				+ "value the record already has; an empty string takes that answer away. A geopoint "
+				+ "is \"latitude longitude\", optionally followed by altitude and accuracy, e.g. "
+				+ "\"10.63 -4.76\".");
 
 		Map<String, Object> schema = new LinkedHashMap<>();
 		Map<String, Object> properties = new LinkedHashMap<>();
