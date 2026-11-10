@@ -2,7 +2,9 @@ package org.smap.sdal.managers;
 
 import java.io.File;
 import java.sql.Connection;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.UUID;
@@ -91,7 +93,7 @@ public class RecordSubmitManager {
 			Map<String, String> values, String user, String agent, String basePath,
 			String serverName) throws Exception {
 
-		return submit(sd, cResults, survey, values, user, agent, basePath, serverName, null);
+		return submit(sd, cResults, survey, values, null, user, agent, basePath, serverName, null);
 	}
 
 	/*
@@ -108,7 +110,8 @@ public class RecordSubmitManager {
 	 * without each stage having to restate what the stages before it recorded.
 	 */
 	public Submitted submit(Connection sd, Connection cResults, Survey survey,
-			Map<String, String> values, String user, String agent, String basePath,
+			Map<String, String> values, HashMap<String, ArrayList<Instance>> repeats,
+			String user, String agent, String basePath,
 			String serverName, String updateInstanceId) throws Exception {
 
 		String templateName = survey.getIdent();
@@ -137,6 +140,12 @@ public class RecordSubmitManager {
 		Instance initialData = new Instance();
 		initialData.values.putAll(values);
 		initialData.values.put(INSTANCE_ID, instanceId);
+		/*
+		 * Rows of repeating groups, keyed by the repeat's name.  On a record being continued they are
+		 * added to the rows it already has, as a person adding a row on the device would
+		 */
+		initialData.repeats = repeats;
+		initialData.appendRepeats = true;
 
 		/*
 		 * A blank form for a new record; the existing record loaded into the form when continuing one.

@@ -1,5 +1,7 @@
 package org.smap.sdal.mcp.tools;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +16,9 @@ import org.smap.sdal.mcp.McpData;
 import org.smap.sdal.mcp.McpRead;
 import org.smap.sdal.mcp.McpToolContext;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.MCPToolResult;
+import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
 
@@ -85,7 +89,9 @@ public class DataSubmitTool extends AbstractMcpTool {
 				+ "question given null is left unanswered, and when continues is used it keeps the "
 				+ "value the record already has; an empty string takes that answer away. A geopoint "
 				+ "is \"latitude longitude\", optionally followed by altitude and accuracy, e.g. "
-				+ "\"10.63 -4.76\".");
+				+ "\"10.63 -4.76\". A repeating group is given by its name with a list of rows, each "
+				+ "row an object of answers for the questions in that group. When continues is used "
+				+ "the rows are added to the rows the record already has.");
 
 		Map<String, Object> schema = new LinkedHashMap<>();
 		Map<String, Object> properties = new LinkedHashMap<>();
@@ -151,30 +157,21 @@ public class DataSubmitTool extends AbstractMcpTool {
 		 * actually asks.
 		 */
 		Map<String, String> values = new LinkedHashMap<>();
-		List<String> unknown = new java.util.ArrayList<>();
+		HashMap<String, ArrayList<Instance>> repeats = new HashMap<>();
+		List<String> unknown = new ArrayList<>();
 		Form topForm = GeneralUtilityMethods.getTopLevelForm(ctx.sd, surveyId);
-		java.util.ArrayList<TableColumn> columns = McpData.columns(ctx, survey, 0, topForm.id,
-				topForm.tableName, false, false, false);
+		Survey design = null;		// Only read when there is a repeating group to find
 
-		for(Map.Entry<String, Object> e : ((Map<String, Object>) answersArg).entrySet()) {
-			String question = questionFor(columns, e.getKey());
-			if(question == null) {
-				question = McpData.unpublishedQuestion(ctx, survey, e.getKey());	// No column until this submission creates it
+		for(Object v : ((Map<String, Object>) answersArg).values()) {
+			if(v instanceof List) {
+				design = McpData.questions(ctx, surveyId);
+				break;
 			}
-			if(question == null) {
-				unknown.add(e.getKey());
-			} else if(e.getValue() != null) {
-				values.put(question, text(e.getValue()));
-			}
-			/*
-			 * A null answer is left out of the document entirely rather than written as empty.
-			 *
-			 * On a new record the two look the same, but when this form is filled in against an
-			 * existing one they are opposites: the record is loaded into the form first, so a question
-			 * written as empty takes away what an earlier stage put there, while one left out keeps
-			 * it.  An empty string is still passed through, because taking an answer away is a
-			 * legitimate thing for a later stage to do.
-			 */
+		}
+		String badRow = readAnswers(ctx, survey, design, topForm, (Map<String, Object>) answersArg,
+				values, repeats, unknown, "");
+		if(badRow != null) {
+			return new MCPToolResult(badRow + " Nothing was submitted.", true);
 		}
 		if(!unknown.isEmpty()) {
 			return new MCPToolResult("This survey has no question called " + String.join(", ", unknown)
@@ -270,6 +267,7 @@ public class DataSubmitTool extends AbstractMcpTool {
 				ctx.cResults,
 				survey,
 				values,
+				repeats.isEmpty() ? null : repeats,
 				ctx.user,
 				ctx.clientId,
 				GeneralUtilityMethods.getBasePath(ctx.request),
@@ -305,6 +303,103 @@ public class DataSubmitTool extends AbstractMcpTool {
 		MCPToolResult result = new MCPToolResult(text.toString());
 		result.setStructuredContent(structured);
 		return result;
+	}
+
+	/*
+	 * The answers for one form, matched to its questions.
+	 *
+	 * A list is the rows of one of the form's repeating groups, and each row is read the same way
+	 * against the repeat's own form, so a group inside a group works as well.  Names that match
+	 * nothing are collected in unknown, with the path to them.  Returns a message when a row is not
+	 * an object of answers
+	 */
+	@SuppressWarnings("unchecked")
+	private String readAnswers(McpToolContext ctx, Survey survey, Survey design, Form form,
+			Map<String, Object> answers, Map<String, String> values,
+			HashMap<String, ArrayList<Instance>> repeats, List<String> unknown, String path) throws Exception {
+
+		ArrayList<TableColumn> columns = null;
+		for(Map.Entry<String, Object> e : answers.entrySet()) {
+
+			if(e.getValue() instanceof List) {
+				Question rq = repeatQuestion(design, form, e.getKey());
+				Form sub = rq == null ? null : repeatForm(design, form, rq);
+				if(sub == null) {
+					unknown.add(path + e.getKey());
+					continue;
+				}
+				ArrayList<Instance> rows = new ArrayList<>();
+				int i = 0;
+				for(Object r : (List<Object>) e.getValue()) {
+					i++;
+					if(!(r instanceof Map)) {
+						return "Row " + i + " of " + path + rq.name + " is not an object of answers.";
+					}
+					Instance row = new Instance();
+					row.repeats = new HashMap<>();
+					String bad = readAnswers(ctx, survey, design, sub, (Map<String, Object>) r,
+							row.values, row.repeats, unknown, path + rq.name + "[" + i + "].");
+					if(bad != null) {
+						return bad;
+					}
+					rows.add(row);
+				}
+				repeats.put(rq.name, rows);
+				continue;
+			}
+
+			if(columns == null) {
+				columns = McpData.columns(ctx, survey, form.parentform, form.id, form.tableName,
+						form.parentform != 0, false, false);
+			}
+			String question = questionFor(columns, e.getKey());
+			if(question == null) {
+				question = McpData.unpublishedQuestion(ctx, survey, form.id, e.getKey());	// No column until this submission creates it
+			}
+			if(question == null) {
+				unknown.add(path + e.getKey());
+			} else if(e.getValue() != null) {
+				values.put(question, text(e.getValue()));
+			}
+			/*
+			 * A null answer is left out of the document entirely rather than written as empty.
+			 *
+			 * On a new record the two look the same, but when this form is filled in against an
+			 * existing one they are opposites: the record is loaded into the form first, so a question
+			 * written as empty takes away what an earlier stage put there, while one left out keeps
+			 * it.  An empty string is still passed through, because taking an answer away is a
+			 * legitimate thing for a later stage to do.
+			 */
+		}
+		return null;
+	}
+
+	/* The repeating group of a form with this name */
+	private Question repeatQuestion(Survey design, Form form, String name) {
+		if(design == null || name == null) {
+			return null;
+		}
+		String wanted = name.trim();
+		for(Form f : design.surveyData.forms) {
+			if(f.id == form.id && f.questions != null) {
+				for(Question q : f.questions) {
+					if(!q.soft_deleted && "begin repeat".equals(q.type) && wanted.equalsIgnoreCase(q.name)) {
+						return q;
+					}
+				}
+			}
+		}
+		return null;
+	}
+
+	/* The form holding the rows of a repeating group */
+	private Form repeatForm(Survey design, Form form, Question q) {
+		for(Form f : design.surveyData.forms) {
+			if(f.parentform == form.id && f.parentQuestion == q.id) {
+				return f;
+			}
+		}
+		return null;
 	}
 
 	/* A number from the acknowledgement, however the client spelled it */

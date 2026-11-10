@@ -2441,6 +2441,21 @@ public class GetXForm {
 					boolean needTemplate = (!generatedTemplate && (parentElement == null));
 					populateFormData(outputDoc, item.subForm, -1, Integer.parseInt(priKey.value), cResults, sd, template,
 							currentParent, sId, survey_ident, needTemplate, simplifyMedia, order, count, initialData);
+
+					/*
+					 * New rows for a repeat of the main form go after the rows the record already has.
+					 * Rows nested inside a new row come with that row
+					 */
+					if(parentElement == null && initialData != null && initialData.appendRepeats
+							&& initialData.repeats != null) {
+						ArrayList<Instance> added = initialData.repeats.get(item.name);
+						if(added != null) {
+							for(Instance row : added) {
+								populateTaskDataForm(cResults, outputDoc, item.subForm, sd, template, currentParent, sId,
+										survey_ident, row, null, false, false);
+							}
+						}
+					}
 					
 				} else if (item.begin_group) {
 					Element childElement = null;

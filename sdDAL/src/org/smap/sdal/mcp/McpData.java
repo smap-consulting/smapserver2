@@ -323,6 +323,11 @@ public class McpData {
 	 * Returns the question name, or null.
 	 */
 	public static String unpublishedQuestion(McpToolContext ctx, Survey survey, String name) throws Exception {
+		return unpublishedQuestion(ctx, survey, 0, name);
+	}
+
+	/* As above for one form, the main form when fId is 0 */
+	public static String unpublishedQuestion(McpToolContext ctx, Survey survey, int fId, String name) throws Exception {
 
 		if(name == null) {
 			return null;
@@ -335,7 +340,7 @@ public class McpData {
 		}
 		Question match = null;
 		for(Form f : s.surveyData.forms) {
-			if(f.parentform != 0) {
+			if(fId == 0 ? f.parentform != 0 : f.id != fId) {
 				continue;
 			}
 			for(Question q : f.questions) {

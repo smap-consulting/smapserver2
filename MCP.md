@@ -1238,21 +1238,24 @@ Reversing a survey change is deliberately not part of this. Undo for survey defi
 feature covering the online editor and XLSForm uploads as well as MCP, rather than something built
 for MCP alone; what MCP owes in the meantime is a complete and honest record of what it did.
 
-## Repeating groups can be read but not written
+## Repeating groups: submitted as rows, not edited in place
 
 `data_query` and `data_get_record` both reach a repeating group: the first through `form`, naming
-the group, the second by nesting its rows inside the record. Nothing writes one. `data_submit`
-builds a flat instance out of the main form's questions, and `data_update_record` passes 0 as the
-sub form key and null as the group form, which is to say the top level record and the main form.
+the group, the second by nesting its rows inside the record.
 
-The asymmetry is worth stating because it does not announce itself. A caller who has just read an
-answer out of a repeat, and asks to change it, is told the survey has no question of that name -
-true of the main form, and misleading about the survey. Addressing a repeat needs a row key as well
-as a question name, since the whole point of a repeat is that the same question holds several
-answers, and that argument does not exist on these tools yet.
+`data_submit` writes them. A repeat is given in `answers` by its name with a list of rows, each row
+an object of answers for that group's questions, and a group inside a group is a list inside a row.
+On a new record the rows are the record's rows. With `continues` they are added after the rows the
+record already has, as a person adding a row on the device would; the existing rows are loaded into
+the document and submitted unchanged. Only rows of the main form's repeats can be added this way:
+rows nested inside an existing row cannot.
 
-Untested rather than decided: no survey reachable during the write tests had a repeat at all, so
-this is what the code says, not what a run showed.
+`data_update_record` still cannot change an answer inside a repeat. It passes 0 as the sub form key
+and null as the group form, which is to say the top level record and the main form, and addressing a
+repeat needs a row key as well as a question name, since the whole point of a repeat is that the
+same question holds several answers. A caller who has just read an answer out of a repeat and asks
+to change it is told the survey has no question of that name - true of the main form, and misleading
+about the survey.
 
 ## History is per thread, not per submission
 
