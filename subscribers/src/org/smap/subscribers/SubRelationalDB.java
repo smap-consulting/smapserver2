@@ -1285,6 +1285,17 @@ public class SubRelationalDB extends Subscriber {
 		
 	}
 	/*
+	 * True if the repeat's parameters limit the records loaded into a form for an update
+	 */
+	private boolean limitedInstances(String parameters) {
+		if(parameters == null || parameters.trim().isEmpty()) {
+			return false;
+		}
+		return GeneralUtilityMethods.getSurveyParameter("instance_count",
+				GeneralUtilityMethods.convertParametersToArray(parameters)) != null;
+	}
+
+	/*
 	 * Method to merge a previous records content into this new record
 	 * Source = the old records
 	 */
@@ -1316,16 +1327,15 @@ public class SubRelationalDB extends Subscriber {
 				+ "order by prikey desc limit 1";
 		PreparedStatement pstmtSource = null;
 
-		String sqlChildTables = "select table_name, f_id, name from form "
-				+ "where parentform in (select f_id from form where parentform = 0 and s_id = ?) "
-				+ "and reference = 'false'";
-		PreparedStatement pstmtChildTables = null;
-		
-		String sqlChildTablesInGroup = "select distinct table_name from form "
+		/*
+		 * The repeat tables of this survey and of every survey in its bundle.  All of them, whichever
+		 * survey of the bundle submitted, so that rows recorded by another survey are kept on the record
+		 */
+		String sqlChildTables = "select distinct table_name from form "
 				+ "where reference = 'false' "
 				+ "and parentform in (select f_id from form where parentform = 0 "
-				+ "and (s_id in (select s_id from survey where group_survey_ident = ? and deleted='false'))) ";
-		PreparedStatement pstmtChildTablesInGroup = null;
+				+ "and (s_id = ? or s_id in (select s_id from survey where group_survey_ident = ? and deleted='false'))) ";
+		PreparedStatement pstmtChildTables = null;
 		
 		String sqlGetFormDetails = "select distinct f_id, name  from form "
 				+ "where reference = 'false' "
@@ -1333,9 +1343,12 @@ public class SubRelationalDB extends Subscriber {
 				+ "and s_id = ?";
 		PreparedStatement pstmtFormDetails = null;
 
-		String sqlTableMerge = "select table_name, merge, replace, append from form "
-				+ "where s_id = ? "
-				+ "and reference = 'false' ";
+		String sqlTableMerge = "select f.table_name, f.merge, f.replace, f.append, q.parameters, "
+				+ "coalesce(q.soft_deleted, false) as repeat_deleted "
+				+ "from form f "
+				+ "left outer join question q on q.q_id = f.parentquestion "
+				+ "where f.s_id = ? "
+				+ "and f.reference = 'false' ";
 		PreparedStatement pstmtTableMerge = null;
 		
 		PreparedStatement pstmtChildKeys = null;
@@ -1343,6 +1356,12 @@ public class SubRelationalDB extends Subscriber {
 		PreparedStatement pstmtCopyBack = null;
 		
 		ArrayList<DataItemChange> changes = null;
+		
+		/*
+		 * A record updated directly, by a webform edit, a task or a later stage of a case, rather than
+		 * one matched by its key.  The person submitting had the existing sub form records in front of them
+		 */
+		boolean directUpdate = sourceKey > 0;
 		try {
 
 			String hrk = null;
@@ -1393,6 +1412,7 @@ public class SubRelationalDB extends Subscriber {
 				ResultSet rtm = pstmtTableMerge.executeQuery();
 				ArrayList<String> mergeTables = new ArrayList<> ();
 				ArrayList<String> replaceTables = new ArrayList<> ();
+				ArrayList<String> editReplaceTables = new ArrayList<> ();	// Replaced on a direct update unless no rows were submitted
 				ArrayList<Integer> copiedSourceKeys = new ArrayList<> ();
 				while(rtm.next()) {
 					if(rtm.getBoolean("replace")) {
@@ -1404,6 +1424,15 @@ public class SubRelationalDB extends Subscriber {
 					} else if(rtm.getBoolean("append")) {
 						// No need to do anything
 						log.fine("Appending " + rtm.getString(1));
+					} else if(directUpdate && !rtm.getBoolean("repeat_deleted") && !limitedInstances(rtm.getString(5))) {
+						/*
+						 * Default for a direct update.  The existing records were loaded into the form
+						 * and submitted with it so they are replaced rather than added a second time.
+						 * Not when instance_count limited the records loaded, as those not loaded would be lost,
+						 * and not when the repeat has been deleted from this survey, as it did not show the records
+						 */
+						log.fine("Direct update, replacing " + rtm.getString(1));
+						editReplaceTables.add(rtm.getString(1));
 					} else {
 						// Default
 						if(replace) {
@@ -1417,23 +1446,14 @@ public class SubRelationalDB extends Subscriber {
 				}
 				
 				// Add the child records from the merged survey to the new survey
-				ResultSet rsc = null;
-				if(!ident.equals(groupSurveyIdent)) {
-					pstmtChildTablesInGroup = sd.prepareStatement(sqlChildTablesInGroup);
-					pstmtChildTablesInGroup.setString(1,  groupSurveyIdent);
-					log.fine("Get child tables for group: " + pstmtChildTablesInGroup.toString());
-					rsc = pstmtChildTablesInGroup.executeQuery();
-				
-					pstmtFormDetails = sd.prepareStatement(sqlGetFormDetails);
-					pstmtFormDetails.setInt(2, sId);
-				} else {
-					
-					// Not in a group - update the child tables directly
-					pstmtChildTables = sd.prepareStatement(sqlChildTables);
-					pstmtChildTables.setInt(1,  sId);
-					log.fine("Get child tables: " + pstmtChildTables.toString());
-					rsc = pstmtChildTables.executeQuery();
-				}
+				pstmtChildTables = sd.prepareStatement(sqlChildTables);
+				pstmtChildTables.setInt(1,  sId);
+				pstmtChildTables.setString(2,  groupSurveyIdent);
+				log.fine("Get child tables: " + pstmtChildTables.toString());
+				ResultSet rsc = pstmtChildTables.executeQuery();
+			
+				pstmtFormDetails = sd.prepareStatement(sqlGetFormDetails);
+				pstmtFormDetails.setInt(2, sId);
 				
 				while(rsc.next()) {
 					String tableName = rsc.getString(1);
@@ -1442,16 +1462,11 @@ public class SubRelationalDB extends Subscriber {
 					int child_f_id = 0;
 					String formname = null;
 					
-					if(!ident.equals(groupSurveyIdent)) {
-						pstmtFormDetails.setString(1, tableName);
-						ResultSet rsFD = pstmtFormDetails.executeQuery();
-						if(rsFD.next()) {
-							child_f_id = rsFD.getInt(1);
-							formname = rsFD.getString(2);
-						}
-					} else {
-						child_f_id = rsc.getInt(2);
-						formname = rsc.getString(3);
+					pstmtFormDetails.setString(1, tableName);
+					ResultSet rsFD = pstmtFormDetails.executeQuery();
+					if(rsFD.next()) {
+						child_f_id = rsFD.getInt(1);
+						formname = rsFD.getString(2);
 					}
 					if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
 						
@@ -1514,7 +1529,13 @@ public class SubRelationalDB extends Subscriber {
 								}
 							}
 
-						} else if(replaceTables.contains(tableName)) {
+						} else if(replaceTables.contains(tableName)
+								|| (editReplaceTables.contains(tableName)
+										&& !(childPrikeys.isEmpty() && !childSourcekeys.isEmpty()))) {
+							/*
+							 * An edit that submitted no rows for a repeat that has them keeps them, as
+							 * the rows were probably not in the form, for example a non relevant repeat
+							 */
 							log.fine("==================== Replacing " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
 
 							for(int i = 0; i < childSourcekeys.size(); i++) {
@@ -1646,7 +1667,6 @@ public class SubRelationalDB extends Subscriber {
 			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {}
 			if(pstmtSource != null) try{pstmtSource.close();}catch(Exception e) {}
 			if(pstmtChildTables != null) try{pstmtChildTables.close();}catch(Exception e) {}
-			if(pstmtChildTablesInGroup != null) try{pstmtChildTablesInGroup.close();}catch(Exception e) {}
 			if(pstmtTableMerge != null) try{pstmtTableMerge.close();}catch(Exception e) {}
 			if(pstmtChildKeys != null) try{pstmtChildKeys.close();}catch(Exception e) {}
 			if(pstmtCopyChild != null) try{pstmtCopyChild.close();}catch(Exception e) {}

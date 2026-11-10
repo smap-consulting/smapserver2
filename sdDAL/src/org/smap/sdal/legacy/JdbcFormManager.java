@@ -43,7 +43,10 @@ public class JdbcFormManager {
 			+ "parentform, "
 			+ "parentquestion, "
 			+ "repeats, "
-			+ "reference "
+			+ "reference, "
+			+ "append, "
+			+ "merge, "
+			+ "replace "
 			+ "from form where ";
 	String sqlGetBySurveyId = "s_id = ?;";
 	
@@ -90,6 +93,9 @@ public class JdbcFormManager {
 			f.setParentQuestionId(rs.getInt(6));
 			f.setRepeats(rs.getString(7));
 			f.setReference(rs.getBoolean(8));
+			f.setAppend(rs.getBoolean(9));
+			f.setMerge(rs.getBoolean(10));
+			f.setReplace(rs.getBoolean(11));
 			
 			forms.add(f);
 		}

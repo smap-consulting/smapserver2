@@ -51,6 +51,7 @@ import org.smap.sdal.legacy.Translation;
 import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.model.CsvHeader;
 import org.smap.sdal.model.Instance;
+import org.smap.sdal.model.UniqueKey;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Line;
 import org.smap.sdal.model.ManifestValue;
@@ -2439,8 +2440,17 @@ public class GetXForm {
 					
 
 					boolean needTemplate = (!generatedTemplate && (parentElement == null));
-					populateFormData(outputDoc, item.subForm, -1, Integer.parseInt(priKey.value), cResults, sd, template,
-							currentParent, sId, survey_ident, needTemplate, simplifyMedia, order, count, initialData);
+					
+					/*
+					 * When rows are being added to a record, the existing rows of a repeat that the
+					 * subscriber appends to are left out, as it keeps them
+					 */
+					boolean existingKept = parentElement == null && initialData != null && initialData.appendRepeats
+							&& existingRowsKept(sd, sId, item.subForm, c);
+					if(!existingKept) {
+						populateFormData(outputDoc, item.subForm, -1, Integer.parseInt(priKey.value), cResults, sd, template,
+								currentParent, sId, survey_ident, needTemplate, simplifyMedia, order, count, initialData);
+					}
 
 					/*
 					 * New rows for a repeat of the main form go after the rows the record already has.
@@ -2519,6 +2529,30 @@ public class GetXForm {
 			}
 		}
 
+	}
+
+	/*
+	 * True if the subscriber keeps a repeat's existing rows when a record is updated directly, adding the
+	 * submitted rows to them.  This follows SubRelationalDB.combineTableContent: a key policy of
+	 * merge or replace on the repeat applies first, then append.  With neither, the existing rows are
+	 * replaced, unless instance_count limited the rows loaded, when the survey key policy decides
+	 */
+	private boolean existingRowsKept(Connection sd, int sId, Form subForm, String instanceCount) throws ApplicationException {
+		if(subForm.getMerge() || subForm.getReplace()) {
+			return false;
+		}
+		if(subForm.getAppend()) {
+			return true;
+		}
+		if(instanceCount == null) {
+			return false;
+		}
+		try {
+			UniqueKey uk = new KeyManager(localisation).get(sd, GeneralUtilityMethods.getGroupSurveyIdent(sd, sId));
+			return !SurveyManager.KP_REPLACE.equals(uk.key_policy);
+		} catch (Exception e) {
+			throw new ApplicationException(e.getMessage());
+		}
 	}
 
 	/*

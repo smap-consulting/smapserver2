@@ -66,6 +66,10 @@ public class Form implements Serializable {
 	
 	private boolean reference = false;
 	
+	private boolean append = false;		// Sub form key policies
+	private boolean merge = false;
+	private boolean replace = false;
+	
 	public int qSeq = 0;		// Used to store current sequence while saving a forms questions
 	
 	public int geomCount = 0;		// Used to count the geoms in a form
@@ -183,6 +187,18 @@ public class Form implements Serializable {
 	public boolean getReference() {
 		return reference;
 	}
+	
+	public boolean getAppend() {
+		return append;
+	}
+	
+	public boolean getMerge() {
+		return merge;
+	}
+	
+	public boolean getReplace() {
+		return replace;
+	}
 
 	public void setId(int value) {
 		f_id = value;
@@ -239,6 +255,18 @@ public class Form implements Serializable {
 	
 	public void setReference(boolean v) {
 		reference = v;
+	}
+	
+	public void setAppend(boolean v) {
+		append = v;
+	}
+	
+	public void setMerge(boolean v) {
+		merge = v;
+	}
+	
+	public void setReplace(boolean v) {
+		replace = v;
 	}
 	
 	private String calculateFormPath(String name, Form currentForm, List <Form> forms) {
