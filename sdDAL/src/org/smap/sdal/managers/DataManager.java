@@ -537,6 +537,26 @@ public class DataManager {
 	/*
 	 * Get records for an individual survey in JSON format
 	 */
+	/*
+	 * Add a column of the top level record to a sub form's columns, unless it is there already
+	 */
+	private void addRecordColumn(ArrayList<TableColumn> columns, String name) {
+		for(TableColumn c : columns) {
+			if(name.equals(c.column_name)) {
+				return;
+			}
+		}
+		TableColumn c = new TableColumn();
+		c.column_name = name;
+		c.displayName = name;
+		c.humanName = name;
+		c.question_name = name;
+		c.type = "";
+		c.isMeta = true;
+		c.hide = true;
+		columns.add(c);
+	}
+
 	public void getDataRecords(Connection sd,
 			String connectionString,
 			HttpServletRequest request,
@@ -876,6 +896,16 @@ public class DataManager {
 	
 			}
 			
+			/*
+			 * In the console a sub form row acts on the record it belongs to: locking it, editing it in
+			 * a webform and its history are all for that record.  So each row carries the record's
+			 * instance id and who it is assigned to, read from the top level table the query joins to
+			 */
+			if(mgmt && fId > 0 && GeneralUtilityMethods.getForm(sd, sId, fId).parentform > 0) {
+				addRecordColumn(columns, "instanceid");
+				addRecordColumn(columns, SurveyViewManager.ASSIGNED_COLUMN);
+			}
+
 			/*
 			 * Get Case Management Settings
 			 */

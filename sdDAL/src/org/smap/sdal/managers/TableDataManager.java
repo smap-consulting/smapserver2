@@ -138,8 +138,9 @@ public class TableDataManager {
 				columnSelect.append(table_name).append(".");
 			}
 			
-			// _assigned and _hrk should only be created in the top level table
-			if(c.column_name.equals(SurveyViewManager.ASSIGNED_COLUMN) && topLevelTable != null) {
+			// _assigned and _hrk should only be created in the top level table, and a sub form has no instanceid of its own
+			if((c.column_name.equals(SurveyViewManager.ASSIGNED_COLUMN) || c.column_name.equals("instanceid"))
+					&& topLevelTable != null) {
 				columnSelect.append(topLevelTable).append(".");
 			}
 			if(c.column_name.equals("_hrk") && topLevelTable != null) {
