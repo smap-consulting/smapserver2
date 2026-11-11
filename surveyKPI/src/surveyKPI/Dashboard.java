@@ -90,7 +90,7 @@ public class Dashboard extends Application {
 		// No check for valid user as only panels owned by a user are returned
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// An administrator can manage another user's panels, otherwise a user can only manage their own
-		String user = getEffectiveUser(sd, request.getRemoteUser(), onBehalfOf);
+		String user = effectiveUserOrClose(sd, connectionString, request.getRemoteUser(), onBehalfOf);
 		// End Authorisation
 
 		ArrayList<Settings> sArray = new ArrayList<Settings> ();
@@ -324,7 +324,8 @@ public class Dashboard extends Application {
 		// Authorisation - an administrator can manage another user's panels, otherwise a user can only manage their own
 		String connectionString = "surveyKPI-Dashboard-updateSettings";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String user = getEffectiveUser(sd, request.getRemoteUser(), onBehalfOf);
+		a.isAuthorised(sd, request.getRemoteUser());
+		String user = effectiveUserOrClose(sd, connectionString, request.getRemoteUser(), onBehalfOf);
 
 		try {
 			// Get the users locale
@@ -388,6 +389,11 @@ public class Dashboard extends Application {
 			
 			for(Settings s : sArray) {
 				
+				if(s.state != null && !s.state.equals("deleted") && "survey".equals(s.subject_type)
+						&& !surveyReachable(sd, user, s.sId)) {
+					throw new AuthorisationException();
+				}
+
 				if(s.state != null) {
 					
 					//========================== Delete the old view
@@ -542,7 +548,8 @@ public class Dashboard extends Application {
 		// Authorisation - an administrator can manage another user's panels, otherwise a user can only manage their own
 		String connectionString = "surveyKPI-Dashboard-updateState";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String user = getEffectiveUser(sd, request.getRemoteUser(), onBehalfOf);
+		a.isAuthorised(sd, request.getRemoteUser());
+		String user = effectiveUserOrClose(sd, connectionString, request.getRemoteUser(), onBehalfOf);
 		// End Authorisation
 
 		PreparedStatement pstmt = null;
@@ -608,12 +615,44 @@ public class Dashboard extends Application {
 				if(!GeneralUtilityMethods.hasSecurityGroup(sd, requestingUser, Authorise.ADMIN_ID)) {
 					throw new AuthorisationException();
 				}
+				// Only users of the administrator's own organisation
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, requestingUser);
+				if(oId <= 0 || oId != GeneralUtilityMethods.getOrganisationId(sd, onBehalfOf)) {
+					throw new AuthorisationException();
+				}
 			} catch (SQLException e) {
 				throw new AuthorisationException();
 			}
 			return onBehalfOf;
 		}
 		return requestingUser;
+	}
+
+	/*
+	 * The effective user, closing the connection if the request is refused, as the caller has not
+	 * yet reached the block that would close it
+	 */
+	private String effectiveUserOrClose(Connection sd, String connectionString, String requestingUser,
+			String onBehalfOf) {
+		try {
+			return getEffectiveUser(sd, requestingUser, onBehalfOf);
+		} catch (AuthorisationException e) {
+			SDDataSource.closeConnection(connectionString, sd);
+			throw e;
+		}
+	}
+
+	/*
+	 * True if the survey is in a project the user is a member of, which is where a panel for it is shown
+	 */
+	private boolean surveyReachable(Connection sd, String user, int sId) throws SQLException {
+		String sql = "select 1 from survey s, user_project up, users u "
+				+ "where s.s_id = ? and s.p_id = up.p_id and up.u_id = u.id and u.ident = ? and not s.deleted";
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setInt(1, sId);
+			pstmt.setString(2, user);
+			return pstmt.executeQuery().next();
+		}
 	}
 
 	private Settings getSettings(Connection sd, ResultSet resultSet, int idx) throws SQLException {
