@@ -33,6 +33,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.AuthorisationException;
+import org.smap.sdal.managers.DashboardManager;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
@@ -390,7 +391,7 @@ public class Dashboard extends Application {
 			for(Settings s : sArray) {
 				
 				if(s.state != null && !s.state.equals("deleted") && "survey".equals(s.subject_type)
-						&& !surveyReachable(sd, user, s.sId)) {
+						&& !DashboardManager.surveyReachable(sd, user, s.sId)) {
 					throw new AuthorisationException();
 				}
 
@@ -609,23 +610,16 @@ public class Dashboard extends Application {
 	 *  - the requested identifier, but only if the requesting user is an administrator
 	 */
 	private String getEffectiveUser(Connection sd, String requestingUser, String onBehalfOf) {
-
-		if(onBehalfOf != null && !onBehalfOf.isEmpty() && !onBehalfOf.equals(requestingUser)) {
-			try {
-				if(!GeneralUtilityMethods.hasSecurityGroup(sd, requestingUser, Authorise.ADMIN_ID)) {
-					throw new AuthorisationException();
-				}
-				// Only users of the administrator's own organisation
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, requestingUser);
-				if(oId <= 0 || oId != GeneralUtilityMethods.getOrganisationId(sd, onBehalfOf)) {
-					throw new AuthorisationException();
-				}
-			} catch (SQLException e) {
-				throw new AuthorisationException();
-			}
-			return onBehalfOf;
+		String user = null;
+		try {
+			user = DashboardManager.effectiveUser(sd, requestingUser, onBehalfOf);
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 		}
-		return requestingUser;
+		if(user == null) {
+			throw new AuthorisationException();
+		}
+		return user;
 	}
 
 	/*
@@ -642,18 +636,6 @@ public class Dashboard extends Application {
 		}
 	}
 
-	/*
-	 * True if the survey is in a project the user is a member of, which is where a panel for it is shown
-	 */
-	private boolean surveyReachable(Connection sd, String user, int sId) throws SQLException {
-		String sql = "select 1 from survey s, user_project up, users u "
-				+ "where s.s_id = ? and s.p_id = up.p_id and up.u_id = u.id and u.ident = ? and not s.deleted";
-		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
-			pstmt.setInt(1, sId);
-			pstmt.setString(2, user);
-			return pstmt.executeQuery().next();
-		}
-	}
 
 	private Settings getSettings(Connection sd, ResultSet resultSet, int idx) throws SQLException {
 		

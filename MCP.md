@@ -1259,6 +1259,26 @@ record named, so a caller cannot get round this. Rows of a repeat inside a repea
 The update tools report a change that the manager refused - a question that cannot be updated, a value
 that does not parse, a record the caller cannot reach - as a failure. They used to report it as done.
 
+## Dashboards: graph and table panels
+
+`dashboard_list`, `dashboard_add_panel`, `dashboard_update_panel` and `dashboard_delete_panel` manage
+the panels a user sees in the Analysis page, per project. Graph and table panels only for now; map and
+image panels are set up in the page.
+
+A panel holding a setting the page does not expect shows up blank rather than failing, so everything is
+checked before it is saved: the survey has to be in the project and in one the panel's user is a member
+of, every question named has to be in the survey, the function has to suit the question (select: count or
+percent; int and decimal: average or total; string and calculate: any of the four), time grouping needs
+a date question, and the title follows the same rule as in the page. These are the rules the page applies
+when a panel is set up there, written down once on the server.
+
+An administrator can manage the dashboard of another user, but only a user of their own organisation.
+The console's dashboard endpoint applies the same rule, through `DashboardManager`, and it now also
+requires one of the dashboard groups to save and only saves survey panels for surveys the user can reach.
+
+Nothing is sent and a panel can be taken away again, so none of these ask first. Removing a panel
+returns its settings, and changing one returns the previous settings.
+
 ## History is per thread, not per submission
 
 `data_audit` returns a record's history: the submission, every later change with old and new values,
