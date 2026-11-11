@@ -583,6 +583,24 @@ public class XFormTemplateUploadManager {
 			if(lang == null || lang.trim().length() == 0) {
 				lang = "default";
 			}
+			// "English" and "English (en)" are one language, pyxform writes media with no language to the
+			// default translation, so the two are merged
+			// The merged language keeps a code from either, e.g. en from "English (en)"
+			for(int i = 0; i < languageNames.size(); i++) {
+				String l = languageNames.get(i);
+				if(GeneralUtilityMethods.getLanguageName(l).equals(GeneralUtilityMethods.getLanguageName(lang))) {
+					if(GeneralUtilityMethods.getLanguageCode(l) == null && GeneralUtilityMethods.getLanguageCode(lang) != null) {
+						languageNames.set(i, lang);
+						itext.put(lang, itext.remove(l));
+						if(l.equals(defaultLanguage)) {
+							defaultLanguage = lang;
+						}
+					} else {
+						lang = l;
+					}
+					break;
+				}
+			}
 			String def = attr(tr, "default");
 			if(def != null && def.trim().startsWith("true")) {
 				defaultLanguage = lang;
@@ -608,7 +626,11 @@ public class XFormTemplateUploadManager {
 					if(form == null || form.trim().length() == 0) {
 						form = "none";
 					}
-					forms.put(form.trim(), value);
+					// A merged translation keeps the real value over pyxform's "-" placeholder
+					Element existing = forms.get(form.trim());
+					if(existing == null || "-".equals(existing.getTextContent().trim())) {
+						forms.put(form.trim(), value);
+					}
 				}
 			}
 		}
