@@ -457,6 +457,15 @@ public class ActionManager {
 	}
 
 	/*
+	 * A message saying which question was given a value it cannot hold.  Names the question from the
+	 * survey definition and never repeats the value, which came from the request
+	 */
+	private String badValue(ResourceBundle l, String key, TableColumn tc) {
+		String name = tc.displayName != null && tc.displayName.length() > 0 ? tc.displayName : tc.column_name;
+		return l.getString(key).replace("%s1", name);
+	}
+
+	/*
 	 * The instance id of the record a sub form row belongs to, or null if there is no such row.
 	 * Followed up through each parent form, so a row of a repeat inside a repeat is found too
 	 */
@@ -697,7 +706,13 @@ public class ActionManager {
 						if (u.value == null || u.value.trim().length() == 0) {
 							pstmtUpdate.setDate(paramCount++, null);
 						} else {
-							java.util.Date inputDate = dateFormat.parse(u.value);
+							java.util.Date inputDate;
+							try {
+								dateFormat.setLenient(false);
+								inputDate = dateFormat.parse(u.value.trim());
+							} catch (Exception e) {
+								throw new ApplicationException(badValue(localisation, "mf_bad_date", tc));
+							}
 							pstmtUpdate.setDate(paramCount++, new java.sql.Date(inputDate.getTime()));
 						}
 					} else if (tc.type.equals("dateTime")) {
@@ -705,7 +720,12 @@ public class ActionManager {
 							pstmtUpdate.setTimestamp(paramCount++, null);
 						} else {
 							// Value is in local time hence we need to add the timezone of the client
-							LocalDateTime localDateTime = LocalDateTime.parse(u.value);
+							LocalDateTime localDateTime;
+							try {
+								localDateTime = LocalDateTime.parse(u.value.trim());
+							} catch (Exception e) {
+								throw new ApplicationException(badValue(localisation, "mf_bad_dt", tc));
+							}
 							ZonedDateTime userZdt = ZonedDateTime.of(localDateTime,
 									TimeZone.getTimeZone(tz).toZoneId());
 							ZonedDateTime utcZdt = userZdt.withZoneSameInstant(TimeZone.getTimeZone("UtC").toZoneId());
@@ -713,13 +733,41 @@ public class ActionManager {
 							pstmtUpdate.setTimestamp(paramCount++, ts);
 						}
 					} else if (tc.type.equals("integer") || tc.type.equals("int")) {
-						int inputInt = Integer.parseInt(u.value);
-						pstmtUpdate.setInt(paramCount++, inputInt);
+						if (u.value.trim().length() == 0) {
+							pstmtUpdate.setNull(paramCount++, java.sql.Types.INTEGER);		// An empty answer clears it
+						} else {
+							int inputInt;
+							try {
+								inputInt = Integer.parseInt(u.value.trim());
+							} catch (Exception e) {
+								throw new ApplicationException(badValue(localisation, "mf_bad_int", tc));
+							}
+							pstmtUpdate.setInt(paramCount++, inputInt);
+						}
 					} else if (tc.type.equals("decimal") || tc.type.equals("range")) {
-						double inputDouble = Double.parseDouble(u.value);
-						pstmtUpdate.setDouble(paramCount++, inputDouble);
+						if (u.value.trim().length() == 0) {
+							pstmtUpdate.setNull(paramCount++, java.sql.Types.DOUBLE);
+						} else {
+							double inputDouble;
+							try {
+								inputDouble = Double.parseDouble(u.value.trim());
+							} catch (Exception e) {
+								throw new ApplicationException(badValue(localisation, "mf_bad_dec", tc));
+							}
+							pstmtUpdate.setDouble(paramCount++, inputDouble);
+						}
 					} else if (tc.type.equals("geopoint")) {
-						pstmtUpdate.setString(paramCount++, GeneralUtilityMethods.getWKTfromGeoJson(u.value));
+						if (u.value.trim().length() == 0) {
+							pstmtUpdate.setString(paramCount++, null);
+						} else {
+							String wkt;
+							try {
+								wkt = GeneralUtilityMethods.getWKTfromGeoJson(u.value);
+							} catch (Exception e) {
+								throw new ApplicationException(badValue(localisation, "mf_bad_geo", tc));
+							}
+							pstmtUpdate.setString(paramCount++, wkt);
+						}
 					} else if (tc.type.equals("string")) {
 						pstmtUpdate.setString(paramCount++, u.value);
 					} else {
