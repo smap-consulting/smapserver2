@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.ws.rs.core.Response;
+
 import com.google.gson.Gson;
 
 import org.smap.sdal.Utilities.Authorise;
@@ -47,7 +49,9 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 	@Override
 	public String getDescription() {
 		return "Changes the answers on one record; anything not named is left alone. The value before and "
-				+ "after is written to the record's history, so data_audit shows it and it can be put back.";
+				+ "after is written to the record's history, so data_audit shows it and it can be put back. "
+				+ "To change answers in one row of a repeating group, name the group in form and the row "
+				+ "in row.";
 	}
 
 	@Override
@@ -83,6 +87,10 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 		properties.put("survey_id", property("integer", "The survey the record belongs to"));
 		properties.put("instance_id", property("string", "The record to change, from data_query"));
 		properties.put("answers", answers);
+		properties.put("form", property("string", "Optional. The name of a repeating group of the main "
+				+ "form, to change answers in one of its rows rather than in the record itself. Needs row."));
+		properties.put("row", property("integer", "With form, the row to change, counting from 1 in the "
+				+ "order data_get_record lists the group's rows."));
 
 		Map<String, Object> schema = new LinkedHashMap<>();
 		schema.put("type", "object");
@@ -133,8 +141,49 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 		}
 
 		Form topForm = GeneralUtilityMethods.getTopLevelForm(ctx.sd, surveyId);
-		ArrayList<TableColumn> columns = McpData.columns(ctx, survey, 0, topForm.id,
-				topForm.tableName, false, false, false);
+		if(!McpData.recordExists(ctx, survey, instanceId)) {
+			return new MCPToolResult("No such record, or you do not have access to it.", true);
+		}
+
+		/*
+		 * A row of a repeating group, when one is named.
+		 *
+		 * Only groups of the main form, and the row is named by its position in the record rather
+		 * than by its primary key: a position can only reach this record's rows, while a primary key
+		 * is a sequential number that could name a row of any record.
+		 */
+		String formName = stringArg(arguments, "form");
+		if(formName != null && formName.trim().isEmpty()) {
+			formName = null;
+		}
+		Form targetForm = topForm;
+		int rowPrikey = 0;
+		int rowNumber = intArg(arguments, "row", 0);
+		if(formName != null) {
+			targetForm = repeatOfMainForm(ctx, surveyId, topForm.id, formName.trim());
+			if(targetForm == null) {
+				return new MCPToolResult("\"" + survey.getDisplayName() + "\" has no repeating group called "
+						+ formName.trim() + " in its main form. Only groups of the main form can be changed "
+						+ "here. Nothing was changed.", true);
+			}
+			if(rowNumber <= 0) {
+				return new MCPToolResult("Name the row of " + targetForm.name + " to change in row, counting "
+						+ "from 1. Nothing was changed.", true);
+			}
+			int rows = countRows(ctx, topForm.tableName, targetForm.tableName, instanceId);
+			if(rowNumber > rows) {
+				return new MCPToolResult("This record has " + rows + (rows == 1 ? " row" : " rows")
+						+ " of " + targetForm.name + ", so there is no row " + rowNumber
+						+ ". Nothing was changed.", true);
+			}
+			rowPrikey = rowKey(ctx, topForm.tableName, targetForm.tableName, instanceId, rowNumber);
+		} else if(rowNumber > 0) {
+			return new MCPToolResult("row needs form, the repeating group the row belongs to. "
+					+ "Nothing was changed.", true);
+		}
+
+		ArrayList<TableColumn> columns = McpData.columns(ctx, survey, targetForm.parentform, targetForm.id,
+				targetForm.tableName, targetForm.parentform != 0, false, false);
 
 		/*
 		 * The columns the update will actually be able to write, which are not the same as this
@@ -157,8 +206,11 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 				Survey bundleSurvey = McpData.surveyById(ctx, bundleSurveyId);
 				if(bundleSurvey != null) {
 					Form bundleTop = GeneralUtilityMethods.getTopLevelForm(ctx.sd, bundleSurveyId);
-					writable = McpData.columns(ctx, bundleSurvey, 0, bundleTop.id,
-							bundleTop.tableName, false, false, false);
+					Form bundleTarget = formName == null ? bundleTop
+							: repeatOfMainForm(ctx, bundleSurveyId, bundleTop.id, targetForm.name);
+					writable = bundleTarget == null ? new ArrayList<>()
+							: McpData.columns(ctx, bundleSurvey, bundleTarget.parentform, bundleTarget.id,
+									bundleTarget.tableName, bundleTarget.parentform != 0, false, false);
 				}
 			}
 		}
@@ -264,7 +316,9 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 		 * here has that, so it reads them. Without this the change is recorded with a new value and
 		 * no old one, and the undo this tool promises would have nothing to undo to.
 		 */
-		Map<String, String> before = currentValues(ctx, topForm.tableName, instanceId, updates, columns);
+		Map<String, String> before = formName == null
+				? currentValues(ctx, topForm.tableName, "instanceid", instanceId, updates, columns)
+				: currentValues(ctx, targetForm.tableName, "prikey", rowPrikey, updates, columns);
 		for(Map<String, Object> update : updates) {
 			String current = before.get(update.get("name"));
 			if(current != null) {
@@ -273,19 +327,23 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 		}
 
 		ActionManager am = new ActionManager(ctx.localisation, ctx.timezone, ctx.clientId);
-		am.processUpdateGroupSurvey(
+		Response response = am.processUpdateGroupSurvey(
 				ctx.request,
 				ctx.sd,
 				ctx.cResults,
 				ctx.user,
 				surveyId,
 				instanceId,
-				0,					// no sub form primary key: the top level record
+				rowPrikey,			// the row of a repeating group, or 0 for the record itself
 				GeneralUtilityMethods.getGroupSurveyIdent(ctx.sd, surveyId),
-				null,				// groupForm: the main form
+				formName == null ? null : targetForm.name,
 				new Gson().toJson(updates),
 				false,				// not a bulk change
 				GeneralUtilityMethods.getUrlPrefix(ctx.request));
+		String failure = failure(response);
+		if(failure != null) {
+			return new MCPToolResult(failure + " Nothing was changed.", true);
+		}
 
 		Map<String, Object> structured = new LinkedHashMap<>();
 		structured.put("updated", Boolean.TRUE);
@@ -293,7 +351,13 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 		structured.put("questions", changed);
 		structured.put("retained", retained);
 
+		if(formName != null) {
+			structured.put("form", targetForm.name);
+			structured.put("row", rowNumber);
+		}
+
 		StringBuilder text = new StringBuilder("Changed " + String.join(", ", changed)
+				+ (formName == null ? "" : " in row " + rowNumber + " of " + targetForm.name)
 				+ ". data_audit shows the values before and after.");
 		if(!retained.isEmpty()) {
 			text.append("\n\n").append(String.join(", ", retained))
@@ -312,7 +376,7 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 	 * written into the query are ones this server chose. Read in one pass: a record being changed
 	 * is being read anyway, and doing it per question would be a query each.
 	 */
-	private Map<String, String> currentValues(McpToolContext ctx, String tableName, String instanceId,
+	private Map<String, String> currentValues(McpToolContext ctx, String tableName, String keyColumn, Object key,
 			List<Map<String, Object>> updates, ArrayList<TableColumn> columns) throws Exception {
 
 		Map<String, String> values = new LinkedHashMap<>();
@@ -336,10 +400,10 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 		if(names.isEmpty()) {
 			return values;
 		}
-		select.append(" from ").append(tableName).append(" where instanceid = ?");
+		select.append(" from ").append(tableName).append(" where ").append(keyColumn).append(" = ?");
 
 		try (java.sql.PreparedStatement pstmt = ctx.cResults.prepareStatement(select.toString())) {
-			pstmt.setString(1, instanceId);
+			pstmt.setObject(1, key);
 			java.sql.ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				for(int i = 0; i < names.size(); i++) {
@@ -348,6 +412,66 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 			}
 		}
 		return values;
+	}
+
+	/* The message of an update that did not succeed, or null */
+	static String failure(Response response) {
+		if(response == null || response.getStatus() < 300) {
+			return null;
+		}
+		Object entity = response.getEntity();
+		return entity == null || entity.toString().trim().isEmpty() ? "The change could not be made."
+				: entity.toString();
+	}
+
+	/* A repeating group directly in the main form, by name */
+	private Form repeatOfMainForm(McpToolContext ctx, int sId, int topFormId, String name) throws Exception {
+		String sql = "select f_id, parentform, table_name, name from form "
+				+ "where s_id = ? and parentform = ? and not reference and lower(name) = lower(?)";
+		try (java.sql.PreparedStatement pstmt = ctx.sd.prepareStatement(sql)) {
+			pstmt.setInt(1, sId);
+			pstmt.setInt(2, topFormId);
+			pstmt.setString(3, name);
+			java.sql.ResultSet rs = pstmt.executeQuery();
+			if(!rs.next()) {
+				return null;
+			}
+			Form f = new Form();
+			f.id = rs.getInt(1);
+			f.parentform = rs.getInt(2);
+			f.tableName = rs.getString(3);
+			f.name = rs.getString(4);
+			return f;
+		}
+	}
+
+	/* How many rows of a repeating group a record has */
+	private int countRows(McpToolContext ctx, String topTable, String repeatTable, String instanceId)
+			throws Exception {
+		if(!GeneralUtilityMethods.tableExists(ctx.cResults, repeatTable)) {
+			return 0;
+		}
+		String sql = "select count(*) from " + repeatTable + " r, " + topTable + " m "
+				+ "where r.parkey = m.prikey and m.instanceid = ?";
+		try (java.sql.PreparedStatement pstmt = ctx.cResults.prepareStatement(sql)) {
+			pstmt.setString(1, instanceId);
+			java.sql.ResultSet rs = pstmt.executeQuery();
+			return rs.next() ? rs.getInt(1) : 0;
+		}
+	}
+
+	/* The primary key of the nth row of a repeating group in a record, in the order the rows are read */
+	private int rowKey(McpToolContext ctx, String topTable, String repeatTable, String instanceId, int n)
+			throws Exception {
+		String sql = "select r.prikey from " + repeatTable + " r, " + topTable + " m "
+				+ "where r.parkey = m.prikey and m.instanceid = ? "
+				+ "order by r.prikey asc offset ? limit 1";
+		try (java.sql.PreparedStatement pstmt = ctx.cResults.prepareStatement(sql)) {
+			pstmt.setString(1, instanceId);
+			pstmt.setInt(2, n - 1);
+			java.sql.ResultSet rs = pstmt.executeQuery();
+			return rs.next() ? rs.getInt(1) : 0;
+		}
 	}
 
 	/* A question of this survey, by any of the names a caller might know it by */

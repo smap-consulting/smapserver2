@@ -1250,12 +1250,14 @@ record already has, as a person adding a row on the device would; the existing r
 the document and submitted unchanged. Only rows of the main form's repeats can be added this way:
 rows nested inside an existing row cannot.
 
-`data_update_record` still cannot change an answer inside a repeat. It passes 0 as the sub form key
-and null as the group form, which is to say the top level record and the main form, and addressing a
-repeat needs a row key as well as a question name, since the whole point of a repeat is that the
-same question holds several answers. A caller who has just read an answer out of a repeat and asks
-to change it is told the survey has no question of that name - true of the main form, and misleading
-about the survey.
+`data_update_record` changes answers in one row of a repeat of the main form, named by `form` and
+`row`. The row is its position in the record, counting from 1 in the order `data_get_record` lists the
+rows, rather than its primary key: a position can only reach that record's rows, while a primary key is
+a sequential number that could name a row of any record. The manager also checks the row belongs to the
+record named, so a caller cannot get round this. Rows of a repeat inside a repeat cannot be reached yet.
+
+The update tools report a change that the manager refused - a question that cannot be updated, a value
+that does not parse, a record the caller cannot reach - as a failure. They used to report it as done.
 
 ## History is per thread, not per submission
 

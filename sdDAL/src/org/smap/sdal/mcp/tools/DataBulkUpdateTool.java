@@ -308,30 +308,47 @@ public class DataBulkUpdateTool extends AbstractMcpTool {
 
 		ActionManager am = new ActionManager(ctx.localisation, ctx.timezone, ctx.clientId, changeSet);
 		int updated = 0;
+		int failed = 0;
+		String firstFailure = null;
 		for(String instanceId : instances) {
 			/*
 			 * bulk true, which is what makes the manager read each record's previous value before
 			 * writing, and what makes a select multiple merge rather than replace.
 			 */
-			am.processUpdateGroupSurvey(ctx.request, ctx.sd, ctx.cResults, ctx.user, surveyId,
-					instanceId, 0, groupSurvey, null, updateString, true, urlPrefix);
-			updated++;
+			String failure = DataUpdateRecordTool.failure(am.processUpdateGroupSurvey(ctx.request, ctx.sd,
+					ctx.cResults, ctx.user, surveyId, instanceId, 0, groupSurvey, null, updateString, true,
+					urlPrefix));
+			if(failure == null) {
+				updated++;
+			} else {
+				failed++;
+				if(firstFailure == null) {
+					firstFailure = failure;
+				}
+			}
 		}
 
 		Map<String, Object> structured = new LinkedHashMap<>();
 		structured.put("updated", updated);
+		if(failed > 0) {
+			structured.put("failed", failed);
+		}
 		structured.put("change_set", changeSet);
 		structured.put("questions", changed);
 		structured.put("retained", retained);
 
 		StringBuilder text = new StringBuilder("Changed " + updated + " record(s). "
 				+ "To put them back, call data_bulk_undo with change_set " + changeSet + ".");
+		if(failed > 0) {
+			text.append("\n\n").append(failed).append(" record(s) could not be changed and were left as "
+					+ "they were. The first said: ").append(firstFailure);
+		}
 		if(!retained.isEmpty()) {
 			text.append("\n\n").append(String.join(", ", retained))
 					.append(retained.size() == 1 ? " was given null, so every record keeps the value "
 							+ "it had." : " were given null, so every record keeps the values it had.");
 		}
-		MCPToolResult result = new MCPToolResult(text.toString());
+		MCPToolResult result = new MCPToolResult(text.toString(), updated == 0 && failed > 0);
 		result.setStructuredContent(structured);
 		return result;
 	}
