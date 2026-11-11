@@ -88,7 +88,7 @@ public class Dashboard extends Application {
 		// Authorisation - Access
 		String connectionString = "surveyKPI-Dashboard-get";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		// No check for valid user as only panels owned by a user are returned
+		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// An administrator can manage another user's panels, otherwise a user can only manage their own
 		String user = effectiveUserOrClose(sd, connectionString, request.getRemoteUser(), onBehalfOf);
