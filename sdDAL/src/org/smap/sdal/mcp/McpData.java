@@ -471,7 +471,46 @@ public class McpData {
 	}
 
 	/*
-	 * Whether one record is inside the caller's row filters.
+	 * Whether a record with this instance id is in the survey's results
+	 */
+	public static boolean recordExists(McpToolContext ctx, Survey survey, String instanceId) throws Exception {
+
+		String tableName = GeneralUtilityMethods.getMainResultsTable(ctx.sd, ctx.cResults, survey.getId());
+		if(instanceId == null || tableName == null || !GeneralUtilityMethods.tableExists(ctx.cResults, tableName)) {
+			return false;
+		}
+		try (java.sql.PreparedStatement pstmt = ctx.cResults.prepareStatement(
+				"select 1 from " + tableName + " where instanceid = ? limit 1")) {
+			pstmt.setString(1, instanceId);
+			return pstmt.executeQuery().next();
+		}
+	}
+
+	/*
+	 * Whether a record has been received for this survey's bundle but not yet applied by the subscriber
+	 */
+	public static boolean recordPending(McpToolContext ctx, Survey survey, String instanceId) throws Exception {
+
+		if(instanceId == null) {
+			return false;
+		}
+		String sql = "select 1 from upload_event "
+				+ "where instanceid = ? "
+				+ "and status = 'success' "
+				+ "and not results_db_applied "
+				+ "and s_id in (select s_id from survey where group_survey_ident = "
+				+ "(select group_survey_ident from survey where s_id = ?)) "
+				+ "limit 1";
+		try (java.sql.PreparedStatement pstmt = ctx.sd.prepareStatement(sql)) {
+			pstmt.setString(1, instanceId);
+			pstmt.setInt(2, survey.getId());
+			return pstmt.executeQuery().next();
+		}
+	}
+
+	/*
+	 * Whether one record is inside the caller's row filters.  It does not check that the record exists,
+	 * as with no row filter there is nothing to check it against.
 	 *
 	 * Records are named by instance id and never by the sequential primary key: a prikey can be
 	 * guessed by counting, so accepting one would let a caller walk a table they were never shown.

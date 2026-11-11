@@ -199,7 +199,15 @@ public class DataSubmitTool extends AbstractMcpTool {
 			}
 		}
 		if(continues != null) {
-			if(!McpData.canSeeRecord(ctx, survey, continues)) {
+			/*
+			 * A record submitted a moment ago is queued rather than in the results yet.  Said as
+			 * that, so the caller waits and asks again rather than concluding the record is missing
+			 */
+			if(!McpData.recordExists(ctx, survey, continues) && McpData.recordPending(ctx, survey, continues)) {
+				return new MCPToolResult("Record " + continues + " has been received but is still queued, so it "
+						+ "cannot be continued yet. Try again in a few seconds. Nothing was submitted.", true);
+			}
+			if(!McpData.recordExists(ctx, survey, continues) || !McpData.canSeeRecord(ctx, survey, continues)) {
 				return new MCPToolResult("There is no record " + continues + " that you can reach "
 						+ "through \"" + survey.getDisplayName() + "\". A form can only be filled in "
 						+ "against a record it shares - the two have to be in the same bundle. "
