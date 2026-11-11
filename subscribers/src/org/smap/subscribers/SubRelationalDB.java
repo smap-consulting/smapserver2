@@ -1412,7 +1412,6 @@ public class SubRelationalDB extends Subscriber {
 				ResultSet rtm = pstmtTableMerge.executeQuery();
 				ArrayList<String> mergeTables = new ArrayList<> ();
 				ArrayList<String> replaceTables = new ArrayList<> ();
-				ArrayList<String> editReplaceTables = new ArrayList<> ();	// Replaced on a direct update unless no rows were submitted
 				ArrayList<Integer> copiedSourceKeys = new ArrayList<> ();
 				while(rtm.next()) {
 					if(rtm.getBoolean("replace")) {
@@ -1432,7 +1431,7 @@ public class SubRelationalDB extends Subscriber {
 						 * and not when the repeat has been deleted from this survey, as it did not show the records
 						 */
 						log.fine("Direct update, replacing " + rtm.getString(1));
-						editReplaceTables.add(rtm.getString(1));
+						replaceTables.add(rtm.getString(1));
 					} else {
 						// Default
 						if(replace) {
@@ -1529,13 +1528,7 @@ public class SubRelationalDB extends Subscriber {
 								}
 							}
 
-						} else if(replaceTables.contains(tableName)
-								|| (editReplaceTables.contains(tableName)
-										&& !(childPrikeys.isEmpty() && !childSourcekeys.isEmpty()))) {
-							/*
-							 * An edit that submitted no rows for a repeat that has them keeps them, as
-							 * the rows were probably not in the form, for example a non relevant repeat
-							 */
+						} else if(replaceTables.contains(tableName)) {
 							log.fine("==================== Replacing " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
 
 							for(int i = 0; i < childSourcekeys.size(); i++) {
