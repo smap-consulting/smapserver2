@@ -29,6 +29,7 @@ import org.smap.sdal.model.Action;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.SubFormRowChange;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
@@ -456,6 +457,42 @@ public class ActionManager {
 	}
 
 	/*
+	 * The instance id of the record a sub form row belongs to, or null if there is no such row.
+	 * Followed up through each parent form, so a row of a repeat inside a repeat is found too
+	 */
+	private String recordOfRow(Connection sd, Connection cResults, int sId, Form f, int prikey)
+			throws SQLException {
+
+		if(prikey <= 0) {
+			return null;
+		}
+		StringBuilder sql = new StringBuilder();
+		Form current = f;
+		int depth = 0;
+		StringBuilder joins = new StringBuilder(f.tableName).append(" t0");
+		while(current.parentform > 0) {
+			if(++depth > 20) {
+				return null;		// Not a real form hierarchy
+			}
+			Form parent = GeneralUtilityMethods.getForm(sd, sId, current.parentform);
+			if(parent == null || parent.tableName == null) {
+				return null;
+			}
+			joins.append(" join ").append(parent.tableName).append(" t").append(depth)
+				.append(" on t").append(depth - 1).append(".parkey = t").append(depth).append(".prikey");
+			current = parent;
+		}
+		sql.append("select t").append(depth).append(".instanceid from ").append(joins)
+			.append(" where t0.prikey = ?");
+
+		try (PreparedStatement pstmt = cResults.prepareStatement(sql.toString())) {
+			pstmt.setInt(1, prikey);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() ? rs.getString(1) : null;
+		}
+	}
+
+	/*
 	 * Process an update request that came from the console The update is for a
 	 * Group Survey
 	 */
@@ -500,6 +537,24 @@ public class ActionManager {
 			}
 			if (f.parentform > 0) {
 				isSubForm = true;
+			}
+
+			/*
+			 * The record must be one this user can see.  For a sub form row that is the record the row
+			 * belongs to, found from the row, as the console does not send it.  A primary key is
+			 * sequential so it is never trusted on its own: when a record is named the row must be in it
+			 */
+			String accessInstanceId = instanceId;
+			if(isSubForm) {
+				String rowRecord = recordOfRow(sd, cResults, groupSurveyId, f, subFormPrimaryKey);
+				if(rowRecord == null || (instanceId != null && !instanceId.equals(rowRecord))) {
+					throw new ApplicationException(localisation.getString("rec_na"));
+				}
+				accessInstanceId = rowRecord;
+			}
+			RoleManager rm = new RoleManager(localisation);
+			if(!rm.canAccessRecord(sd, cResults, surveyIdent, topLevelForm.tableName, accessInstanceId, userIdent, tz)) {
+				throw new ApplicationException(localisation.getString("rec_na"));
 			}
 
 			ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(sd, cResults, localisation,
