@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -99,6 +100,13 @@ public class GetXForm {
 	private static  String FILE_MIME="text/plain,application/pdf,application/vnd.ms-excel,application/msword,text/richtext,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip,application/x-zip-compressed" ;
 
 	private HashMap<String, Integer> gRecordCounts = new HashMap<> ();
+	
+	/*
+	 * Repeat rows carry a hidden id, set once when the row is created, so that a row can be 
+	 * matched across versions of a record when two people change it at the same time
+	 */
+	public static final String ROW_ID = "_row_id";
+	private HashSet<Integer> gRowIdForms = new HashSet<> ();	// Forms whose rows have the id
 	private HashMap<String, String> multiLanguageConstraints = new HashMap<> ();
 	private HashMap<String, String> multiLanguageRequireds = new HashMap<> ();
 	private HashMap<String, String> lonelyGuidance = new HashMap<> ();  // Store references of guidance that is not part of a hint - hack
@@ -723,11 +731,16 @@ public class GetXForm {
 						currentParent.appendChild(questionElement);
 					}
 
+					boolean rowId = hasRowId(q, subForm);
+					
 					// Add template
 					if(!inRealForm) {
 						Element template = createNamedElement(outputDoc, subForm.getName());
 						template.setAttribute("jr:template", ""); // The model requires a local name only
 						populateForm(sd, outputDoc, template, INSTANCE, subForm, true, false, isWebForms);
+						if(rowId) {
+							template.appendChild(outputDoc.createElement(ROW_ID));
+						}
 						currentParent.appendChild(template);
 					}
 					
@@ -735,6 +748,9 @@ public class GetXForm {
 					if(!inTemplate) {
 						Element form = createNamedElement(outputDoc, subForm.getName());
 						populateForm(sd, outputDoc, form, INSTANCE, subForm, false, true, isWebForms);
+						if(rowId) {
+							form.appendChild(outputDoc.createElement(ROW_ID));
+						}
 						currentParent.appendChild(form);
 					}
 
@@ -810,6 +826,15 @@ public class GetXForm {
 					// Process sub form
 
 					populateForm(sd, outputDoc, currentParent, BIND, subForm, false, false, isWebForms);
+					if(hasRowId(q, subForm)) {
+						// Set once, when the row is created, and kept when the record is edited
+						Element rowIdBind = outputDoc.createElement("bind");
+						rowIdBind.setAttribute("nodeset", subForm.getPath(null) + "/" + ROW_ID);
+						rowIdBind.setAttribute("type", "string");
+						rowIdBind.setAttribute("readonly", "true()");
+						rowIdBind.setAttribute("calculate", "once(uuid())");
+						currentParent.appendChild(rowIdBind);
+					}
 					if (subForm.getRepeats(true, template.getQuestionPaths()) != null) {
 						// Add the calculation for repeat count
 						questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), true);
@@ -924,6 +949,14 @@ public class GetXForm {
 		
 	}
 
+	/*
+	 * True if the rows of a repeat have an id
+	 * Not for geometries collected as repeats or for repeats showing data from another form
+	 */
+	private boolean hasRowId(Question q, Form subForm) {
+		return subForm != null && q.getType().equals("begin repeat") && !q.isReference() && !subForm.getReference();
+	}
+	
 	/*
 	 * Populate the question element if this is part of the XForm bind
 	 */
@@ -2678,6 +2711,12 @@ public class GetXForm {
 			}
 		}
 		
+		boolean withRowId = parentId > 0 && gRowIdForms.contains(form.getId()) 
+				&& GeneralUtilityMethods.hasColumn(cResults, processForm.getTableName(), ROW_ID);
+		if(withRowId) {
+			sql.append(",").append(ROW_ID);
+		}
+		
 		sql.append(" from ").append(processForm.getTableName());
 		if (id != -1) {
 			sql.append(" where prikey=").append(id);
@@ -2751,6 +2790,9 @@ public class GetXForm {
 					Form subForm = template.getSubForm(processForm, q);
 
 					if (subForm != null) {
+						if(hasRowId(q, subForm)) {
+							gRowIdForms.add(subForm.getId());
+						}
 						record.add(new Results(qName, subForm, null, false, false, false, null, q.getParameters(), false));
 					}
 
@@ -2882,6 +2924,10 @@ public class GetXForm {
 						index++;
 					}
 				}
+			}
+			if(withRowId) {
+				// Last, as it is in the form
+				record.add(new Results(ROW_ID, null, resultSet.getString(ROW_ID), false, false, false, null, null, false));
 			}
 			output.add(record);
 		}

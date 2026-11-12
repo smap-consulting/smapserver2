@@ -43,6 +43,7 @@ import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.managers.Dhis2ExportManager;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CaseManager;
+import org.smap.sdal.managers.ConflictManager;
 import org.smap.sdal.managers.ReferenceManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.EmailManager;
@@ -58,6 +59,7 @@ import com.google.gson.reflect.TypeToken;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -205,6 +207,88 @@ public class ManagedForms extends Application {
 		
 		return response;
 
+	}
+	
+	/*
+	 * Review the answers of a conflicting update to a record
+	 * choices is a json object mapping the index of each answer reviewed to "applied" (keep the 
+	 * answer applied) or "theirs" (put back the answer of the other person)
+	 */
+	@POST
+	@Produces("text/html")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Path("/conflict/{sId}/{eventId}")
+	public Response resolveConflict(
+			@Context HttpServletRequest request, 
+			@PathParam("sId") int sId,
+			@PathParam("eventId") int eventId,
+			@FormParam("choices") String choicesString,
+			@FormParam("tz") String tz
+			) { 
+		
+		// Check for Ajax and reject if not
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+			log.info("Error: Non ajax request");
+	        throw new AuthorisationException();   
+		} 
+		
+		Response response = null;
+		String requester = "surveyKPI-ResolveConflict";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requester);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			HashMap<Integer, String> choices = null;
+			try {
+				choices = new Gson().fromJson(choicesString, new TypeToken<HashMap<Integer, String>>() {}.getType());
+			} catch (Exception e) {
+				choices = null;
+			}
+			if(choices == null || choices.isEmpty()) {
+				throw new ApplicationException("No choices");
+			}
+			
+			ConflictManager cm = new ConflictManager(localisation, tz);
+			String latest = cm.resolve(sd, cResults, sId, eventId, choices, request.getRemoteUser());
+			
+			// The latest version of the record, which is new if any answers were put back
+			HashMap<String, Object> result = new HashMap<>();
+			result.put("instanceid", latest);
+			String table = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			try (PreparedStatement pstmt = cResults.prepareStatement("select prikey from " + table + " where instanceid = ?")) {
+				pstmt.setString(1, latest);
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					result.put("prikey", rs.getInt(1));
+				}
+			}
+			response = Response.ok(new Gson().toJson(result)).build();
+			
+		} catch (ApplicationException e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			response = Response.serverError().entity("Error").build();
+		} finally {
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
+		}
+		
+		return response;
 	}
 	
 	/*

@@ -27,6 +27,7 @@ import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.constants.SmapQuestionTypes;
+import org.smap.sdal.managers.GetXForm;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
@@ -873,6 +874,23 @@ public class GetHtml {
 				// Process sub form
 				for (Form subForm : survey.surveyData.forms) {
 					if (subForm.parentQuestion == q.id) { // continue with next form
+
+						/*
+						 * The id of each row, set when the row is created and kept when the record is edited
+						 * Matches the row id added to the model by GetXForm
+						 */
+						if(!subForm.reference) {
+							calculationLabel = outputDoc.createElement("div");
+							calculationLabel.setAttribute("class", "calculation non-select");
+							bodyElement.appendChild(calculationLabel);
+							calculationInput = outputDoc.createElement("input");
+							calculationInput.setAttribute("type", "hidden");
+							calculationInput.setAttribute("name", paths.get(getRefName(q.name, form)) + "/" + GetXForm.ROW_ID);
+							calculationInput.setAttribute("data-calculate", " once(uuid()) ");
+							calculationInput.setAttribute("data-type-xml", "string");
+							calculationLabel.appendChild(calculationInput);
+						}
+
 						processCalculationQuestions(bodyElement, subForm);
 						break;
 					}

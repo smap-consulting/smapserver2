@@ -501,6 +501,49 @@ public class ActionManager {
 		}
 	}
 
+	private int getPrikey(Connection cResults, String table, String instanceId) throws SQLException {
+		try (PreparedStatement pstmt = cResults.prepareStatement("select prikey from " + table + " where instanceid = ?")) {
+			pstmt.setString(1, instanceId);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() ? rs.getInt(1) : 0;
+		}
+	}
+	
+	/*
+	 * The row in the latest version of a record that is the same as a row of an older version
+	 */
+	private int currentRow(Connection cResults, String table, int rowKey, int recordKey) throws Exception {
+		int parkey = 0;
+		String rowId = null;
+		boolean hasRowId = GeneralUtilityMethods.hasColumn(cResults, table, GetXForm.ROW_ID);
+		try (PreparedStatement pstmt = cResults.prepareStatement("select parkey" + (hasRowId ? ", " + GetXForm.ROW_ID : "") 
+				+ " from " + table + " where prikey = ?")) {
+			pstmt.setInt(1, rowKey);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				parkey = rs.getInt(1);
+				if(hasRowId) {
+					rowId = rs.getString(2);
+				}
+			}
+		}
+		if(parkey == recordKey) {
+			return rowKey;
+		}
+		if(rowId != null) {
+			try (PreparedStatement pstmt = cResults.prepareStatement("select prikey from " + table + " where parkey = ? and " + GetXForm.ROW_ID + " = ?")) {
+				pstmt.setInt(1, recordKey);
+				pstmt.setString(2, rowId);
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					return rs.getInt(1);
+				}
+			}
+		}
+		throw new ApplicationException("Update failed: Try refreshing your view of the data as someone may already "
+				+ "have updated this record.");
+	}
+	
 	/*
 	 * Process an update request that came from the console The update is for a
 	 * Group Survey
@@ -520,6 +563,8 @@ public class ActionManager {
 
 		PreparedStatement pstmtUpdate = null;
 		PreparedStatement pstmtGetValue = null;
+		int lockedBundle = 0;
+		int versionKey = 0;		// The primary key of the new version of the record
 
 		try {
 
@@ -610,6 +655,31 @@ public class ActionManager {
 			ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
 			// log.fine("Set autocommit false");
 			cResults.setAutoCommit(false);
+			
+			/*
+			 * A change to one record is made to a new version of it, as a submission is, so that 
+			 * the version anybody has open for editing stays as it was when they opened it
+			 * Bulk changes are made in place
+			 */
+			if(!bulk && accessInstanceId != null) {
+				lockedBundle = GeneralUtilityMethods.getSurveyId(sd, groupSurveyIdent);	// The lock the subscriber takes when it merges
+				if(lockedBundle <= 0) {
+					lockedBundle = groupSurveyId;
+				}
+				RecordVersionManager.lock(sd, lockedBundle);
+				RecordVersionManager rvm = new RecordVersionManager(localisation);
+				instanceId = rvm.newVersion(sd, cResults, groupSurveyId, groupSurveyIdent, topLevelForm.id, 
+						topLevelForm.tableName, accessInstanceId, userIdent, tz);
+				versionKey = getPrikey(cResults, topLevelForm.tableName, instanceId);
+				
+				/*
+				 * A row of a repeat in the main form, shown from a version that has since been replaced, 
+				 * is the same row in the new version
+				 */
+				if(isSubForm && f.parentform == topLevelForm.id) {
+					subFormPrimaryKey = currentRow(cResults, f.tableName, subFormPrimaryKey, versionKey);
+				}
+			}
 			for (int i = 0; i < updates.size(); i++) {
 
 				Update u = updates.get(i);
@@ -847,7 +917,19 @@ public class ActionManager {
 					sId, null, 0, 0);
 
 			cResults.commit();
-			response = Response.ok().build();
+			
+			/*
+			 * Return the version that was changed, so the console works on that from now on
+			 */
+			HashMap<String, Object> result = new HashMap<>();
+			result.put("instanceid", instanceId);
+			if(versionKey > 0) {
+				result.put("prikey", versionKey);
+				if(isSubForm) {
+					result.put("row", subFormPrimaryKey);	// The row changed, in the new version
+				}
+			}
+			response = Response.ok(gson.toJson(result)).build();
 
 		} catch (Exception e) {
 			try {
@@ -862,6 +944,9 @@ public class ActionManager {
 				log.fine("Set autocommit true");
 				cResults.setAutoCommit(true);
 			} catch (Exception ex) {
+			}
+			if(lockedBundle > 0) {
+				RecordVersionManager.unlock(sd, lockedBundle);
 			}
 			try {
 				if (pstmtUpdate != null) {

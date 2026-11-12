@@ -4426,6 +4426,13 @@ public class GeneralUtilityMethods {
 			addColumn(cResults, table_name, AuditData.AUDIT_RAW_COLUMN_NAME, "text");
 			
 		}
+		
+		/*
+		 * Repeat rows have an id that identifies them across versions of a record
+		 */
+		if(!topLevel && !hasColumn(cResults, table_name, "_row_id")) {
+			addColumn(cResults, table_name, "_row_id", "text");
+		}
 	}
 	
 	/*

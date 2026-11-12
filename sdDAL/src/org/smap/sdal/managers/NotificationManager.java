@@ -75,6 +75,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 public class NotificationManager {
 
+	public static final String TRIGGER_SUBMISSION = "submission";
+	public static final String TRIGGER_CONFLICT = "conflict";		// A save changed answers somebody else had changed since the record was opened
 	public static String TOPIC_CM_ALERT = "cm_alert";			// Data: SubmissionMessage
 	public static String TOPIC_SUBMISSION = "submission";		// Data: SubmissionMessage
 	public static String TOPIC_PERIODIC = "periodic";			// Data: PeriodicMessage
@@ -928,6 +930,48 @@ public class NotificationManager {
 			String updateQuestion,
 			String updateValue,
 			String thread) throws Exception {
+		notify(sd, cResults, ue_id, submittingUser, temporaryUser, scheme, serverName, basePath, serverRoot,
+				ident, instanceId, updateSurvey, updateQuestion, updateValue, thread, TRIGGER_SUBMISSION);
+	}
+	
+	/*
+	 * Apply any notification for a submission that changed answers somebody else had changed 
+	 * since the record was opened
+	 * Sent for every conflict, not once per case
+	 */
+	public void notifyForConflict(
+			Connection sd, 
+			Connection cResults,
+			int ue_id,
+			String submittingUser,
+			boolean temporaryUser,
+			String scheme,
+			String serverName,
+			String basePath,
+			String serverRoot,
+			String ident,			// Survey Ident
+			String instanceId) throws Exception {
+		notify(sd, cResults, ue_id, submittingUser, temporaryUser, scheme, serverName, basePath, serverRoot,
+				ident, instanceId, null, null, null, null, TRIGGER_CONFLICT);
+	}
+	
+	private void notify(
+			Connection sd, 
+			Connection cResults,
+			int ue_id,
+			String submittingUser,
+			boolean temporaryUser,
+			String scheme,
+			String serverName,
+			String basePath,
+			String serverRoot,
+			String ident,			// Survey Ident
+			String instanceId,
+			String updateSurvey,
+			String updateQuestion,
+			String updateValue,
+			String thread,
+			String trigger) throws Exception {
 
 		/*
 		 * 1. Get notifications that may apply to the passed in upload event.
@@ -966,7 +1010,9 @@ public class NotificationManager {
 					+ "and n.target != 'document' "
 					+ "and n.enabled = 'true' ");
 
-			if(updateQuestion == null) {
+			if(TRIGGER_CONFLICT.equals(trigger)) {
+				sqlGetNotifications.append(" and n.trigger = '" + TRIGGER_CONFLICT + "' ");
+			} else if(updateQuestion == null) {
 				sqlGetNotifications.append(" and n.trigger = 'submission' ");
 				if(thread != null) {
 					/*

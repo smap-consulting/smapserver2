@@ -117,17 +117,30 @@ scripts that run them are in `~/.claude/skills/regression-test/harness/`, one pe
      "all"},"rows"}`, the totals being each call's `totals`.  Uploads made between the calls and the harness
      can make the project and all project totals differ, so run it again once before reporting a failure there.
      A `warn` line is reported as ⚠️ and does not fail the test.
-   - Any other kind: report that there is no harness for it.
+   - `update-conflict`: saves of a record made from a version somebody else has since replaced.  Needs the
+     test's survey and its `bundle`.  **Survey:** make each list in `survey.choices` with `survey_options_edit`,
+     create the survey with `survey_create`, add `survey.questions`, then each of `survey.groups` with
+     `survey_add_group` (`repeating`) and its questions moved into it with `survey_move_question` `into`.
+     **Bundle:** find `bundle.name` in `survey_list`; if missing create it with `survey_create` and
+     `same_record_as_survey_id` naming the test survey (it starts as a copy), then add `bundle.questions`.  Check
+     with `survey_get` that both report the same bundle.  Call `survey_submission_effects` for both and stop if
+     anything would be sent.  Open `{server}/app/myWork/index.html` and for each of `scenarios`, one
+     javascript_tool call each, run `harness/update-conflict.js` with `__CONFIG__` = `{"sId": <test survey id>,
+     "identA": <its ident>, "identB": <bundle survey ident>, "run": <the time in ms, the same for every scenario>,
+     "scenario": <the scenario>}`.  Saves are applied by a background process, so a scenario takes up to 30
+     seconds.  The console step changes the scenario's own record in the console and the resolve step reviews its
+     conflict.
 4. Do not submit forms.  Tests leave no data, apart from the settings-secrets write checks, which
    put the setting they use back as it was, the records and tasks the xss test keeps in its own
    survey, the records and trail the dashboard-map test keeps, the records and grid the
    dashboard-region test keeps, the records the sqli-filter and sqli-autoupdate tests keep, and the
-   records and duplicate upload the submission-totals test keeps.
+   records and duplicate upload the submission-totals test keeps, and the records the update-conflicts
+   test adds to its own surveys, one per scenario each run.
 
 ## Report
 
 One table per test: for webform-constraint question, value, expected, actual; for settings-secrets
-check and detail; for xss page, check and detail; for sqli probe and detail; for mcp-totals check and detail; each with ✅/❌.  Then a summary line per test,
+check and detail; for xss page, check and detail; for sqli probe and detail; for mcp-totals check and detail; for update-conflict scenario, check and detail; each with ✅/❌.  Then a summary line per test,
 PASS or FAIL with the number of failures.  For a failure include the `constraints` the harness
 returned, as the constraint as the page received it is usually the clue.  Close the Chrome tab.
 

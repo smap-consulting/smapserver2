@@ -153,6 +153,27 @@ public class SubmissionEventManager {
 	}
 	
 	/*
+	 * True if saving this instance changed answers somebody else had changed since the record was opened
+	 */
+	private boolean hasConflict(Connection sd, String thread, String instanceId) throws SQLException {
+		String sql = "select count(*) from record_event "
+				+ "where key = ? "
+				+ "and event = ? "
+				+ "and strpos(changes, ?) > 0";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, thread);
+			pstmt.setString(2, RecordEventManager.CONFLICT);
+			pstmt.setString(3, "\"savedInstance\":\"" + instanceId + "\"");
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() && rs.getInt(1) > 0;
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch (SQLException e) {}}
+		}
+	}
+	
+	/*
 	 * Apply events triggered by a submission
 	 */
 	private void applySubmissionEvents(Connection sd, 
@@ -224,6 +245,22 @@ public class SubmissionEventManager {
 						thread
 						);	
 
+				// Apply notifications for answers changed by two people at the same time
+				if(thread != null && hasConflict(sd, thread, instanceId)) {
+					nm.notifyForConflict(
+							sd, 
+							cResults,
+							ueId, 
+							submittingUser,
+							temporaryUser,
+							"https",
+							server,
+							basePath,
+							urlprefix,
+							ident,
+							instanceId);
+				}
+				
 				// Apply Tasks
 				TaskManager tm = new TaskManager(localisation, "UTC");
 				tm.updateTasksForSubmission(

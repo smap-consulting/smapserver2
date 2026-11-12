@@ -7,7 +7,9 @@ import java.util.ArrayList;
  */
 public class DataItemChangeEvent {
 	
+	public int id;
 	public String event;
+	public UpdateConflicts conflict;		// Set for a conflict event
 	public String status;
 	public String userName;
 	public String surveyName;

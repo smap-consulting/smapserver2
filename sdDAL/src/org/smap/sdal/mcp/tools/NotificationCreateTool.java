@@ -50,7 +50,8 @@ public class NotificationCreateTool extends AbstractMcpTool {
 
 	@Override
 	public String getDescription() {
-		return "Sets up an email to fixed addresses when a form is submitted. Created SWITCHED OFF and sends "
+		return "Sets up an email to fixed addresses when a form is submitted, or when a save changes answers "
+				+ "somebody else changed after the record was opened. Created SWITCHED OFF and sends "
 				+ "nothing until notification_enable turns it on. SMS, webhooks and timed notifications are "
 				+ "console only.";
 	}
@@ -89,6 +90,11 @@ public class NotificationCreateTool extends AbstractMcpTool {
 		properties.put("only_when", property("string",
 				"Optional. Only send when a submission matches, written over the survey's question "
 				+ "names such as ${status} = 'urgent'."));
+		properties.put("when", property("string",
+				"Optional. 'submission' (the default) sends when the survey is submitted. 'conflict' sends "
+				+ "when somebody saves a record and changes answers that somebody else changed after "
+				+ "they opened it. Their answers are kept and the conflict is listed in the record's "
+				+ "history for review."));
 
 		Map<String, Object> schema = new LinkedHashMap<>();
 		schema.put("type", "object");
@@ -169,7 +175,15 @@ public class NotificationCreateTool extends AbstractMcpTool {
 		n.name = name.trim();
 		n.s_id = surveyId;
 		n.sIdent = survey.getIdent();
-		n.trigger = "submission";
+		String when = stringArg(arguments, "when");
+		if(when == null || when.trim().isEmpty()) {
+			when = NotificationManager.TRIGGER_SUBMISSION;
+		}
+		when = when.trim();
+		if(!when.equals(NotificationManager.TRIGGER_SUBMISSION) && !when.equals(NotificationManager.TRIGGER_CONFLICT)) {
+			return new MCPToolResult("when must be 'submission' or 'conflict'.", true);
+		}
+		n.trigger = when;
 		n.target = "email";
 		/*
 		 * Off.  Not a default the caller can override - turning it on is a separate call, so that

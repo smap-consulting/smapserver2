@@ -123,7 +123,7 @@ public class DataBulkUndoTool extends AbstractMcpTool {
 		 * a change in another survey cannot be replayed here.
 		 */
 		String sql = "select instanceid, changes from record_event "
-				+ "where change_set = ? and table_name = ? and changes is not null "
+				+ "where change_set = ? and table_name = ? and event = 'changes' and changes is not null "
 				+ "order by id asc";
 
 		Map<String, List<Change>> byInstance = new LinkedHashMap<>();

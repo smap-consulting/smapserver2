@@ -29,10 +29,14 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -49,6 +53,7 @@ import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.UploadEventManager;
 import org.smap.sdal.managers.RecordEventManager;
+import org.smap.sdal.managers.RecordVersionManager;
 import org.smap.sdal.managers.SubmissionEventManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
@@ -70,6 +75,8 @@ import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.SubscriberEvent;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.UniqueKey;
+import org.smap.sdal.model.UpdateConflict;
+import org.smap.sdal.model.UpdateConflicts;
 import org.smap.sdal.Utilities.SQLInsertException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -101,6 +108,8 @@ public class SubRelationalDB extends Subscriber {
 	}
 	AdvisoryLock lockTableChange;
 	AdvisoryLock lockRecordUpdate;
+	private static final String ROW_ID = "_row_id";	// Identifies a repeat row across versions of a record
+	private String savedInstanceId = null;	// The instance id of the version being saved
 	boolean isCaseClosed = false;		// Set to true if this update closes a case /(the case may already be closed)
 	
 	private Survey survey = null;
@@ -149,7 +158,18 @@ public class SubRelationalDB extends Subscriber {
 
 			GeneralUtilityMethods.getDatabaseConnections(dbf, dbc, confFilePath);			
 			lockTableChange = new AdvisoryLock(dbc.sd, 1, survey.getId());	// If necessary lock at the survey level - must be closed on exit
-			lockRecordUpdate = new AdvisoryLock(dbc.sd, 2, survey.getId());
+			/*
+			 * Changes to records are locked across the bundle, as any survey in it can change a record,
+			 * and with the console, which makes a new version of a record when it changes one
+			 */
+			int bundleSurveyId = survey.getId();
+			if(survey.surveyData.groupSurveyIdent != null && !survey.surveyData.groupSurveyIdent.equals(survey.getIdent())) {
+				int id = GeneralUtilityMethods.getSurveyId(dbc.sd, survey.surveyData.groupSurveyIdent);
+				if(id > 0) {
+					bundleSurveyId = id;
+				}
+			}
+			lockRecordUpdate = new AdvisoryLock(dbc.sd, RecordVersionManager.RECORD_LOCK, bundleSurveyId);
 			this.survey = survey;
 
 			int assignmentId = getAssignmentId(dbc.sd, ue_id);
@@ -560,6 +580,7 @@ public class SubRelationalDB extends Subscriber {
 				cResults.setAutoCommit(false);
 			}
 			IE topElement = instance.getTopElement();
+			savedInstanceId = instance.getUuid();
 
 			// Make sure the top element matched a form in the template
 			if(topElement.getType() == null) {
@@ -627,9 +648,21 @@ public class SubRelationalDB extends Subscriber {
 	
 				if(existingKey != 0) {
 					log.fine("Existing key:" + existingKey);
+					
+					/*
+					 * If somebody else has saved the record since this version was opened then the 
+					 * version opened is needed to tell what the person saving changed
+					 */
+					int openedKey = getOpenedKey(cResults, topLevelForm.tableName, updateId);
+					int baseKey = (openedKey > 0 && openedKey != existingKey) ? openedKey : 0;
+					if(baseKey > 0) {
+						log.info("Record " + updateId + " was saved by somebody else after it was opened, merging the changes");
+					}
+					
 					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
 							existingKey, 
+							baseKey,
 							keyPolicy.equals(SurveyManager.KP_REPLACE),
 							remoteUser, updateId, survey.surveyData.groupSurveyIdent, survey.surveyData.ident, 
 							localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
@@ -640,6 +673,7 @@ public class SubRelationalDB extends Subscriber {
 					combineTableContent(sd, cResults, sId, hrkSql, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id, 
 							0,		// existing key 
+							0,		// No version opened
 							keyPolicy.equals(SurveyManager.KP_REPLACE), 
 							remoteUser, instance.getUuid(), survey.surveyData.groupSurveyIdent, survey.surveyData.ident, localisation);
 				} else if(keyPolicy.equals(SurveyManager.KP_DISCARD)) {
@@ -657,8 +691,6 @@ public class SubRelationalDB extends Subscriber {
 				km.updateExistingData(sd, cResults, uk.key, survey.surveyData.groupSurveyIdent, topLevelForm.tableName, keys.newKey);	
 			}
 			
-			lockRecordUpdate.release("merge done");   // Release lock - merging of records finished
-			
 			/*
 			 * Record any foreign keys that need to be set between forms
 			 */
@@ -668,6 +700,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 			
 			cResults.commit();
+			lockRecordUpdate.release("merge done");   // Release lock - merging of records finished and committed
 
 			GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);  // Clear any entries in linked_forms for this survey - The CSV files will need to be refreshed
 			
@@ -877,6 +910,7 @@ public class SubRelationalDB extends Subscriber {
 							bad_reason,
 							auditString,
 							rawAuditString,
+							parent_key == 0 ? null : element.getRowId(),
 							oId);
 					
 					log.fine("1111111111: " + pstmt.toString());
@@ -1025,6 +1059,7 @@ public class SubRelationalDB extends Subscriber {
 			String badReason,
 			String audit,
 			String auditRaw,
+			String rowId,
 			int oId) throws SQLException {
 		
 		PreparedStatement pstmt = null;
@@ -1061,6 +1096,9 @@ public class SubRelationalDB extends Subscriber {
 		}
 		addTableCol(cols, vals, tableCols, "_audit", audit, "string");
 		addTableCol(cols, vals, tableCols, "_audit_raw", auditRaw, "string");
+		if(parentKey != 0) {
+			addTableCol(cols, vals, tableCols, ROW_ID, rowId, "string");		// Identifies a repeat row across versions
+		}
 		
 		/*
 		 * Add the survey columns
@@ -1308,6 +1346,7 @@ public class SubRelationalDB extends Subscriber {
 			int prikey,
 			int f_id,
 			int sourceKey,
+			int baseKey,
 			boolean replace,
 			String user,
 			String newInstance,
@@ -1362,6 +1401,12 @@ public class SubRelationalDB extends Subscriber {
 		 * one matched by its key.  The person submitting had the existing sub form records in front of them
 		 */
 		boolean directUpdate = sourceKey > 0;
+		
+		/*
+		 * Answers and repeat rows changed by two people at the same time
+		 */
+		ArrayList<UpdateConflict> conflictList = new ArrayList<> ();
+		HashSet<String> threeWayTables = new HashSet<> ();
 		try {
 
 			String hrk = null;
@@ -1403,7 +1448,8 @@ public class SubRelationalDB extends Subscriber {
 			RecordEventManager rem = new RecordEventManager();
 			if(sourceKey > 0) {
 
-				changes = mergeRecords(sd, cResults, table, prikey, sourceKey, replace, f_id, false, groupSurveyIdent);
+				changes = mergeRecords(sd, cResults, table, prikey, sourceKey, replace, f_id, false, groupSurveyIdent,
+						baseKey, conflictList, null, null);
 
 				// Get the per table merge policy for this survey
 				pstmtTableMerge = sd.prepareStatement(sqlTableMerge);
@@ -1432,6 +1478,9 @@ public class SubRelationalDB extends Subscriber {
 						 */
 						log.fine("Direct update, replacing " + rtm.getString(1));
 						replaceTables.add(rtm.getString(1));
+						if(baseKey > 0) {
+							threeWayTables.add(rtm.getString(1));	// Merge the rows with those saved by somebody else
+						}
 					} else {
 						// Default
 						if(replace) {
@@ -1494,7 +1543,10 @@ public class SubRelationalDB extends Subscriber {
 						String sqlCopyChild = "update " + tableName + " set parkey = ? where prikey = ?";
 						pstmtCopyChild = cResults.prepareStatement(sqlCopyChild);
 						
-						if(mergeTables.contains(tableName)) {
+						if(threeWayTables.contains(tableName)) {
+							mergeRepeatRows(sd, cResults, tableName, child_f_id, formname, prikey, sourceKey, baseKey,
+									subFormChanges, conflictList, groupSurveyIdent);
+						} else if(mergeTables.contains(tableName)) {
 
 							log.fine("====================== Merging " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
 
@@ -1573,6 +1625,9 @@ public class SubRelationalDB extends Subscriber {
 
 						} 
 						
+						// Give rows merged for the first time an id so they can be matched on later merges
+						assignRowIds(cResults, tableName, prikey);
+
 						// Add the subform changes to the change record
 						if(hasSubFormChanges(subFormChanges)) {
 							changes.add(new DataItemChange(formname, formname != null ? formname : tableName, subFormChanges));
@@ -1600,6 +1655,15 @@ public class SubRelationalDB extends Subscriber {
 				}
 				
 				if(changes != null) {
+					
+					/*
+					 * Record the answers two people changed at the same time
+					 * Before this change is recorded, so the latest change in the history is the other person's
+					 */
+					if(conflictList.size() > 0) {
+						writeConflicts(sd, cResults, rem, user, table, newInstance, sourceKey, conflictList, sId);
+					}
+					
 					// Save the changes
 					Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 					rem.writeEvent(sd, cResults, 
@@ -1615,8 +1679,8 @@ public class SubRelationalDB extends Subscriber {
 							sId, 
 							null,
 							0,
-							0);	
-					
+							0);
+
 					/*
 					 * Release the case if it has been closed
 					 */
@@ -1696,6 +1760,30 @@ public class SubRelationalDB extends Subscriber {
 			int f_id,
 			boolean subform,
 			String groupSurveyIdent) throws SQLException {
+		return mergeRecords(sd, cRel, table, prikey, sourceKey, replace, f_id, subform, groupSurveyIdent, 0, null, null, null);
+	}
+	
+	/*
+	 * Merge a new version of a record (prikey) with the latest version (sourceKey)
+	 * If baseKey is set the person saving had opened that version, and somebody else has saved 
+	 * since.  Then each answer is merged three ways: an answer the person saving left as it was 
+	 * keeps the other change, and an answer both changed differently is a conflict, which the 
+	 * person saving wins
+	 */
+	private ArrayList<DataItemChange> mergeRecords(
+			Connection sd,
+			Connection cRel, 
+			String table, 
+			int prikey, 
+			int sourceKey, 
+			boolean replace,
+			int f_id,
+			boolean subform,
+			String groupSurveyIdent,
+			int baseKey,
+			ArrayList<UpdateConflict> conflictList,
+			String repeat,
+			String rowId) throws SQLException {
 		
 		ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
 		
@@ -1829,6 +1917,26 @@ public class SubRelationalDB extends Subscriber {
 									}
 								} finally {
 									if(rsGetSource != null) try{rsGetSource.close();}catch(Exception e) {}
+								}
+							}
+							
+							if(baseKey > 0) {
+								String baseVal = getColumnValue(cRel, table, col, baseKey, GeneralUtilityMethods.isGeometry(subColType));
+								if(sameValue(val, baseVal)) {
+									// Left as it was by the person saving, keep any change made by somebody else
+									if(!sameValue(val, oldVal)) {
+										copyColumn(cRel, table, col, sourceKey, prikey);
+									}
+									continue;
+								} else if(!sameValue(oldVal, baseVal) && !sameValue(val, oldVal) && conflictList != null) {
+									// Both changed it, the person saving wins
+									UpdateConflict c = UpdateConflict.value(col, qName, subColType, baseVal, oldVal, val);
+									c.repeat = repeat;
+									c.repeatTable = repeat == null ? null : table;
+									c.rowId = rowId;
+									c.mineKey = prikey;
+									c.theirsKey = sourceKey;
+									conflictList.add(c);
 								}
 							}
 							
@@ -2433,6 +2541,427 @@ public class SubRelationalDB extends Subscriber {
 		return colNames;	
 	}
 	
+	/*
+	 * The primary key of the version of a record that was opened for editing
+	 */
+	private int getOpenedKey(Connection cRel, String table, String instanceId) throws SQLException {
+		int key = 0;
+		String sql = "select prikey from " + table + " where instanceid = ? order by prikey desc limit 1";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cRel.prepareStatement(sql);
+			pstmt.setString(1, instanceId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				key = rs.getInt(1);
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+		return key;
+	}
+
+	/*
+	 * Get the value of one column of a record, geometries as GeoJSON
+	 */
+	private String getColumnValue(Connection cRel, String table, String col, int key, boolean geom) throws SQLException {
+		String value = null;
+		String sql = geom
+				? "select ST_AsGeoJSON(" + col + ") from " + table + " where prikey = ?"
+				: "select " + col + " from " + table + " where prikey = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cRel.prepareStatement(sql);
+			pstmt.setInt(1, key);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				value = rs.getString(1);
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+		return value;
+	}
+
+	/*
+	 * Copy the value of one column from one record to another in the same table
+	 */
+	private void copyColumn(Connection cRel, String table, String col, int fromKey, int toKey) throws SQLException {
+		String sql = "update " + table
+				+ " set " + col + " = (select " + col + " from " + table + " where prikey = ?) "
+				+ "where prikey = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cRel.prepareStatement(sql);
+			pstmt.setInt(1, fromKey);
+			pstmt.setInt(2, toKey);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+	}
+
+	/*
+	 * An empty answer is the same as no answer
+	 */
+	private boolean sameValue(String a, String b) {
+		if(a != null && a.length() == 0) {
+			a = null;
+		}
+		if(b != null && b.length() == 0) {
+			b = null;
+		}
+		return a == null ? b == null : a.equals(b);
+	}
+
+	/*
+	 * A row of a repeat
+	 */
+	private class RepeatRow {
+		int key;
+		String rowId;
+		HashMap<String, String> values = new HashMap<>();
+	}
+
+	/*
+	 * The columns of a repeat table that hold answers, with their database type
+	 */
+	private LinkedHashMap<String, String> getDataColumns(Connection cRel, String table) throws SQLException {
+		LinkedHashMap<String, String> cols = new LinkedHashMap<>();
+		String sql = "select column_name, udt_name from information_schema.columns where table_name = ? "
+				+ "and column_name not like '\\_%' "
+				+ "and column_name != 'prikey' "
+				+ "and column_name != 'parkey' "
+				+ "and column_name != 'instanceid' "
+				+ "order by ordinal_position asc";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cRel.prepareStatement(sql);
+			pstmt.setString(1, table);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				cols.put(rs.getString(1), rs.getString(2));
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+		return cols;
+	}
+
+	/*
+	 * The columns of the questions in a form
+	 */
+	private HashSet<String> getFormColumns(Connection sd, int f_id) throws SQLException {
+		HashSet<String> cols = new HashSet<>();
+		String sql = "select column_name from question where f_id = ? and not soft_deleted and column_name is not null";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, f_id);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				cols.add(rs.getString(1));
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+		return cols;
+	}
+
+	/*
+	 * Get the rows of a repeat in the order they were entered
+	 */
+	private ArrayList<RepeatRow> getRepeatRows(Connection cRel, String table, int parkey,
+			LinkedHashMap<String, String> dataCols, boolean hasRowId) throws SQLException {
+
+		ArrayList<RepeatRow> rows = new ArrayList<>();
+		ArrayList<String> cols = new ArrayList<>(dataCols.keySet());
+		StringBuilder sql = new StringBuilder("select prikey");
+		sql.append(hasRowId ? ", " + ROW_ID : ", null");
+		for(String col : cols) {
+			if("geometry".equals(dataCols.get(col))) {
+				sql.append(", ST_AsGeoJSON(").append(col).append(")");
+			} else {
+				sql.append(", ").append(col);
+			}
+		}
+		sql.append(" from ").append(table).append(" where parkey = ? order by prikey asc");
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cRel.prepareStatement(sql.toString());
+			pstmt.setInt(1, parkey);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				RepeatRow r = new RepeatRow();
+				r.key = rs.getInt(1);
+				r.rowId = rs.getString(2);
+				if(r.rowId != null && r.rowId.trim().length() == 0) {
+					r.rowId = null;
+				}
+				for(int i = 0; i < cols.size(); i++) {
+					r.values.put(cols.get(i), rs.getString(i + 3));
+				}
+				rows.add(r);
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+		return rows;
+	}
+
+	private boolean sameRow(RepeatRow a, RepeatRow b, Collection<String> cols) {
+		for(String col : cols) {
+			if(!sameValue(a.values.get(col), b.values.get(col))) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/*
+	 * Match the rows of a version of a repeat to the rows of the version that was opened
+	 * Rows are matched by their id, and rows without an id, saved before ids were given to rows or
+	 * by a copy of the form that does not have them, are matched by their answers
+	 * Returns the matched rows keyed by the primary key of the opened row
+	 */
+	private HashMap<Integer, RepeatRow> matchRows(ArrayList<RepeatRow> base, ArrayList<RepeatRow> others,
+			Collection<String> cols, ArrayList<RepeatRow> unmatched) {
+
+		HashMap<Integer, RepeatRow> matched = new HashMap<>();
+		ArrayList<RepeatRow> rest = new ArrayList<>();
+
+		for(RepeatRow o : others) {
+			RepeatRow found = null;
+			if(o.rowId != null) {
+				for(RepeatRow b : base) {
+					if(o.rowId.equals(b.rowId) && !matched.containsKey(b.key)) {
+						found = b;
+						break;
+					}
+				}
+			}
+			if(found != null) {
+				matched.put(found.key, o);
+			} else {
+				rest.add(o);
+			}
+		}
+
+		for(RepeatRow o : rest) {
+			RepeatRow found = null;
+			for(RepeatRow b : base) {
+				if(!matched.containsKey(b.key) && (b.rowId == null || o.rowId == null) && sameRow(b, o, cols)) {
+					found = b;
+					break;
+				}
+			}
+			if(found != null) {
+				matched.put(found.key, o);
+			} else {
+				unmatched.add(o);
+			}
+		}
+		return matched;
+	}
+
+	/*
+	 * Merge the rows of a repeat when somebody else saved the record after the person saving opened it
+	 * The rows of the version opened (base), the version saved since (theirs) and the version being
+	 * saved (mine) are matched.  Rows added on either side are kept, a row changed on one side takes
+	 * that change, and a row changed on both is merged answer by answer.  A row deleted on one side
+	 * and changed on the other is a conflict, which the person saving wins
+	 */
+	private void mergeRepeatRows(Connection sd, Connection cRel, String tableName, int f_id, String formName,
+			int prikey, int sourceKey, int baseKey,
+			ArrayList<SubFormRowChange> subFormChanges,
+			ArrayList<UpdateConflict> conflictList,
+			String groupSurveyIdent) throws SQLException {
+
+		boolean hasRowId = GeneralUtilityMethods.hasColumn(cRel, tableName, ROW_ID);
+		LinkedHashMap<String, String> dataCols = getDataColumns(cRel, tableName);
+		HashSet<String> formCols = getFormColumns(sd, f_id);
+		formCols.retainAll(dataCols.keySet());
+
+		ArrayList<RepeatRow> baseRows = getRepeatRows(cRel, tableName, baseKey, dataCols, hasRowId);
+		ArrayList<RepeatRow> mineRows = getRepeatRows(cRel, tableName, prikey, dataCols, hasRowId);
+		ArrayList<RepeatRow> theirsRows = getRepeatRows(cRel, tableName, sourceKey, dataCols, hasRowId);
+
+		ArrayList<RepeatRow> mineNew = new ArrayList<>();
+		ArrayList<RepeatRow> theirsNew = new ArrayList<>();
+		HashMap<Integer, RepeatRow> mineMatch = matchRows(baseRows, mineRows, formCols, mineNew);
+		HashMap<Integer, RepeatRow> theirsMatch = matchRows(baseRows, theirsRows, dataCols.keySet(), theirsNew);
+
+		/*
+		 * Give the rows being saved an id now, if they do not have one, so a conflict on a row 
+		 * names the row in the new version
+		 */
+		if(hasRowId) {
+			for(RepeatRow m : mineRows) {
+				if(m.rowId == null) {
+					m.rowId = UUID.randomUUID().toString();
+					try(PreparedStatement pstmt = cRel.prepareStatement("update " + tableName + " set " + ROW_ID + " = ? where prikey = ?")) {
+						pstmt.setString(1, m.rowId);
+						pstmt.setInt(2, m.key);
+						pstmt.executeUpdate();
+					}
+				}
+			}
+		}
+		
+		log.fine("Merging repeat " + tableName + " opened: " + baseRows.size() + " theirs: " + theirsRows.size() + " mine: " + mineRows.size());
+
+		for(RepeatRow b : baseRows) {
+			RepeatRow m = mineMatch.get(b.key);
+			RepeatRow t = theirsMatch.get(b.key);
+
+			if(m != null && t != null) {
+				ArrayList<DataItemChange> rowChanges = mergeRecords(sd, cRel, tableName, m.key, t.key, false, f_id, true,
+						groupSurveyIdent, b.key, conflictList, formName, m.rowId);
+				if(rowChanges.size() > 0) {
+					subFormChanges.add(new SubFormRowChange(SubFormRowChange.CHANGED, rowChanges));
+				}
+
+			} else if(m != null) {
+				// Deleted by somebody else
+				if(sameRow(b, m, formCols)) {
+					RecordVersionManager.deleteRow(sd, cRel, tableName, m.key);
+				} else {
+					ArrayList<DataItemChange> values = getChangeRecord(sd, cRel, tableName, m.key, false, f_id);
+					conflictList.add(UpdateConflict.row(UpdateConflict.THEIRS_DELETED, formName, tableName, m.rowId, m.key, 0, values));
+					subFormChanges.add(new SubFormRowChange(SubFormRowChange.NEW_RECORD, values));
+				}
+
+			} else if(t != null) {
+				// Deleted by the person saving
+				ArrayList<DataItemChange> values = getChangeRecord(sd, cRel, tableName, t.key, false, f_id);
+				if(!sameRow(b, t, dataCols.keySet())) {
+					conflictList.add(UpdateConflict.row(UpdateConflict.MINE_DELETED, formName, tableName, t.rowId, 0, t.key, values));
+				}
+				subFormChanges.add(new SubFormRowChange(SubFormRowChange.DELETED_RECORD, values));
+			}
+		}
+
+		/*
+		 * Rows added by the person saving
+		 * A row with the same id as one added by somebody else is the same row saved twice
+		 */
+		HashSet<Integer> theirsUsed = new HashSet<>();
+		for(RepeatRow m : mineNew) {
+			RepeatRow t = null;
+			if(m.rowId != null) {
+				for(RepeatRow x : theirsNew) {
+					if(m.rowId.equals(x.rowId)) {
+						t = x;
+						break;
+					}
+				}
+			}
+			if(t != null) {
+				theirsUsed.add(t.key);
+				ArrayList<DataItemChange> rowChanges = mergeRecords(sd, cRel, tableName, m.key, t.key, false, f_id, true, groupSurveyIdent);
+				if(rowChanges.size() > 0) {
+					subFormChanges.add(new SubFormRowChange(SubFormRowChange.CHANGED, rowChanges));
+				}
+			} else {
+				subFormChanges.add(new SubFormRowChange(SubFormRowChange.NEW_RECORD,
+						getChangeRecord(sd, cRel, tableName, m.key, false, f_id)));
+			}
+		}
+
+		/*
+		 * Rows added by somebody else are copied to the end of the repeat
+		 * Their own repeats move with them
+		 */
+		for(RepeatRow t : theirsNew) {
+			if(!theirsUsed.contains(t.key)) {
+				RecordVersionManager.copyRow(sd, cRel, tableName, t.key, prikey);
+			}
+		}
+	}
+
+	/*
+	 * Give an id to the rows of a repeat that do not have one
+	 */
+	private void assignRowIds(Connection cRel, String tableName, int parkey) throws SQLException {
+		if(GeneralUtilityMethods.hasColumn(cRel, tableName, ROW_ID)) {
+			PreparedStatement pstmt = null;
+			try {
+				pstmt = cRel.prepareStatement("update " + tableName + " set " + ROW_ID + " = gen_random_uuid()::text "
+						+ "where parkey = ? and (" + ROW_ID + " is null or " + ROW_ID + " = '')");
+				pstmt.setInt(1, parkey);
+				pstmt.executeUpdate();
+			} finally {
+				if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+			}
+		}
+	}
+
+	/*
+	 * Record the answers two people changed at the same time
+	 */
+	private void writeConflicts(Connection sd, Connection cRel, RecordEventManager rem, String user, String table,
+			String instance, int sourceKey, ArrayList<UpdateConflict> conflictList, int sId) throws SQLException {
+
+		UpdateConflicts uc = new UpdateConflicts();
+		uc.table = table;
+		uc.openedInstance = instance;
+		uc.savedInstance = savedInstanceId;
+		uc.items = conflictList;
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cRel.prepareStatement("select instanceid, _user, _upload_time from " + table + " where prikey = ?");
+			pstmt.setInt(1, sourceKey);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				uc.theirsInstance = rs.getString(1);
+				uc.theirsUser = rs.getString(2);
+				uc.theirsTime = rs.getString(3);
+			}
+			
+			/*
+			 * The latest change in the history is who made the version saved in the meantime, 
+			 * which may have been a change in the console rather than a submission
+			 */
+			pstmt.close();
+			pstmt = sd.prepareStatement("select u.ident, to_char(re.event_time, 'YYYY-MM-DD HH24:MI:SS TZ') "
+					+ "from record_event re left outer join users u on u.id = re.changed_by "
+					+ "where re.key = ? and re.event in ('created', 'changes') "
+					+ "order by re.id desc limit 1");
+			pstmt.setString(1, GeneralUtilityMethods.getThread(cRel, table, instance));
+			rs = pstmt.executeQuery();
+			if(rs.next()) {
+				if(rs.getString(1) != null) {
+					uc.theirsUser = rs.getString(1);
+				}
+				if(rs.getString(2) != null) {
+					uc.theirsTime = rs.getString(2);
+				}
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		rem.writeEvent(sd, cRel,
+				RecordEventManager.CONFLICT,
+				RecordEventManager.STATUS_UNRESOLVED,
+				user, table,
+				instance,
+				gson.toJson(uc), 		// Change object
+				null, 					// Task object
+				null,					// Inbound message object
+				null,					// Notification object
+				null,
+				sId,
+				null,
+				0,
+				0);
+
+		log.info("Conflicting changes to record " + instance + ": " + conflictList.size());
+	}
+
 	private String getCopyBackSql(Connection cRel, String tableName, int parkey) throws SQLException {
 		StringBuffer sql = new StringBuffer("");
 		StringBuffer cols = new StringBuffer("");
