@@ -107,6 +107,8 @@ for (const step of sc.steps) {
 		let v = null;
 		try { v = JSON.parse(text); } catch (e) { v = null; }
 		check('resolve', r.ok, r.ok ? '' : 'status ' + r.status);
+		const hasVersion = !!(v && v.instanceid && v.prikey);
+		check('resolve returned the new version', hasVersion, hasVersion ? '' : 'got ' + text.slice(0, 80));
 		if (v && v.instanceid) latest = v.instanceid;
 	} else if (step.expect) {
 		// A version made on the server, by the console or a review, is found by the record's thread
