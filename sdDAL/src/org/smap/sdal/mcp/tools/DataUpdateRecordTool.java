@@ -103,7 +103,7 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 	public Map<String, Object> getOutputSchema() {
 		Map<String, Object> properties = new LinkedHashMap<>();
 		properties.put("updated", property("boolean", "Whether the record was changed"));
-		properties.put("instanceid", property("string", "The record that was changed"));
+		properties.put("instanceid", property("string", "The new version of the record that the change made. Use it for later calls"));
 		properties.put("questions", property("array", "The questions that were given new answers"));
 
 		Map<String, Object> schema = new LinkedHashMap<>();
@@ -345,9 +345,26 @@ public class DataUpdateRecordTool extends AbstractMcpTool {
 			return new MCPToolResult(failure + " Nothing was changed.", true);
 		}
 
+		/*
+		 * A change is made to a new version of the record, which has its own instance id.  Report that one,
+		 * as it is the one to use from now on
+		 */
+		String changedInstanceId = instanceId;
+		try {
+			Object entity = response.getEntity();
+			if(entity != null) {
+				Map<?, ?> version = new Gson().fromJson(entity.toString(), Map.class);
+				if(version != null && version.get("instanceid") instanceof String) {
+					changedInstanceId = (String) version.get("instanceid");
+				}
+			}
+		} catch (Exception e) {
+			// Keep the instance id given
+		}
+
 		Map<String, Object> structured = new LinkedHashMap<>();
 		structured.put("updated", Boolean.TRUE);
-		structured.put("instanceid", instanceId);
+		structured.put("instanceid", changedInstanceId);
 		structured.put("questions", changed);
 		structured.put("retained", retained);
 

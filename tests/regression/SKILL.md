@@ -22,6 +22,15 @@ scripts that run them are in `~/.claude/skills/regression-test/harness/`, one pe
    shows a Login link the browser is not logged in: ask the user to log in in that tab and wait.
    Never enter a password.
 
+## Running a harness
+
+Harnesses are long, and a javascript_tool call times out after 45 seconds.  Store a harness body in the
+origin's localStorage once and run it from there for each page or scenario, then remove the key at the end.
+Most console pages (My Work, Analysis, settings) have a CSP that blocks `eval`, so `new AsyncFunction(...)`
+fails there: run the stored body as a `blob:` script instead, wrapped as
+`window.__rt = (async () => { const CFG = <config>; <body> })();`, and await `window.__rt`.  Return only
+counts and failures when the output would be long, as the tool truncates it.
+
 ## For each test
 
 1. Read the test file.  Skip it if an argument was given and does not match `name`.
@@ -102,8 +111,8 @@ scripts that run them are in `~/.claude/skills/regression-test/harness/`, one pe
      `__CONFIG__` = `{"ident","sId","ids","probes"}`.  A probe passes when a real name or value still works and
      SQL in one is refused or returns nothing.  GET probes only read; POST probes (`form`) write to the test's own
      survey only, as the test's description says.  A test with `uses` runs on that test's survey.  A test with `role` needs that role: make it with `role_create` if
-     `role_list` does not have it (kept), and pass `"role"` to the setup's ids step for `{roleId}`.  The settings page's CSP blocks eval, so
-     load a stored harness as a `blob:` script, and return only pass/fail text: output with query strings is
+     `role_list` does not have it (kept), and pass `"role"` to the setup's ids step for `{roleId}`.  Load a stored harness as a `blob:`
+     script (see Running a harness), and return only pass/fail text: output with query strings is
      withheld by the browser tool.
    - `mcp-totals`: totals of the `mcp__smap__submission_events` tool.  Needs the test's survey, made as for
      `xss`.  **Records** are all `via: browser`, submitted as for `xss` with `harness/xss-setup.js` and kept.
