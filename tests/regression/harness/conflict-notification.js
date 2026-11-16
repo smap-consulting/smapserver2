@@ -106,6 +106,9 @@ if (CONFIG.part === 'setup') {
 		check('conflict recorded', conflicts === 1, conflicts + ' conflicts');
 		for (const n of sc.fired) check('fired: ' + n, names.filter(x => x === n).length === 1, names.filter(x => x === n).length + ' times');
 		for (const n of sc.notFired) check('not fired: ' + n, !names.includes(n), names.includes(n) ? 'fired' : '');
+		// Their recipient question holds no address, so nothing is sent and the history says so
+		const statuses = events.filter(e => e.event === 'notification' && e.notification && sc.fired.includes(e.notification.notificationName)).map(e => e.status);
+		check('nothing sent: status no_recipients', statuses.length > 0 && statuses.every(x => x === 'no_recipients'), statuses.join(','));
 	} else {
 		result.seen = names;
 	}

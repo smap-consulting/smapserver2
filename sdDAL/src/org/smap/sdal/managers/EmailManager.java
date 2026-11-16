@@ -436,6 +436,8 @@ public class EmailManager {
 				log.log(Level.INFO, "Info: List of email recipients is empty");
 				lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0, null);
 				resp.writeToMonitor = false;
+				resp.status = "no_recipients";		// Nothing was sent, say so in the record's history
+				resp.error_details = localisation.getString("email_nr");
 			}
 		} else {
 			resp.status = "error";
