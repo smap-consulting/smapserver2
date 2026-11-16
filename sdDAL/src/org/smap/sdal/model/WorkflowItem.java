@@ -69,4 +69,11 @@ public class WorkflowItem {
 	 * genuinely no survey, such as an email or a periodic trigger.
 	 */
 	public String survey;
+	/*
+	 * For an email or sms step: its subject and who it goes to - addresses, ${question} for an
+	 * address taken from the record, and whether the record's assignee is sent it.
+	 */
+	public String subject;
+	public List<String> recipients;
+	public boolean emailAssigned;
 }

@@ -344,7 +344,9 @@ public class Workflow extends Application {
 				+ "and (f.p_id in (select p.id from project p, user_project up, users u "
 				+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 				+ "  or f.s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
-				+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id)) "
+				+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id) "
+				+ "  or f.bundle_ident in (select s3.group_survey_ident from survey s3, project p, user_project up, users u "
+				+ "    where s3.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s3.deleted and p.o_id = u.o_id)) "
 				+ "order by f.id";
 
 		PreparedStatement pstmt = null;
@@ -359,6 +361,7 @@ public class Workflow extends Application {
 			pstmt.setArray(1, arr);
 			pstmt.setString(2, request.getRemoteUser());
 			pstmt.setString(3, request.getRemoteUser());
+			pstmt.setString(4, request.getRemoteUser());
 			ResultSet rs = pstmt.executeQuery();
 			List<WorkflowEditNotif> list = new ArrayList<>();
 			while (rs.next()) {
@@ -452,7 +455,9 @@ public class Workflow extends Application {
 					+ "and (p_id in (select p.id from project p, user_project up, users u "
 					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 					+ "  or s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
-					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id))";
+					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id) "
+				+ "  or bundle_ident in (select s3.group_survey_ident from survey s3, project p, user_project up, users u "
+				+ "    where s3.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s3.deleted and p.o_id = u.o_id))";
 
 			String sqlUpd = "update forward set name = ?, remote_user = ?, filter = ?, enabled = ?, "
 					+ "notify_details = ?, updated = true "
@@ -460,7 +465,9 @@ public class Workflow extends Application {
 					+ "and (p_id in (select p.id from project p, user_project up, users u "
 					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 					+ "  or s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
-					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id))";
+					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id) "
+				+ "  or bundle_ident in (select s3.group_survey_ident from survey s3, project p, user_project up, users u "
+				+ "    where s3.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s3.deleted and p.o_id = u.o_id))";
 
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
@@ -475,6 +482,7 @@ public class Workflow extends Application {
 				pstmtGet.setInt(1, n.id);
 				pstmtGet.setString(2, request.getRemoteUser());
 				pstmtGet.setString(3, request.getRemoteUser());
+				pstmtGet.setString(4, request.getRemoteUser());
 				ResultSet rs = pstmtGet.executeQuery();
 				NotifyDetails nd = new NotifyDetails();
 				if (rs.next()) {
@@ -522,6 +530,7 @@ public class Workflow extends Application {
 				pstmtUpd.setInt(6, n.id);
 				pstmtUpd.setString(7, request.getRemoteUser());
 				pstmtUpd.setString(8, request.getRemoteUser());
+				pstmtUpd.setString(9, request.getRemoteUser());
 				pstmtUpd.executeUpdate();
 
 				lm.writeLog(sd, n.srcSurveyId, request.getRemoteUser(), LogManager.CREATE,
@@ -560,7 +569,9 @@ public class Workflow extends Application {
 				+ "and (p_id in (select p.id from project p, user_project up, users u "
 				+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 				+ "  or s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
-				+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id))";
+				+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id) "
+				+ "  or bundle_ident in (select s3.group_survey_ident from survey s3, project p, user_project up, users u "
+				+ "    where s3.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s3.deleted and p.o_id = u.o_id))";
 
 		PreparedStatement pstmt = null;
 		try {
@@ -570,6 +581,7 @@ public class Workflow extends Application {
 			pstmt.setInt(1, id);
 			pstmt.setString(2, request.getRemoteUser());
 			pstmt.setString(3, request.getRemoteUser());
+			pstmt.setString(4, request.getRemoteUser());
 			pstmt.executeUpdate();
 			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.DELETE,
 					localisation.getString("lm_wf_delete_notification").replace("%s1", String.valueOf(id)), 0, null);
