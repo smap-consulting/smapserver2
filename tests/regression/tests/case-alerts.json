@@ -1,0 +1,19 @@
+{
+  "name": "case-alerts",
+  "description": "Case management alerts in a record's history (2026-11-16). An alert that fires writes an 'alert' event to the case's history, once even with several subscriber servers, and the console History tab shows it with a bell and an Alerts switch; before, the event was written but the console dropped it. The alert has no notifications, so nothing is sent. Each run adds an open case, which the alert fires on after 1 minute, and a closed case, which it must not, to the test's own survey; both are kept.",
+  "kind": "case-alert",
+  "survey": {
+    "name": "Case alert test",
+    "project": "A project",
+    "questions": [
+      { "type": "text", "name": "ca_name", "label": "Name" },
+      { "type": "text", "name": "ca_status", "label": "Status" }
+    ]
+  },
+  "caseSettings": { "statusQuestion": "ca_status", "finalStatus": "closed" },
+  "alert": { "name": "Case alert test - open 1 minute", "period": "1 minute" },
+  "records": [
+    { "label": "open", "answers": { "ca_name": "Open case", "ca_status": "open" }, "alerts": 1 },
+    { "label": "closed", "answers": { "ca_name": "Closed case", "ca_status": "closed" }, "alerts": 0 }
+  ]
+}

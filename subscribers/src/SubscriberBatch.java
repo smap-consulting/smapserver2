@@ -1527,8 +1527,20 @@ public class SubscriberBatch {
 								String instanceid = mrs.getString("instanceid");
 								String thread = mrs.getString("_thread");
 								
+								// Try to record the alert - ON CONFLICT ensures only one server processes it
+								pstmtTriggered.setInt(1, aId);
+								pstmtTriggered.setString(2, table);
+								pstmtTriggered.setString(3, thread);
+								pstmtTriggered.setString(4, settings.finalStatus);
+
+								int insertCount = pstmtTriggered.executeUpdate();
+								if (insertCount == 0) {
+									// Another server already processed this alert, skip
+									continue;
+								}
+
 								/*
-								 * Record the triggering of the alert
+								 * Record the triggering of the alert in the case history, once
 								 */
 								String details = localisation.getString(NotificationManager.TOPIC_CM_ALERT);
 								details = details.replace("%s1", alertName);
@@ -1551,18 +1563,6 @@ public class SubscriberBatch {
 										0,					// Don't need task id if we have an assignment id
 										0					// Assignment id
 										);
-								
-								// Try to record the alert - ON CONFLICT ensures only one server processes it
-								pstmtTriggered.setInt(1, aId);
-								pstmtTriggered.setString(2, table);
-								pstmtTriggered.setString(3, thread);
-								pstmtTriggered.setString(4, settings.finalStatus);
-
-								int insertCount = pstmtTriggered.executeUpdate();
-								if (insertCount == 0) {
-									// Another server already processed this alert, skip
-									continue;
-								}
 
 								// Update the case so that the alert status can be charted
 								StringBuilder sqlUpdate = new StringBuilder("update ")
