@@ -1031,3 +1031,8 @@ alter table dashboard_settings add column if not exists ds_map_option text;
 
 -- Survey roles that refer to no survey grant nothing, remove them
 delete from survey_role sr where not exists (select 1 from survey s where s.ident = sr.survey_ident);
+
+-- What a log entry is about, such as notification:12 or alert:3, so an error it records can be
+-- traced to the setting that causes it.  log_archive must match log column for column, see above.
+alter table log add column if not exists ref text;
+alter table log_archive add column if not exists ref text;

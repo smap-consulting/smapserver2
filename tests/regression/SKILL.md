@@ -157,17 +157,26 @@ counts and failures when the output would be long, as the tool truncates it.
      `{"part":"check","sId":<a's id>,"instanceid":<save's>,"scenario"}`, again while it returns `pending`, for up to
      3 minutes, as notifications are sent by a background process.  Finally run it with
      `{"part":"workflow","ids":<setup's ids>,"a","b","bundleName":<a's bundle name>,"test"}`.
+   - `issues`: the operational issues report.  It `uses` the case-alerts survey for its notification and record, and
+     expects unreviewed conflicts from the conflict tests in `conflictSurvey`.  Open
+     `{server}/app/tasks/managed_forms.html` and run `harness/issues.js` with `__CONFIG__` = `{"part":"setup","project",
+     "sId","ident","run":<the time in ms>,"test":<the test file>}`; it creates the notification once (kept) and submits
+     a record its filter fails on.  Notifications are sent by a background process, so run it with `{"part":"check",
+     "nId":<setup's>,"project","sId","test"}`, again while it returns `pending`, for up to 3 minutes.  Then open
+     `{server}/app/tasks/issues.html` and run `{"part":"page"}`; open the check's `notificationUrl` and run
+     `{"part":"fixNotification","nId","test"}`; open the check's `conflict.url` and run `{"part":"fixConflict","sId",
+     "instanceid"}` from its `conflict`.
 4. Do not submit forms.  Tests leave no data, apart from the settings-secrets write checks, which
    put the setting they use back as it was, the records and tasks the xss test keeps in its own
    survey, the records and trail the dashboard-map test keeps, the records and grid the
    dashboard-region test keeps, the records the sqli-filter and sqli-autoupdate tests keep, and the
    records and duplicate upload the submission-totals test keeps, and the records the update-conflicts
-   test adds to its own surveys, one per scenario each run, and the two records the case-alerts test adds each run, and the notifications the conflict-notifications test keeps on the update-conflicts surveys and the six records it adds to them each run.
+   test adds to its own surveys, one per scenario each run, and the two records the case-alerts test adds each run, and the notifications the conflict-notifications test keeps on the update-conflicts surveys and the six records it adds to them each run, and the notification the operational-issues test keeps on the case-alerts survey and the record it adds there each run.
 
 ## Report
 
 One table per test: for webform-constraint question, value, expected, actual; for settings-secrets
-check and detail; for xss page, check and detail; for sqli probe and detail; for mcp-totals check and detail; for update-conflict scenario, check and detail; for case-alert part, check and detail; for conflict-notification part or scenario, check and detail; each with ✅/❌.  Then a summary line per test,
+check and detail; for xss page, check and detail; for sqli probe and detail; for mcp-totals check and detail; for update-conflict scenario, check and detail; for case-alert part, check and detail; for conflict-notification part or scenario, check and detail; for issues part, check and detail; each with ✅/❌.  Then a summary line per test,
 PASS or FAIL with the number of failures.  For a failure include the `constraints` the harness
 returned, as the constraint as the page received it is usually the clue.  Close the Chrome tab.
 

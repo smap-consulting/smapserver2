@@ -939,6 +939,14 @@ public class NotificationManager {
 	 * since the record was opened
 	 * Sent for every conflict, not once per case
 	 */
+	/*
+	 * The log reference for the notification a message came from, null for a message queued before
+	 * messages carried it
+	 */
+	private String notificationRef(SubmissionMessage msg) {
+		return msg != null && msg.notificationId > 0 ? LogManager.REF_NOTIFICATION + msg.notificationId : null;
+	}
+
 	public void notifyForConflict(
 			Connection sd, 
 			Connection cResults,
@@ -1095,10 +1103,10 @@ public class NotificationManager {
 							msg = "";
 						}
 						log.log(Level.SEVERE, e.getMessage(), e);
-						lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION_ERROR, 
+						lm.writeLogRef(sd, sId, "subscriber", LogManager.NOTIFICATION_ERROR, 
 								localisation.getString("filter_error")
 								.replace("%s1", filter)
-								.replace("%s2", msg), 0, null);
+								.replace("%s2", msg), 0, null, null, LogManager.REF_NOTIFICATION + nId);
 					}
 				}
 
@@ -1150,6 +1158,7 @@ public class NotificationManager {
 					subMsg.sp_match_column = nd.sp_match_column;
 					subMsg.sp_match_field = nd.sp_match_field;
 					subMsg.sp_column_map = nd.sp_column_map;
+					subMsg.notificationId = nId;
 
 					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 
@@ -1313,8 +1322,8 @@ public class NotificationManager {
 					note = note.replace("%s1", msg.survey_ident == null ? "" : msg.survey_ident);
 					note = note.replace("%s2", e.getMessage() == null ? "" : e.getMessage());
 					LogManager lm = new LogManager();
-					lm.writeLog(sd, GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident),
-							msg.user, LogManager.NOTIFICATION_ERROR, note, 0, null);
+					lm.writeLogRef(sd, GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident),
+							msg.user, LogManager.NOTIFICATION_ERROR, note, 0, null, null, notificationRef(msg));
 					throw e;
 				}
 				msg.subject = text.get(0);
@@ -1488,8 +1497,8 @@ public class NotificationManager {
 									error_details, messageId, msg.target, resp.awsSesMessageId);
 							String logTopic = (status != null && status.toLowerCase().equals("error"))
 									? LogManager.NOTIFICATION_ERROR : LogManager.NOTIFICATION;
-							lm.writeLog(sd, surveyId, "subscriber", logTopic,
-									status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null);
+							lm.writeLogRef(sd, surveyId, "subscriber", logTopic,
+									status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null, null, notificationRef(msg));
 							writeToMonitor = false;
 						}
 					} catch (EmailDeferredException e) {
@@ -2008,7 +2017,7 @@ public class NotificationManager {
 					logTopic = LogManager.NOTIFICATION;
 				}
 
-				lm.writeLog(sd, surveyId, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null);
+				lm.writeLogRef(sd, surveyId, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null, null, notificationRef(msg));
 			}
 
 			/*

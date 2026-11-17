@@ -283,7 +283,8 @@ create TABLE log (
 	note text,
 	measure int default 0,		-- In the case of translate this would be the number of characters
 	server text,
-	agent text					-- The application that acted, null when a person did it themselves
+	agent text,					-- The application that acted, null when a person did it themselves
+	ref text					-- What the entry is about, e.g. notification:12, so a problem can be traced to its setting
 	);
 CREATE INDEX log_time_key ON log(log_time);
 ALTER TABLE log OWNER TO ws;
@@ -301,7 +302,8 @@ create TABLE log_archive (
 	note text,
 	measure int default 0,		-- In the case of translate this would be the number of characters
 	server text,
-	agent text					-- Must match log: archive.sql moves rows with select *, positionally
+	agent text,					-- Must match log: archive.sql moves rows with select *, positionally
+	ref text
 	);
 ALTER TABLE log_archive OWNER TO ws;
 

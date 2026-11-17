@@ -1337,6 +1337,7 @@ public class SubscriberBatch {
 					locMap.put(oId, localisation);
 				}
 				MessagingManager mm = new MessagingManager(localisation);
+				subMgr.notificationId = nId;
 				mm.createMessage(sd, oId, "reminder", "", gson.toJson(subMgr));
 
 				// record the sending of the notification
@@ -1627,6 +1628,7 @@ public class SubscriberBatch {
 											null);					// SMS timestamp
 
 									MessagingManager mm = new MessagingManager(localisation);
+									subMgr.notificationId = nId;
 									mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));
 
 									// Write to the log
@@ -1647,7 +1649,7 @@ public class SubscriberBatch {
 								msg = "";
 							}
 							if(!duplicateLogEntry(sId + "alert" + LogManager.CASE_MANAGEMENT + msg)) {
-								lm.writeLog(sd, sId, "alert", LogManager.CASE_MANAGEMENT, msg, 0, serverName);
+								lm.writeLogRef(sd, sId, "alert", LogManager.CASE_MANAGEMENT, msg, 0, serverName, null, LogManager.REF_ALERT + aId);
 							}
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
@@ -1722,6 +1724,7 @@ public class SubscriberBatch {
 		
 		int sId = 0;
 		String notificationName = null;
+		int currentNId = 0;			// The notification being processed, for the log if it fails
 		
 		try {
 			pstmtTriggered = cResults.prepareStatement(sqlTriggered);
@@ -1734,6 +1737,7 @@ public class SubscriberBatch {
 			while(notrs.next()) {
 				
 				int nId = notrs.getInt("id");
+				currentNId = nId;
 				sId = notrs.getInt("s_id");
 				notificationName = notrs.getString("notification_name");
 				String notifyDetailsString = notrs.getString("notify_details");
@@ -1873,6 +1877,7 @@ public class SubscriberBatch {
 									null);					// SMS Timestamp
 
 							MessagingManager mm = new MessagingManager(localisation);
+							subMgr.notificationId = nId;
 							mm.createMessage(sd, oId, NotificationManager.TOPIC_SERVER_CALC, "", gson.toJson(subMgr));
 						} else {
 							log.fine("Message not send as the notification has been newly created ");
@@ -1906,7 +1911,8 @@ public class SubscriberBatch {
 			}
 			msg += " - " + notificationName;
 			if(!duplicateLogEntry(sId + "notification" + LogManager.NOTIFICATION_ERROR + msg)) {
-				lm.writeLog(sd, sId, "notification", LogManager.NOTIFICATION_ERROR, msg, 0, serverName);
+				lm.writeLogRef(sd, sId, "notification", LogManager.NOTIFICATION_ERROR, msg, 0, serverName, null,
+						currentNId > 0 ? LogManager.REF_NOTIFICATION + currentNId : null);
 			}
 			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
