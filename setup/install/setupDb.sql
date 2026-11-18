@@ -1403,7 +1403,8 @@ CREATE TABLE public.record_user (
 	access text NOT NULL DEFAULT 'owner',	-- owner || reference
 	read_only boolean NOT NULL DEFAULT false,	-- true for reference
 	created_by text,
-	created_at timestamp with time zone DEFAULT now()
+	created_at timestamp with time zone DEFAULT now(),
+	source text								-- What made an owner an owner: console, escalation, device, ops, mcp, backfill
 );
 CREATE UNIQUE INDEX record_user_unique ON record_user(assignee_ident, group_survey_ident, thread);
 CREATE INDEX record_user_assignee ON record_user(assignee_ident);

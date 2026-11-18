@@ -14,7 +14,8 @@ public class OpsCase {
 	public int prikey;
 	public String title;
 	public String bundle;				// bundle display name
-	public String assignee;				// _assigned (owner ident), may be null
+	public String assignee;				// _assigned, the owners separated by commas, may be null
+	public java.util.List<String> assignees;	// Each owner of the case
 	public boolean closed;				// _case_closed is set
 	public List<OpsField> fields = new ArrayList<>();
 

@@ -86,7 +86,10 @@ public class CaseSettingsSetTool extends AbstractMcpTool {
 						"The answer to that question which means the case is finished. If the "
 						+ "question offers choices this has to be one of them."),
 				"criticality_question", property("string",
-						"Optional. The question holding how urgent a case is."));
+						"Optional. The question holding how urgent a case is."),
+				"multiple_assignees", property("boolean",
+						"Optional. Whether a case can be assigned to more than one person, or to everyone in a "
+						+ "role. Escalations then add people rather than replacing them. Left as it is if not given."));
 		schema.put("required", new String[] { "survey_id" });
 		return schema;
 	}
@@ -113,10 +116,14 @@ public class CaseSettingsSetTool extends AbstractMcpTool {
 		previous.put("statusQuestion", previousSettings.statusQuestion);
 		previous.put("finalStatus", previousSettings.finalStatus);
 		previous.put("criticalityQuestion", previousSettings.criticalityQuestion);
+		previous.put("multipleAssignees", previousSettings.allowsMultipleAssignees());
 
 		CaseManagementSettings settings = new CaseManagementSettings();
 		settings.name = previousSettings.name;
 		settings.description = previousSettings.description;
+		if(arguments.containsKey("multiple_assignees") && arguments.get("multiple_assignees") != null) {
+			settings.multipleAssignees = boolArg(arguments, "multiple_assignees", false);
+		}		// Otherwise null, which keeps what the bundle has
 
 		String statusWanted = stringArg(arguments, "status_question");
 		String finalStatus = stringArg(arguments, "final_status");
@@ -207,6 +214,8 @@ public class CaseSettingsSetTool extends AbstractMcpTool {
 		data.put("statusQuestion", settings.statusQuestion);
 		data.put("finalStatus", settings.finalStatus);
 		data.put("criticalityQuestion", settings.criticalityQuestion);
+		data.put("multipleAssignees", settings.multipleAssignees != null ? settings.multipleAssignees
+				: previousSettings.allowsMultipleAssignees());
 		data.put("previous", previous);
 
 		StringBuilder text = new StringBuilder();

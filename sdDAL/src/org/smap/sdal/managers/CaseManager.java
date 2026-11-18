@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
@@ -214,6 +215,15 @@ public class CaseManager {
 			if(name != null && name.trim().length() > 0 && !GeneralUtilityMethods.isValidQuestionName(name)) {
 				throw new ApplicationException(localisation.getString("cm_inv_q").replace("%s1", GeneralUtilityMethods.getSafeText(name, true)));
 			}
+		}
+		
+		/*
+		 * A save that does not say whether the bundle allows multiple assignees keeps what it has
+		 */
+		if(settings.multipleAssignees == null) {
+			CMS existing = getCaseManagementSettings(sd, group_survey_ident);
+			settings.multipleAssignees = existing != null && existing.settings != null
+					&& existing.settings.allowsMultipleAssignees() ? Boolean.TRUE : null;
 		}
 		
 		String sql = "update cms_setting "
@@ -473,187 +483,396 @@ public class CaseManager {
 	}
 	
 	/*
+	 * Who owns a case.  A case has a set of owners, held in record_user (access 'owner').  Unless its bundle
+	 * allows multiple assignees there is at most one, which is how cases have always worked.
+	 *
+	 * _assigned on the record is kept as a copy of the owners, sorted and comma separated, so that filters,
+	 * exports and anything else that reads it keep working.  With one owner it is exactly the user ident it
+	 * has always been.
+	 */
+
+	// What made a person an owner, in record_user.source
+	public static final String SOURCE_CONSOLE = "console";
+	public static final String SOURCE_ESCALATION = "escalation";
+	public static final String SOURCE_DEVICE = "device";
+	public static final String SOURCE_OPS = "ops";
+	public static final String SOURCE_MCP = "mcp";
+
+	private static class Owner {
+		String ident;
+		String source;
+		Owner(String ident, String source) { this.ident = ident; this.source = source; }
+	}
+
+	/*
+	 * A change to a case's owners, worked out from the owners it has now.  Returns false if the change
+	 * cannot be made, for example a lock on a case somebody already holds.
+	 */
+	private interface OwnerChange {
+		boolean plan(List<Owner> current, List<String> add, List<String> remove);
+	}
+
+	/*
 	 * Method to assign a record to a user
 	 * A release only succeeds if the requesting user holds the record
 	 */
-	public int assignRecord(Connection sd, 
-			Connection cResults, 
-			ResourceBundle localisation, 
-			String tablename, 
-			String instanceId, 
-			String assignTo, 
+	public int assignRecord(Connection sd,
+			Connection cResults,
+			ResourceBundle localisation,
+			String tablename,
+			String instanceId,
+			String assignTo,
 			String type,					// lock || release || assign
 			String surveyIdent,
 			String note,
 			String requestingUser
 			) throws SQLException {
 		return assignRecord(sd, cResults, localisation, tablename, instanceId, assignTo, type, surveyIdent,
-				note, requestingUser, false);
+				note, requestingUser, false, SOURCE_CONSOLE);
 	}
-	
-	/*
-	 * Method to assign a record to a user
-	 * Set anyHolder to release a record held by someone other than the requesting user (admin or auto release)
-	 */
-	public int assignRecord(Connection sd, 
-			Connection cResults, 
-			ResourceBundle localisation, 
-			String tablename, 
-			String instanceId, 
-			String assignTo, 
-			String type,					// lock || release || assign
+
+	public int assignRecord(Connection sd,
+			Connection cResults,
+			ResourceBundle localisation,
+			String tablename,
+			String instanceId,
+			String assignTo,
+			String type,
 			String surveyIdent,
 			String note,
 			String requestingUser,
 			boolean anyHolder
 			) throws SQLException {
-
-		int count = 0;
-		
-		
-		StringBuilder sql = new StringBuilder("update ") 
-				.append(tablename) 
-				.append(" set _assigned = ?, _case_survey = ? ")
-				.append("where _thread = ? ");
-
-		if(assignTo != null && assignTo.equals("_none")) {		// Assigning to no one
-			assignTo = null;
-			surveyIdent = null;
-		}
-		
-		String thread = GeneralUtilityMethods.getThread(cResults, tablename, instanceId);
-		String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tablename, thread);
-		
-		if(type.equals("release") && assignedUser == null) {
-			log.fine("Release: record " + instanceId + " is not assigned");
-			return 0;		// Nothing to release, don't write a spurious event
-		}
-		if(type.equals("release") && !anyHolder && !assignedUser.equals(requestingUser)) {
-			log.fine("Release: record " + instanceId + " is held by " + assignedUser + " not " + requestingUser);
-			return 0;
-		}
-		
-		String caseSurvey = surveyIdent;
-		String details = null;
-		if(type.equals("lock")) {
-			sql.append("and _assigned is null");		// User can only self assign if no one else is assigned 
-			details = localisation.getString("cm_lock");
-			details = details.replace("%s1", assignTo);
-		} else if(type.equals("release")) {
-			assignTo = null;
-			caseSurvey = null;
-			sql.append("and _assigned = ?");			// Guard against the holder changing since it was read
-			details = localisation.getString("cm_release") + ": " + (note == null ? "" : note);
-		} else {
-			if(assignTo != null) {
-				details = localisation.getString("assigned_to");
-				details = details.replace("%s1", assignTo);
-			} else {
-				details = localisation.getString("cm_ua");
-			}
-		}
-		
-		if(assignTo != null) {
-			assignTo = assignTo.trim();
-		}
-		
-		PreparedStatement pstmt = cResults.prepareStatement(sql.toString());
-		pstmt.setString(1, assignTo);
-		pstmt.setString(2, caseSurvey);
-		pstmt.setString(3,thread);
-		if(type.equals("release")) {
-			pstmt.setString(4,assignedUser);
-		}
-		log.fine("Assign record: " + pstmt.toString());
-		
-		/*
-		 * Write the event before applying the update so that an alert can be sent to the previously assigned user
-		 */
-		RecordEventManager rem = new RecordEventManager();
-		rem.writeEvent(
-				sd, 
-				cResults, 
-				RecordEventManager.ASSIGNED, 
-				"success",
-				requestingUser, 
-				tablename, 
-				instanceId, 
-				null,				// Change object
-				null,	            // Task Object
-				null,				// Message Object
-				null,				// Notification object
-				details, 
-				0,				    // sId (don't care legacy)
-				null,
-				0,				    // Don't need task id if we have an assignment id
-				0				    // Assignment id
-				);
-		
-		try {
-					
-			count = pstmt.executeUpdate();
-			
-			if(count > 0) {
-				// Update the running total of cases maintained in the users table
-				UserManager um = new UserManager(null);
-				if(assignedUser != null) {
-					um.decrementTotalTasks(sd, assignedUser);
-				}
-				if(assignTo != null) {
-					um.incrementTotalTasks(sd, assignTo);
-				}
-				// Maintain the denormalised record_user owner index used by getTasksData
-				updateOwnerIndex(sd, thread, assignTo, caseSurvey, requestingUser);
-			} else {
-				log.fine("Error: xxxxxxxxxxxxxx: count is " + count + " : " + pstmt.toString());
-			}
-			
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
-		}
-
-		return count;
+		return assignRecord(sd, cResults, localisation, tablename, instanceId, assignTo, type, surveyIdent,
+				note, requestingUser, anyHolder, SOURCE_CONSOLE);
 	}
 
 	/*
-	 * Maintain the record_user owner index (single owner per thread) when a case is assigned or released.
-	 * _assigned on the record remains the source of truth, this is a denormalised lookup.
-	 * Thread (_thread) is a UUID so release/unassign can delete the owner row by thread alone.
-	 * The list title is recomputed live at download time so it is not stored here.
+	 * Assign, lock or release a case, as callers always have.
+	 *   lock     the requesting user takes the case.  Only if nobody holds it, unless the bundle allows
+	 *            multiple assignees, when they join whoever does
+	 *   assign   assignTo holds the case; with multiple assignees they are added to its owners.  An assignTo
+	 *            of null or "_none" leaves nobody holding it
+	 *   release  the requesting user gives the case up; with anyHolder everybody does, as when it is closed
+	 * Returns 1 if the case exists and the change was made or was already in effect, 0 otherwise.
 	 */
-	private void updateOwnerIndex(Connection sd, String thread, String assignTo, String caseSurvey,
-			String requestingUser) throws SQLException {
+	public int assignRecord(Connection sd,
+			Connection cResults,
+			ResourceBundle localisation,
+			String tablename,
+			String instanceId,
+			String assignTo,
+			String type,
+			String surveyIdent,
+			String note,
+			String requestingUser,
+			boolean anyHolder,
+			String source
+			) throws SQLException {
 
-		if(thread == null) {
-			return;
-		}
-
-		PreparedStatement pstmt = null;
-		try {
-			// Remove any existing owner row for this thread (single owner)
-			pstmt = sd.prepareStatement("delete from record_user where thread = ? and access = 'owner'");
-			pstmt.setString(1, thread);
-			pstmt.executeUpdate();
-			pstmt.close();
-			pstmt = null;
-
-			if(assignTo != null) {
-				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, caseSurvey);
-				pstmt = sd.prepareStatement("insert into record_user "
-						+ "(assignee, assignee_ident, group_survey_ident, survey_ident, thread, access, read_only, created_by) "
-						+ "values ((select id from users where ident = ?), ?, ?, ?, ?, 'owner', false, ?) "
-						+ "on conflict (assignee_ident, group_survey_ident, thread) do update set "
-						+ "assignee = excluded.assignee, survey_ident = excluded.survey_ident");
-				pstmt.setString(1, assignTo);
-				pstmt.setString(2, assignTo);
-				pstmt.setString(3, groupSurveyIdent);
-				pstmt.setString(4, caseSurvey);
-				pstmt.setString(5, thread);
-				pstmt.setString(6, requestingUser);
-				pstmt.executeUpdate();
+		if(assignTo != null) {
+			assignTo = assignTo.trim();
+			if(assignTo.isEmpty() || assignTo.equals("_none")) {
+				assignTo = null;
 			}
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
+		final String who = assignTo;
+		boolean multiple = allowsMultipleAssignees(sd, tablename);
+
+		if(type.equals("lock")) {
+			return changeOwners(sd, cResults, localisation, tablename, instanceId, surveyIdent, source, requestingUser,
+					note, "lock", (current, add, remove) -> {
+						if(contains(current, requestingUser)) return true;		// Already holds it
+						if(!multiple && !current.isEmpty()) return false;		// Somebody else does
+						add.add(requestingUser);
+						return true;
+					});
+		} else if(type.equals("release")) {
+			return changeOwners(sd, cResults, localisation, tablename, instanceId, null, source, requestingUser,
+					note, "release", (current, add, remove) -> {
+						if(anyHolder) {
+							for(Owner o : current) remove.add(o.ident);
+							return !current.isEmpty();
+						}
+						if(!contains(current, requestingUser)) return false;	// Only a holder can release
+						remove.add(requestingUser);
+						return true;
+					});
+		} else if(who == null) {
+			return removeOwners(sd, cResults, localisation, tablename, instanceId, null, requestingUser, note);
+		} else if(multiple) {
+			return addOwners(sd, cResults, localisation, tablename, instanceId, List.of(who), surveyIdent, source,
+					requestingUser, note);
+		} else {
+			return replaceOwners(sd, cResults, localisation, tablename, instanceId, List.of(who), surveyIdent, source,
+					requestingUser, note);
+		}
+	}
+
+	/*
+	 * Make these users owners of the case as well as those it has
+	 */
+	public int addOwners(Connection sd, Connection cResults, ResourceBundle localisation, String tablename,
+			String instanceId, List<String> users, String caseSurvey, String source, String requestingUser,
+			String note) throws SQLException {
+		return changeOwners(sd, cResults, localisation, tablename, instanceId, caseSurvey, source, requestingUser,
+				note, "assign", (current, add, remove) -> {
+					for(String u : users) {
+						if(u != null && !contains(current, u) && !add.contains(u)) add.add(u);
+					}
+					return true;
+				});
+	}
+
+	/*
+	 * Stop these users owning the case, or everybody if users is null
+	 */
+	public int removeOwners(Connection sd, Connection cResults, ResourceBundle localisation, String tablename,
+			String instanceId, List<String> users, String requestingUser, String note) throws SQLException {
+		return changeOwners(sd, cResults, localisation, tablename, instanceId, null, null, requestingUser,
+				note, "unassign", (current, add, remove) -> {
+					for(Owner o : current) {
+						if(users == null || users.contains(o.ident)) remove.add(o.ident);
+					}
+					return true;
+				});
+	}
+
+	/*
+	 * Make these users the case's only owners
+	 */
+	public int replaceOwners(Connection sd, Connection cResults, ResourceBundle localisation, String tablename,
+			String instanceId, List<String> users, String caseSurvey, String source, String requestingUser,
+			String note) throws SQLException {
+		return changeOwners(sd, cResults, localisation, tablename, instanceId, caseSurvey, source, requestingUser,
+				note, "assign", (current, add, remove) -> {
+					for(Owner o : current) {
+						if(!users.contains(o.ident)) remove.add(o.ident);
+					}
+					for(String u : users) {
+						if(u != null && !contains(current, u) && !add.contains(u)) add.add(u);
+					}
+					return true;
+				});
+	}
+
+	/*
+	 * Replace the owners that one source added, keeping those added any other way.  An escalation uses this
+	 * to take back the people an earlier escalation assigned while leaving those assigned by hand.
+	 */
+	public int replaceOwnersFrom(Connection sd, Connection cResults, ResourceBundle localisation, String tablename,
+			String instanceId, List<String> users, String caseSurvey, String source, String requestingUser,
+			String note) throws SQLException {
+		return changeOwners(sd, cResults, localisation, tablename, instanceId, caseSurvey, source, requestingUser,
+				note, "assign", (current, add, remove) -> {
+					for(Owner o : current) {
+						if(source.equals(o.source) && !users.contains(o.ident)) remove.add(o.ident);
+					}
+					for(String u : users) {
+						if(u != null && !contains(current, u) && !add.contains(u)) add.add(u);
+					}
+					return true;
+				});
+	}
+
+	/*
+	 * The users who own a case, sorted
+	 */
+	public List<String> getOwners(Connection sd, Connection cResults, String tablename, String instanceId) throws SQLException {
+		List<String> owners = new ArrayList<>();
+		String thread = GeneralUtilityMethods.getThread(cResults, tablename, instanceId);
+		String groupSurveyIdent = groupSurveyIdentForTable(sd, tablename);
+		if(thread != null && groupSurveyIdent != null) {
+			for(Owner o : readOwners(sd, groupSurveyIdent, thread)) owners.add(o.ident);
+		}
+		return owners;
+	}
+
+	/*
+	 * Whether the bundle a results table belongs to allows a case to have more than one owner
+	 */
+	public boolean allowsMultipleAssignees(Connection sd, String tablename) throws SQLException {
+		String groupSurveyIdent = groupSurveyIdentForTable(sd, tablename);
+		if(groupSurveyIdent == null) {
+			return false;
+		}
+		CMS cms = getCaseManagementSettings(sd, groupSurveyIdent);
+		return cms != null && cms.settings != null && cms.settings.allowsMultipleAssignees();
+	}
+
+	/*
+	 * Change a case's owners.  Everything that says who owns it changes together, under a lock on the case
+	 * so that two changes at once cannot lose one another:
+	 *   record_user, which is who owns it
+	 *   _assigned and _case_survey on the record
+	 *   the record's history, an entry for each person added or removed
+	 *   each person's count of cases, and their device, which is told to refresh
+	 */
+	private int changeOwners(Connection sd, Connection cResults, ResourceBundle localisation, String tablename,
+			String instanceId, String caseSurvey, String source, String requestingUser, String note, String type,
+			OwnerChange change) throws SQLException {
+
+		String thread = GeneralUtilityMethods.getThread(cResults, tablename, instanceId);
+		if(thread == null) {
+			log.fine("Assign: no record " + instanceId + " in " + tablename);
+			return 0;
+		}
+		String groupSurveyIdent = groupSurveyIdentForTable(sd, tablename);
+		if(groupSurveyIdent == null) {
+			return 0;
+		}
+
+		// Join a transaction the caller has open, otherwise make one
+		boolean ownTransaction = sd.getAutoCommit();
+		if(ownTransaction) {
+			sd.setAutoCommit(false);
+		}
+		List<String> added = new ArrayList<>();
+		List<String> removed = new ArrayList<>();
+		try {
+			try (PreparedStatement pstmt = sd.prepareStatement("select pg_advisory_xact_lock(3, hashtext(?))")) {
+				pstmt.setString(1, groupSurveyIdent + ":" + thread);
+				pstmt.executeQuery();
+			}
+
+			List<Owner> current = readOwners(sd, groupSurveyIdent, thread);
+			if(!change.plan(current, added, removed)) {
+				if(ownTransaction) sd.rollback();
+				return 0;
+			}
+
+			if(!added.isEmpty() || !removed.isEmpty()) {
+				try (PreparedStatement del = sd.prepareStatement("delete from record_user "
+						+ "where group_survey_ident = ? and thread = ? and access = 'owner' and assignee_ident = ?");
+					PreparedStatement ins = sd.prepareStatement("insert into record_user "
+						+ "(assignee, assignee_ident, group_survey_ident, survey_ident, thread, access, read_only, created_by, source) "
+						+ "values ((select id from users where ident = ?), ?, ?, ?, ?, 'owner', false, ?, ?) "
+						+ "on conflict (assignee_ident, group_survey_ident, thread) do update set "		// A reference becomes an owner
+						+ "access = 'owner', read_only = false, survey_ident = excluded.survey_ident, "
+						+ "source = excluded.source, created_by = excluded.created_by")) {
+					for(String u : removed) {
+						del.setString(1, groupSurveyIdent);
+						del.setString(2, thread);
+						del.setString(3, u);
+						del.executeUpdate();
+					}
+					for(String u : added) {
+						ins.setString(1, u);
+						ins.setString(2, u);
+						ins.setString(3, groupSurveyIdent);
+						ins.setString(4, caseSurvey);
+						ins.setString(5, thread);
+						ins.setString(6, requestingUser);
+						ins.setString(7, source);
+						ins.executeUpdate();
+					}
+				}
+
+				// The record's copy of who owns it
+				List<Owner> now = readOwners(sd, groupSurveyIdent, thread);
+				List<String> idents = new ArrayList<>();
+				for(Owner o : now) idents.add(o.ident);
+				String summary = idents.isEmpty() ? null : String.join(", ", idents);
+				String surveyNow = idents.isEmpty() ? null
+						: (caseSurvey != null && !added.isEmpty() ? caseSurvey : currentCaseSurvey(cResults, tablename, thread));
+				try (PreparedStatement upd = cResults.prepareStatement("update " + tablename
+						+ " set _assigned = ?, _case_survey = ? where _thread = ?")) {
+					upd.setString(1, summary);
+					upd.setString(2, surveyNow);
+					upd.setString(3, thread);
+					upd.executeUpdate();
+				}
+
+				UserManager um = new UserManager(null);
+				RecordEventManager rem = new RecordEventManager();
+				for(String u : removed) {
+					um.decrementTotalTasks(sd, u);
+					rem.writeEvent(sd, cResults, RecordEventManager.ASSIGNED, "success", requestingUser, tablename,
+							instanceId, null, null, null, null, details(localisation, type, u, note, false), 0, null, 0, 0);
+				}
+				for(String u : added) {
+					um.incrementTotalTasks(sd, u);
+					rem.writeEvent(sd, cResults, RecordEventManager.ASSIGNED, "success", requestingUser, tablename,
+							instanceId, null, null, null, null, details(localisation, type, u, note, true), 0, null, 0, 0);
+				}
+				// Tell the devices of the people taken off the case; the history entry tells those who own it
+				MessagingManager mm = new MessagingManager(null);
+				for(String u : removed) {
+					mm.userChange(sd, u);
+				}
+			}
+
+			if(ownTransaction) sd.commit();
+			return 1;
+
+		} catch (SQLException e) {
+			if(ownTransaction) {
+				try { sd.rollback(); } catch (SQLException ex) {}
+			}
+			throw e;
+		} finally {
+			if(ownTransaction) {
+				try { sd.setAutoCommit(true); } catch (SQLException ex) {}
+			}
+		}
+	}
+
+	// The history entry for a person added to or taken off a case
+	private String details(ResourceBundle localisation, String type, String user, String note, boolean added) {
+		String d;
+		if(added) {
+			d = (type.equals("lock") ? localisation.getString("cm_lock") : localisation.getString("assigned_to"))
+					.replace("%s1", user);
+		} else if(type.equals("release")) {
+			d = localisation.getString("cm_release") + ": " + user;
+		} else {
+			d = localisation.getString("cm_unassigned_user").replace("%s1", user);
+		}
+		if(note != null && note.trim().length() > 0) {
+			d += " - " + note;
+		}
+		return d;
+	}
+
+	private List<Owner> readOwners(Connection sd, String groupSurveyIdent, String thread) throws SQLException {
+		List<Owner> owners = new ArrayList<>();
+		try (PreparedStatement pstmt = sd.prepareStatement("select assignee_ident, source from record_user "
+				+ "where group_survey_ident = ? and thread = ? and access = 'owner' order by assignee_ident")) {
+			pstmt.setString(1, groupSurveyIdent);
+			pstmt.setString(2, thread);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				owners.add(new Owner(rs.getString(1), rs.getString(2)));
+			}
+		}
+		return owners;
+	}
+
+	private String currentCaseSurvey(Connection cResults, String tablename, String thread) throws SQLException {
+		try (PreparedStatement pstmt = cResults.prepareStatement("select _case_survey from " + tablename
+				+ " where _thread = ? and not _bad limit 1")) {
+			pstmt.setString(1, thread);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() ? rs.getString(1) : null;
+		}
+	}
+
+	// The bundle a main results table belongs to
+	private String groupSurveyIdentForTable(Connection sd, String tablename) throws SQLException {
+		try (PreparedStatement pstmt = sd.prepareStatement("select s.group_survey_ident from form f "
+				+ "join survey s on s.s_id = f.s_id "
+				+ "where f.table_name = ? and f.parentform = 0 and s.group_survey_ident is not null "
+				+ "order by s.deleted, s.s_id limit 1")) {
+			pstmt.setString(1, tablename);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() ? rs.getString(1) : null;
+		}
+	}
+
+	private static boolean contains(List<Owner> owners, String ident) {
+		for(Owner o : owners) {
+			if(o.ident.equals(ident)) return true;
+		}
+		return false;
 	}
 }

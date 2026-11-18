@@ -10796,7 +10796,44 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the user currently assigned to a record
+	 * The type of a question in a survey, by name, e.g. "select" for a select multiple.  Null if it has none.
+	 */
+	public static String getQuestionType(Connection sd, int sId, String qName) throws SQLException {
+		if(qName == null) {
+			return null;
+		}
+		try (PreparedStatement pstmt = sd.prepareStatement("select qtype from question where qname = ? "
+				+ "and f_id in (select f_id from form where s_id = ?) limit 1")) {
+			pstmt.setString(1, qName);
+			pstmt.setInt(2, sId);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() ? rs.getString(1) : null;
+		}
+	}
+
+	/*
+	 * The users _assigned names.  A case can have more than one, listed with commas between them.
+	 */
+	public static ArrayList<String> splitAssigned(String assigned) {
+		ArrayList<String> users = new ArrayList<>();
+		if(assigned != null) {
+			for(String a : assigned.split(",")) {
+				String u = a.trim();
+				if(u.length() > 0 && !users.contains(u)) users.add(u);
+			}
+		}
+		return users;
+	}
+
+	/*
+	 * The users currently assigned to a record
+	 */
+	public static ArrayList<String> getAssignedUsers(Connection cResults, String tableName, String key) throws SQLException {
+		return splitAssigned(getAssignedUser(cResults, tableName, key));
+	}
+
+	/*
+	 * Get the _assigned value of a record, the users assigned to it separated by commas
 	 */
 	public static String getAssignedUser(Connection cResults, String tableName, String key) throws SQLException {
 		String userIdent = null;

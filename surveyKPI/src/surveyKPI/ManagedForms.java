@@ -43,6 +43,7 @@ import org.smap.sdal.Utilities.ServerSettings;
 import org.smap.sdal.managers.Dhis2ExportManager;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CaseManager;
+import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.managers.ConflictManager;
 import org.smap.sdal.managers.ReferenceManager;
 import org.smap.sdal.managers.RoleManager;
@@ -59,6 +60,8 @@ import com.google.gson.reflect.TypeToken;
 
 import java.sql.*;
 import java.util.ArrayList;
+
+import com.google.gson.JsonObject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -434,6 +437,10 @@ public class ManagedForms extends Application {
 				}
 
 				CaseManager cm = new CaseManager(localisation);
+				// Taking everybody off a case that can have several assignees is for administrators
+				if(uIdent.equals("_none") && cm.allowsMultipleAssignees(sd, tableName) && !isCaseAdmin(sd, request.getRemoteUser())) {
+					return Response.status(Status.FORBIDDEN).entity(localisation.getString("mf_unassign_admin")).build();
+				}
 				int count = cm.assignRecord(sd, cResults, localisation, tableName, instanceId, uIdent, "assign",
 						surveyIdent, null, request.getRemoteUser());
 				if(count == 0) {
@@ -452,7 +459,9 @@ public class ManagedForms extends Application {
 					content = content.replace("%s1", GeneralUtilityMethods.htmlText(surveyName));
 					
 					EmailManager em = new EmailManager(localisation);
-					String emails = em.getAssignedUserEmails(sd, cResults, sId, instanceId);
+					// The person just assigned, not everyone else who already has the case
+					String emails = uIdent.equals("_none") ? "" : new UserManager(localisation).getUserEmailByIdent(sd, uIdent);
+					if(emails == null) emails = "";
 					em.sendEmails(sd, cResults, log, emails, organisation, sId, 
 							null, 			// log content
 							null, 			// doc URL
@@ -493,6 +502,162 @@ public class ManagedForms extends Application {
 
 	}
 	
+	/*
+	 * Assign everyone in a role to a case, when its bundle allows a case several assignees.  Each member is
+	 * checked as a single assignment is; those who may not be assigned are left out.
+	 */
+	@POST
+	@Produces("application/json")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Path("/assignrole/{sId}/{roleId}")
+	public Response assignRole(
+			@Context HttpServletRequest request, 
+			@PathParam("sId") int sId,
+			@PathParam("roleId") int roleId,
+			@FormParam("record") String instanceId
+			) throws SQLException { 
+
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+	        throw new AuthorisationException();   
+		} 
+		String requester = "surveyKPI - assignRole";
+		Connection sd = SDDataSource.getConnection(requester);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+
+		Response response = null;
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
+			Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+			CaseManager cm = new CaseManager(localisation);
+
+			if(tableName == null) {
+				return Response.serverError().entity(localisation.getString("mf_nf")).build();
+			}
+			if(!isCaseAdmin(sd, request.getRemoteUser())) {
+				return Response.status(Status.FORBIDDEN).entity(localisation.getString("mf_unassign_admin")).build();
+			}
+			if(!cm.allowsMultipleAssignees(sd, tableName)) {
+				return Response.status(Status.BAD_REQUEST).entity(localisation.getString("mf_multi_off")).build();
+			}
+			RoleManager roleMgr = new RoleManager(localisation);
+			if(!roleMgr.canAccessRecord(sd, cResults, surveyIdent, tableName, instanceId, request.getRemoteUser(), organisation.timeZone)) {
+				return Response.status(Status.FORBIDDEN).entity(localisation.getString("rec_na")).build();
+			}
+
+			ArrayList<String> members = new ArrayList<>();
+			ArrayList<String> refused = new ArrayList<>();
+			try (PreparedStatement pstmt = sd.prepareStatement("select u.ident from users u "
+					+ "join user_role ur on u.id = ur.u_id "
+					+ "where ur.r_id = ? and u.o_id = ? and u.temporary = false order by u.ident")) {
+				pstmt.setInt(1, roleId);
+				pstmt.setInt(2, oId);
+				ResultSet rs = pstmt.executeQuery();
+				while(rs.next()) {
+					String member = rs.getString(1);
+					if(roleMgr.assignmentAllowed(sd, cResults, surveyIdent, instanceId, member,
+							request.getRemoteUser(), organisation.timeZone, null)) {
+						members.add(member);
+					} else {
+						refused.add(member);
+					}
+				}
+			}
+
+			int count = members.isEmpty() ? 1 : cm.addOwners(sd, cResults, localisation, tableName, instanceId, members,
+					surveyIdent, CaseManager.SOURCE_CONSOLE, request.getRemoteUser(), null);
+			if(count == 0) {
+				response = Response.serverError().entity(localisation.getString("mf_nf")).build();
+			} else {
+				JsonObject jo = new JsonObject();
+				jo.addProperty("assigned", members.size());
+				jo.addProperty("notAllowed", refused.size());
+				response = Response.ok(jo.toString()).build();
+			}
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, e.getMessage(), e);   
+		} finally {
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
+		}
+		return response;
+	}
+
+	/*
+	 * Take a person off a case, or everybody with user _all.  Anyone can take themselves off; taking off
+	 * anyone else is for administrators.
+	 */
+	@POST
+	@Produces("text/html")
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	@Path("/unassign/{sId}")
+	public Response unassign(
+			@Context HttpServletRequest request, 
+			@PathParam("sId") int sId,
+			@FormParam("record") String instanceId,
+			@FormParam("user") String uIdent
+			) throws SQLException { 
+
+		if (!"XMLHttpRequest".equals(request.getHeader("X-Requested-With")) ){
+	        throw new AuthorisationException();   
+		} 
+		String requester = "surveyKPI - unassign";
+		Connection sd = SDDataSource.getConnection(requester);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+
+		Response response = null;
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			if(tableName == null || uIdent == null || uIdent.trim().isEmpty()) {
+				return Response.serverError().entity(localisation.getString("mf_nf")).build();
+			}
+			boolean self = uIdent.equals(request.getRemoteUser());
+			if(!self && !isCaseAdmin(sd, request.getRemoteUser())) {
+				return Response.status(Status.FORBIDDEN).entity(localisation.getString("mf_unassign_admin")).build();
+			}
+			CaseManager cm = new CaseManager(localisation);
+			int count = cm.removeOwners(sd, cResults, localisation, tableName, instanceId,
+					uIdent.equals("_all") ? null : java.util.List.of(uIdent), request.getRemoteUser(), null);
+			response = count == 0 ? Response.serverError().entity(localisation.getString("mf_nf")).build()
+					: Response.ok().build();
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, e.getMessage(), e);   
+		} finally {
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
+		}
+		return response;
+	}
+
+	// Administrators and console administrators manage who has a case
+	private boolean isCaseAdmin(Connection sd, String user) throws SQLException {
+		return GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.ADMIN_ID)
+				|| GeneralUtilityMethods.hasSecurityGroup(sd, user, Authorise.CONSOLE_ADMIN_ID);
+	}
+
 	/*
 	 * Release a record
 	 */
@@ -537,8 +702,8 @@ public class ManagedForms extends Application {
 				CaseManager cm = new CaseManager(localisation);
 				int count = cm.assignRecord(sd, cResults, localisation, tableName, instanceId, 
 						request.getRemoteUser(), "release", null, null, request.getRemoteUser());
-				if(count == 0 && GeneralUtilityMethods.getAssignedUser(cResults, tableName, 
-						GeneralUtilityMethods.getThread(cResults, tableName, instanceId)) == null) {
+				if(count == 0 && !GeneralUtilityMethods.getAssignedUsers(cResults, tableName, 
+						GeneralUtilityMethods.getThread(cResults, tableName, instanceId)).contains(request.getRemoteUser())) {
 					response = Response.ok().build();		// Already released, eg auto released when the case was closed
 				} else if(count == 0) {
 					response = Response.serverError().entity(localisation.getString("mf_nf")).build();

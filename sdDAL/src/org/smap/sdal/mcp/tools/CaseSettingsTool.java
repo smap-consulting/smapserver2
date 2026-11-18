@@ -100,6 +100,7 @@ public class CaseSettingsTool extends AbstractMcpTool {
 				? "(none set)" : cms.settings.finalStatus);
 		data.put("criticalityQuestion", cms.settings.criticalityQuestion == null
 				? "(none set)" : cms.settings.criticalityQuestion);
+		data.put("multipleAssignees", cms.settings.allowsMultipleAssignees());
 
 		List<Map<String, Object>> alerts = new ArrayList<>();
 		if(cms.alerts != null) {
@@ -125,6 +126,9 @@ public class CaseSettingsTool extends AbstractMcpTool {
 			text.append("\n");
 		}
 		text.append("Cases in \"").append(survey.getDisplayName()).append("\":");
+		text.append(cms.settings.allowsMultipleAssignees()
+				? "\n- a case can be assigned to several people, or to everyone in a role"
+				: "\n- a case is assigned to one person at a time");
 		if(cms.settings.statusQuestion != null) {
 			text.append("\n- status is held in ").append(cms.settings.statusQuestion);
 			if(cms.settings.finalStatus != null) {

@@ -681,10 +681,16 @@ public class OpsMonitorManager {
 		java.util.Set<String> viewerRoles = securityManager ? null : getViewerRoleNames(sd, oId);
 
 		// 4. Attribute owner case counts to roles; owners in no role -> "No unit"
+		//    ownerCounts is keyed by _assigned, which lists every owner of a case.  A case counts once in each
+		//    unit any of its owners is in, so a team of two in the same unit is one case for that unit.
 		int noUnit = 0;
 		for(Map.Entry<String, Integer> e : ownerCounts.entrySet()) {
-			ArrayList<String> roles = ownerRoles.get(e.getKey());
-			if(roles == null || roles.isEmpty()) {
+			java.util.Set<String> roles = new java.util.LinkedHashSet<>();
+			for(String owner : GeneralUtilityMethods.splitAssigned(e.getKey())) {
+				ArrayList<String> r = ownerRoles.get(owner);
+				if(r != null) roles.addAll(r);
+			}
+			if(roles.isEmpty()) {
 				noUnit += e.getValue();
 			} else {
 				for(String role : roles) {
@@ -1109,8 +1115,12 @@ public class OpsMonitorManager {
 					ResultSet rs = p.executeQuery();
 					while(rs.next()) {
 						String owner = rs.getString("_assigned");
-						if(withRole.contains(owner)) {
-							continue;	// owner has a role -> belongs to a unit, not "No unit"
+						boolean inUnit = false;
+						for(String o : GeneralUtilityMethods.splitAssigned(owner)) {
+							if(withRole.contains(o)) inUnit = true;
+						}
+						if(inUnit) {
+							continue;	// an owner has a role -> belongs to a unit, not "No unit"
 						}
 						String instanceName = rs.getString("instancename");
 						String hrk = rs.getString("_hrk");
@@ -1389,7 +1399,7 @@ public class OpsMonitorManager {
 
 	private int countOpenCasesForUsers(Connection cResults, String table, ArrayList<String> idents) throws SQLException {
 		String ph = placeholders(idents.size());
-		String sql = "select count(*) from " + table + " where not _bad and _case_closed is null and _assigned in (" + ph + ")";
+		String sql = "select count(*) from " + table + " where not _bad and _case_closed is null and string_to_array(replace(_assigned, ', ', ','), ',') && array[" + ph + "]::text[]";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = cResults.prepareStatement(sql);
@@ -1413,9 +1423,9 @@ public class OpsMonitorManager {
 		// not t._bad: count only the surviving version per thread so case edits (which copy
 		// _thread_created onto a new row and mark the old one _bad) are not counted as new cases.
 		String openedSql = cte + "select to_char(days.day,'YYYY-MM-DD') as day, count(t.prikey) as cnt from days left join "
-				+ table + " t on date_trunc('day', t._thread_created) = days.day and not t._bad and t._assigned in (" + ph + ") group by 1 order by 1 asc";
+				+ table + " t on date_trunc('day', t._thread_created) = days.day and not t._bad and string_to_array(replace(t._assigned, ', ', ','), ',') && array[" + ph + "]::text[] group by 1 order by 1 asc";
 		String closedSql = cte + "select to_char(days.day,'YYYY-MM-DD') as day, count(t.prikey) as cnt from days left join "
-				+ table + " t on date_trunc('day', t._case_closed) = days.day and not t._bad and t._assigned in (" + ph + ") group by 1 order by 1 asc";
+				+ table + " t on date_trunc('day', t._case_closed) = days.day and not t._bad and string_to_array(replace(t._assigned, ', ', ','), ',') && array[" + ph + "]::text[] group by 1 order by 1 asc";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = cResults.prepareStatement(openedSql);
@@ -1444,7 +1454,7 @@ public class OpsMonitorManager {
 	private long[] caseCycleForUsers(Connection cResults, String table, ArrayList<String> idents) throws SQLException {
 		String ph = placeholders(idents.size());
 		String sql = "select coalesce(extract(epoch from sum(_case_closed - _thread_created)),0) as sum_sec, count(*) as cnt "
-				+ "from " + table + " where not _bad and _assigned in (" + ph + ") and _case_closed is not null and _thread_created is not null";
+				+ "from " + table + " where not _bad and string_to_array(replace(_assigned, ', ', ','), ',') && array[" + ph + "]::text[] and _case_closed is not null and _thread_created is not null";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = cResults.prepareStatement(sql);
@@ -1470,7 +1480,7 @@ public class OpsMonitorManager {
 		String ph = placeholders(idents.size());
 		String sql = "select prikey, instancename, _hrk, _assigned, instanceid, "
 				+ "extract(epoch from (now() - _thread_created)) as age "
-				+ "from " + table + " where not _bad and _case_closed is null and _assigned in (" + ph + ") "
+				+ "from " + table + " where not _bad and _case_closed is null and string_to_array(replace(_assigned, ', ', ','), ',') && array[" + ph + "]::text[] "
 				+ "order by _thread_created asc limit " + ATRISK_LIMIT;
 		PreparedStatement pstmt = null;
 		try {
@@ -1551,6 +1561,7 @@ public class OpsMonitorManager {
 					String val = rs.getString(i);
 					if(col.equals("_assigned")) {
 						c.assignee = val;
+						c.assignees = GeneralUtilityMethods.splitAssigned(val);
 					} else if(col.equals("_case_survey")) {
 						c.caseSurveyIdent = val;
 					} else if(col.equals("_thread")) {
@@ -1631,7 +1642,15 @@ public class OpsMonitorManager {
 		}
 
 		CaseManager cm = new CaseManager(localisation);
-		return cm.assignRecord(sd, cResults, localisation, table, instanceid, assignTo, type, caseSurvey, null, requestingUser, true);
+		if("remove".equals(type)) {
+			if(assignTo == null || assignTo.trim().isEmpty()) {
+				return 0;
+			}
+			return cm.removeOwners(sd, cResults, localisation, table, instanceid, java.util.List.of(assignTo.trim()),
+					requestingUser, null);
+		}
+		return cm.assignRecord(sd, cResults, localisation, table, instanceid, assignTo, type, caseSurvey, null, requestingUser, true,
+				CaseManager.SOURCE_OPS);
 	}
 
 	/*

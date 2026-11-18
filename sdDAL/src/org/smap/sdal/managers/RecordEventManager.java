@@ -209,14 +209,13 @@ public class RecordEventManager {
 			 */
 			if(event.equals(RecordEventManager.ASSIGNED)) {
 				MessagingManager mm = new MessagingManager(null);	// Assume no messages will require localisation!
-				String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tableName, key);
-				
-				// Notify the currently assigned user
-				if(assignedUser != null) {
-					mm.userChange(sd, assignedUser);
+				// Notify the users assigned to the record, there can be more than one
+				java.util.List<String> owners = GeneralUtilityMethods.getAssignedUsers(cResults, tableName, key);
+				for(String a : owners) {
+					mm.userChange(sd, a);
 				}
 				// An assigned event - notify the newly assigned user
-				if(user != null && (assignedUser == null || !assignedUser.equals(user))) {
+				if(user != null && !owners.contains(user)) {
 					mm.userChange(sd, user);
 				}
 				

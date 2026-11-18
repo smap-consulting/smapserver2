@@ -1036,3 +1036,9 @@ delete from survey_role sr where not exists (select 1 from survey s where s.iden
 -- traced to the setting that causes it.  log_archive must match log column for column, see above.
 alter table log add column if not exists ref text;
 alter table log_archive add column if not exists ref text;
+
+-- What made each owner of a case an owner: console, escalation, device, ops, mcp or backfill.  With several
+-- assignees allowed, an escalation removes the owners an earlier escalation added and keeps the rest.  Owners
+-- from before this was recorded were assigned by hand or copied from _assigned, so are not escalation's.
+alter table record_user add column if not exists source text;
+update record_user set source = 'backfill' where source is null and access = 'owner';

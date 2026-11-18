@@ -166,17 +166,25 @@ counts and failures when the output would be long, as the tool truncates it.
      `{server}/app/tasks/issues.html` and run `{"part":"page"}`; open the check's `notificationUrl` and run
      `{"part":"fixNotification","nId","test"}`; open the check's `conflict.url` and run `{"part":"fixConflict","sId",
      "instanceid"}` from its `conflict`.
+   - `multiple-assignee`: several people assigned to a case.  Find the id of `survey.project` with `project_list`.
+     The test's `users` must exist and its `role` must have members; the user running it must be an administrator.
+     Open `{server}/app/tasks/managed_forms.html` and run `harness/multiple-assignee.js` with `__CONFIG__` =
+     `{"part":"setup","project","test":<the test file>}`; it makes the survey from an xlsx when missing and creates its
+     two escalation notifications, which send no email (kept).  Check with `survey_submission_effects` that nothing
+     would be sent.  Then, with `{"part":<part>,"sId","ident","run":<the time in ms, the same for every part>,"test"}`,
+     run the parts single, multiple, escalateAdd, escalateReplace, close and switchBack in that order, running a part
+     again while it returns `pending`, for up to 3 minutes, as escalations are applied by a background process.
 4. Do not submit forms.  Tests leave no data, apart from the settings-secrets write checks, which
    put the setting they use back as it was, the records and tasks the xss test keeps in its own
    survey, the records and trail the dashboard-map test keeps, the records and grid the
    dashboard-region test keeps, the records the sqli-filter and sqli-autoupdate tests keep, and the
    records and duplicate upload the submission-totals test keeps, and the records the update-conflicts
-   test adds to its own surveys, one per scenario each run, and the two records the case-alerts test adds each run, and the notifications the conflict-notifications test keeps on the update-conflicts surveys and the six records it adds to them each run, and the notification the operational-issues test keeps on the case-alerts survey and the record it adds there each run.
+   test adds to its own surveys, one per scenario each run, and the two records the case-alerts test adds each run, and the notifications the conflict-notifications test keeps on the update-conflicts surveys and the six records it adds to them each run, and the notification the operational-issues test keeps on the case-alerts survey and the record it adds there each run, and the survey and two notifications the multiple-assignees test keeps and the three records it adds each run.
 
 ## Report
 
 One table per test: for webform-constraint question, value, expected, actual; for settings-secrets
-check and detail; for xss page, check and detail; for sqli probe and detail; for mcp-totals check and detail; for update-conflict scenario, check and detail; for case-alert part, check and detail; for conflict-notification part or scenario, check and detail; for issues part, check and detail; each with ✅/❌.  Then a summary line per test,
+check and detail; for xss page, check and detail; for sqli probe and detail; for mcp-totals check and detail; for update-conflict scenario, check and detail; for case-alert part, check and detail; for conflict-notification part or scenario, check and detail; for issues part, check and detail; for multiple-assignee part, check and detail; each with ✅/❌.  Then a summary line per test,
 PASS or FAIL with the number of failures.  For a failure include the `constraints` the harness
 returned, as the constraint as the page received it is usually the clue.  Close the Chrome tab.
 

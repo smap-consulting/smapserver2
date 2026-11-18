@@ -14,6 +14,7 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -1628,6 +1629,116 @@ public class NotificationManager {
 					
 				} else if(msg.target.equals("escalate")) {   // Assign a user to a case
 
+					String escTable = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
+					CaseManager escCm = new CaseManager(localisation);
+					if(escTable != null && msg.instanceId != null && escCm.allowsMultipleAssignees(sd, escTable)) {
+
+						/*
+						 * The bundle allows a case several assignees.  The escalation adds its people and takes back
+						 * the people any earlier escalation added, leaving those assigned another way
+						 */
+						ArrayList<String> candidates = new ArrayList<>();
+						if(msg.remoteUser.equals("_submitter")) {
+							if(msg.user != null) candidates.add(msg.user);
+						} else if(msg.remoteUser.equals("_data")) {
+							// Several people only from a select multiple question, otherwise the one answer
+							ArrayList<String> values = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, msg.assignQuestion, msg.instanceId);
+							boolean selectMultiple = "select".equals(GeneralUtilityMethods.getQuestionType(sd, surveyId, msg.assignQuestion));
+							for(String v : values) {
+								if(v != null && v.trim().length() > 0 && !candidates.contains(v.trim())) {
+									candidates.add(v.trim());
+									if(!selectMultiple) break;
+								}
+							}
+						} else if(msg.remoteUser.startsWith("_role:")) {
+							int roleId = 0;
+							try { roleId = Integer.parseInt(msg.remoteUser.substring(6)); } catch(NumberFormatException ignored) {}
+							if(roleId > 0) {
+								try (PreparedStatement pstmtRole = sd.prepareStatement(
+										"select u.ident from users u "
+										+ "join user_role ur on u.id = ur.u_id "
+										+ "where ur.r_id = ? and u.o_id = ? and u.temporary = false "
+										+ "order by u.ident")) {
+									pstmtRole.setInt(1, roleId);
+									pstmtRole.setInt(2, organisation.id);
+									ResultSet rsRole = pstmtRole.executeQuery();
+									while(rsRole.next()) candidates.add(rsRole.getString(1));
+								}
+							}
+						} else {
+							candidates.add(msg.remoteUser);
+						}
+
+						// Record level security: nobody is given a record the row filter (RBAC) rules hide from them
+						RoleManager roleMgr = new RoleManager(localisation);
+						ArrayList<String> assignees = new ArrayList<>();
+						ArrayList<String> refused = new ArrayList<>();
+						for(String c : candidates) {
+							if(roleMgr.canAccessRecord(sd, cResults, msg.survey_ident, escTable, msg.instanceId, c, organisation.timeZone)) {
+								assignees.add(c);
+							} else {
+								refused.add(c);
+							}
+						}
+						if(!refused.isEmpty()) {
+							lm.writeLog(sd, surveyId, msg.user, LogManager.SECURITY, "Case " + msg.instanceId + " in "
+									+ survey.surveyData.displayName + " not assigned to " + String.join(", ", refused)
+									+ ": not permitted to access this record", 0, null);
+						}
+
+						String surveyCase = msg.survey_case != null ? msg.survey_case : msg.survey_ident;
+						List<String> before = escCm.getOwners(sd, cResults, escTable, msg.instanceId);
+						notify_details = localisation.getString("esc_nd")
+								.replace("%s1", msg.instanceId)
+								.replace("%s2", survey.surveyData.displayName)
+								.replace("%s3", survey.surveyData.projectName)
+								.replace("%s4", assignees.isEmpty() ? "-" : String.join(", ", assignees));
+						List<String> removed = new ArrayList<>();
+						try {
+							String requester = localisation.getString("c_notify") + " " + msg.notificationName;
+							int count = escCm.replaceOwnersFrom(sd, cResults, localisation, escTable, msg.instanceId, assignees,
+									surveyCase, CaseManager.SOURCE_ESCALATION, requester, notify_details);
+							if(count == 0) {
+								status = "error";
+								error_details = "case not found, attempting: " + notify_details;
+								log.log(Level.SEVERE, "Error: " + error_details);
+							}
+							List<String> after = escCm.getOwners(sd, cResults, escTable, msg.instanceId);
+							for(String b : before) {
+								if(!after.contains(b)) removed.add(b);
+							}
+						} catch (Exception e) {
+							status = "error";
+							error_details = e.getMessage();
+							log.log(Level.SEVERE, e.getMessage(), e);
+						}
+
+						/*
+						 * Send emails associated with this escalation.  Those sent to the assigned users also go to
+						 * the people the escalation took off the case
+						 */
+						EmailManager em = new EmailManager(localisation);
+						String emails = em.getEmails(sd, cResults, surveyId, msg);
+						if(msg.emailAssigned && !removed.isEmpty()) {
+							UserManager umRemoved = new UserManager(localisation);
+							StringBuilder removedEmails = new StringBuilder();
+							for(String r : removed) {
+								String e = umRemoved.getUserEmailByIdent(sd, r);
+								if(e != null) {
+									if(removedEmails.length() > 0) removedEmails.append(",");
+									removedEmails.append(e);
+								}
+							}
+							emails = em.mergeEmailLists(emails, removedEmails.toString());
+							if(emails == null) emails = "";
+						}
+						em.sendEmails(sd, cResults, log, emails, organisation, surveyId, logContent, docURL, survey.surveyData.displayName, unsubscribedList,
+								filePath, filename, messageId, createPending, topic, msg.user, serverName,
+								survey.surveyData.displayName, survey.surveyData.projectName,
+								msg.subject, msg.from, htmlContent, null, msg.scheme, templateMsg);
+
+					} else {		// One assignee, as cases have always worked
+
 					String assignTo = msg.remoteUser;
 					if(msg.remoteUser.equals("_submitter")) {
 						assignTo = msg.user;
@@ -1717,7 +1828,7 @@ public class NotificationManager {
 							CaseManager cm = new CaseManager(localisation);
 							String requester = localisation.getString("c_notify") + " " + msg.notificationName;
 							int count = cm.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase,
-									notify_details, requester);
+									notify_details, requester, false, CaseManager.SOURCE_ESCALATION);
 							if(count == 0) {
 								status = "error";
 								error_details = "case not found, attempting: " + notify_details;
@@ -1745,6 +1856,7 @@ public class NotificationManager {
 							survey.surveyData.displayName, survey.surveyData.projectName,
 							msg.subject, msg.from, htmlContent, null, msg.scheme, templateMsg);		// reference is null therefore cannot reply
 					
+					}		// End of one assignee
 				} else if(msg.target.equals("reference")) {   // Give one or more users read only access to a record
 
 					log.fine("+++++ reference notification");

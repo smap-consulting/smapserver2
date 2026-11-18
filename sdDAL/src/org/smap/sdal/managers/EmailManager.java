@@ -708,7 +708,7 @@ public class EmailManager {
 			log.fine("--------------------------------------- Adding Assigned User Email Address -----------------");
 			ArrayList<String> assignedUser = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, "_assigned", msg.instanceId);
 			if(assignedUser != null) {
-				for(String user : assignedUser) {	// Should only be one assigned user but in future could be more
+				for(String user : GeneralUtilityMethods.splitAssigned(String.join(",", assignedUser))) {	// Each user assigned to the case
 					log.fine("----- User: " + user);
 					String email = um.getUserEmailByIdent(sd, user);
 					log.fine("----- Email: " + user);
@@ -754,7 +754,7 @@ public class EmailManager {
 		log.fine("--------------------------------------- Adding Assigned User Email Address -----------------");
 		ArrayList<String> assignedUser = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, "_assigned", instanceId);
 		if(assignedUser != null) {
-			for(String user : assignedUser) {	// Should only be one assigned user but in future could be more
+			for(String user : GeneralUtilityMethods.splitAssigned(String.join(",", assignedUser))) {	// Each user assigned to the case
 				log.fine("----- User: " + user);
 				String email = um.getUserEmailByIdent(sd, user);
 				log.fine("----- Email: " + user);

@@ -131,6 +131,53 @@ public class CaseManagement extends Application {
 	}
 	
 	/*
+	 * Whether the bundle of a survey lets a case have several assignees.  The survey is given by id or by
+	 * ident, which can be a bundle's ident, so pages that know either can ask.
+	 */
+	@GET
+	@Path("/multiple/{survey}")
+	@Produces("application/json")
+	public Response getMultipleAssignees(@Context HttpServletRequest request, @PathParam("survey") String survey) { 
+		Response response = null;
+		String connectionString = "surveyKPI-getMultipleAssignees";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request, request.getRemoteUser());
+		String ident;
+		try {
+			if(survey != null && survey.matches("\\d+")) {
+				int sId = Integer.parseInt(survey);
+				a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+				ident = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			} else {
+				a.isValidSurveyIdent(sd, request.getRemoteUser(), survey, false, superUser);
+				ident = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, survey);
+			}
+		} catch (Exception e) {
+			SDDataSource.closeConnection(connectionString, sd);
+			throw new AuthorisationException();
+		}
+		// End Authorisation
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			CMS cms = new CaseManager(localisation).getCaseManagementSettings(sd, ident);
+			boolean multiple = cms != null && cms.settings != null && cms.settings.allowsMultipleAssignees();
+			response = Response.ok("{\"multipleAssignees\":" + multiple + "}").build();
+		} catch (Exception e) {
+			response = Response.serverError().build();
+			log.log(Level.SEVERE, "Error", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		return response;
+	}
+
+	/*
 	 * Get the key settings for the passed in survey
 	 */
 	@GET
