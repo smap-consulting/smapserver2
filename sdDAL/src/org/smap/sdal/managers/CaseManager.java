@@ -615,7 +615,17 @@ public class CaseManager {
 	public int addOwners(Connection sd, Connection cResults, ResourceBundle localisation, String tablename,
 			String instanceId, List<String> users, String caseSurvey, String source, String requestingUser,
 			String note) throws SQLException {
-		return changeOwners(sd, cResults, localisation, tablename, instanceId, caseSurvey, source, requestingUser,
+		return addOwners(sd, cResults, localisation, tablename, instanceId, users, caseSurvey, source, null,
+				requestingUser, note);
+	}
+
+	/*
+	 * The same, for the members of a role, which is recorded against each of them
+	 */
+	public int addOwners(Connection sd, Connection cResults, ResourceBundle localisation, String tablename,
+			String instanceId, List<String> users, String caseSurvey, String source, String viaRole,
+			String requestingUser, String note) throws SQLException {
+		return changeOwners(sd, cResults, localisation, tablename, instanceId, caseSurvey, source, viaRole, requestingUser,
 				note, "assign", (current, add, remove) -> {
 					for(String u : users) {
 						if(u != null && !contains(current, u) && !add.contains(u)) add.add(u);
@@ -644,7 +654,14 @@ public class CaseManager {
 	public int replaceOwners(Connection sd, Connection cResults, ResourceBundle localisation, String tablename,
 			String instanceId, List<String> users, String caseSurvey, String source, String requestingUser,
 			String note) throws SQLException {
-		return changeOwners(sd, cResults, localisation, tablename, instanceId, caseSurvey, source, requestingUser,
+		return replaceOwners(sd, cResults, localisation, tablename, instanceId, users, caseSurvey, source, null,
+				requestingUser, note);
+	}
+
+	public int replaceOwners(Connection sd, Connection cResults, ResourceBundle localisation, String tablename,
+			String instanceId, List<String> users, String caseSurvey, String source, String viaRole,
+			String requestingUser, String note) throws SQLException {
+		return changeOwners(sd, cResults, localisation, tablename, instanceId, caseSurvey, source, viaRole, requestingUser,
 				note, "assign", (current, add, remove) -> {
 					for(Owner o : current) {
 						if(!users.contains(o.ident)) remove.add(o.ident);
@@ -663,7 +680,14 @@ public class CaseManager {
 	public int replaceOwnersFrom(Connection sd, Connection cResults, ResourceBundle localisation, String tablename,
 			String instanceId, List<String> users, String caseSurvey, String source, String requestingUser,
 			String note) throws SQLException {
-		return changeOwners(sd, cResults, localisation, tablename, instanceId, caseSurvey, source, requestingUser,
+		return replaceOwnersFrom(sd, cResults, localisation, tablename, instanceId, users, caseSurvey, source, null,
+				requestingUser, note);
+	}
+
+	public int replaceOwnersFrom(Connection sd, Connection cResults, ResourceBundle localisation, String tablename,
+			String instanceId, List<String> users, String caseSurvey, String source, String viaRole,
+			String requestingUser, String note) throws SQLException {
+		return changeOwners(sd, cResults, localisation, tablename, instanceId, caseSurvey, source, viaRole, requestingUser,
 				note, "assign", (current, add, remove) -> {
 					for(Owner o : current) {
 						if(source.equals(o.source) && !users.contains(o.ident)) remove.add(o.ident);
@@ -711,6 +735,13 @@ public class CaseManager {
 	private int changeOwners(Connection sd, Connection cResults, ResourceBundle localisation, String tablename,
 			String instanceId, String caseSurvey, String source, String requestingUser, String note, String type,
 			OwnerChange change) throws SQLException {
+		return changeOwners(sd, cResults, localisation, tablename, instanceId, caseSurvey, source, null, requestingUser,
+				note, type, change);
+	}
+
+	private int changeOwners(Connection sd, Connection cResults, ResourceBundle localisation, String tablename,
+			String instanceId, String caseSurvey, String source, String viaRole, String requestingUser, String note,
+			String type, OwnerChange change) throws SQLException {
 
 		String thread = GeneralUtilityMethods.getThread(cResults, tablename, instanceId);
 		if(thread == null) {
@@ -745,11 +776,11 @@ public class CaseManager {
 				try (PreparedStatement del = sd.prepareStatement("delete from record_user "
 						+ "where group_survey_ident = ? and thread = ? and access = 'owner' and assignee_ident = ?");
 					PreparedStatement ins = sd.prepareStatement("insert into record_user "
-						+ "(assignee, assignee_ident, group_survey_ident, survey_ident, thread, access, read_only, created_by, source) "
-						+ "values ((select id from users where ident = ?), ?, ?, ?, ?, 'owner', false, ?, ?) "
+						+ "(assignee, assignee_ident, group_survey_ident, survey_ident, thread, access, read_only, created_by, source, via_role) "
+						+ "values ((select id from users where ident = ?), ?, ?, ?, ?, 'owner', false, ?, ?, ?) "
 						+ "on conflict (assignee_ident, group_survey_ident, thread) do update set "		// A reference becomes an owner
 						+ "access = 'owner', read_only = false, survey_ident = excluded.survey_ident, "
-						+ "source = excluded.source, created_by = excluded.created_by")) {
+						+ "source = excluded.source, created_by = excluded.created_by, via_role = excluded.via_role")) {
 					for(String u : removed) {
 						del.setString(1, groupSurveyIdent);
 						del.setString(2, thread);
@@ -764,6 +795,7 @@ public class CaseManager {
 						ins.setString(5, thread);
 						ins.setString(6, requestingUser);
 						ins.setString(7, source);
+						ins.setString(8, viaRole);
 						ins.executeUpdate();
 					}
 				}
@@ -864,6 +896,17 @@ public class CaseManager {
 				+ "where f.table_name = ? and f.parentform = 0 and s.group_survey_ident is not null "
 				+ "order by s.deleted, s.s_id limit 1")) {
 			pstmt.setString(1, tablename);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() ? rs.getString(1) : null;
+		}
+	}
+
+	/*
+	 * The name of a role, to record it against the people it assigned
+	 */
+	public static String roleName(Connection sd, int roleId) throws SQLException {
+		try (PreparedStatement pstmt = sd.prepareStatement("select name from role where id = ?")) {
+			pstmt.setInt(1, roleId);
 			ResultSet rs = pstmt.executeQuery();
 			return rs.next() ? rs.getString(1) : null;
 		}

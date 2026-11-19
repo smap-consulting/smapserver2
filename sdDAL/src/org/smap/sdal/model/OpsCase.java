@@ -17,6 +17,7 @@ public class OpsCase {
 	public String assignee;				// _assigned, the owners separated by commas, may be null
 	public java.util.List<String> assignees;	// Each owner of the case
 	public boolean closed;				// _case_closed is set
+	public List<OpsPerson> people = new ArrayList<>();	// Owners and references, and how they got the case
 	public List<OpsField> fields = new ArrayList<>();
 
 	public OpsCase(String groupSurveyIdent, String instanceid) {

@@ -944,6 +944,18 @@ public class NotificationManager {
 	 * The log reference for the notification a message came from, null for a message queued before
 	 * messages carried it
 	 */
+	// The name of the role an escalation assigns, null if it assigns somebody by name
+	private String escalationRole(Connection sd, String remoteUser) throws SQLException {
+		if(remoteUser == null || !remoteUser.startsWith("_role:")) {
+			return null;
+		}
+		try {
+			return CaseManager.roleName(sd, Integer.parseInt(remoteUser.substring(6)));
+		} catch (NumberFormatException e) {
+			return null;
+		}
+	}
+
 	private String notificationRef(SubmissionMessage msg) {
 		return msg != null && msg.notificationId > 0 ? LogManager.REF_NOTIFICATION + msg.notificationId : null;
 	}
@@ -1697,7 +1709,7 @@ public class NotificationManager {
 						try {
 							String requester = localisation.getString("c_notify") + " " + msg.notificationName;
 							int count = escCm.replaceOwnersFrom(sd, cResults, localisation, escTable, msg.instanceId, assignees,
-									surveyCase, CaseManager.SOURCE_ESCALATION, requester, notify_details);
+									surveyCase, CaseManager.SOURCE_ESCALATION, escalationRole(sd, msg.remoteUser), requester, notify_details);
 							if(count == 0) {
 								status = "error";
 								error_details = "case not found, attempting: " + notify_details;
@@ -1827,8 +1839,12 @@ public class NotificationManager {
 
 							CaseManager cm = new CaseManager(localisation);
 							String requester = localisation.getString("c_notify") + " " + msg.notificationName;
-							int count = cm.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase,
-									notify_details, requester, false, CaseManager.SOURCE_ESCALATION);
+							String viaRole = escalationRole(sd, msg.remoteUser);
+							int count = viaRole != null
+									? cm.replaceOwners(sd, cResults, localisation, tableName, msg.instanceId, List.of(assignTo), surveyCase,
+											CaseManager.SOURCE_ESCALATION, viaRole, requester, notify_details)
+									: cm.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase,
+											notify_details, requester, false, CaseManager.SOURCE_ESCALATION);
 							if(count == 0) {
 								status = "error";
 								error_details = "case not found, attempting: " + notify_details;

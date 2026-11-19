@@ -976,6 +976,7 @@ public class OpsMonitorManager {
 			getTaskItems(sd, oId, items, true);
 			collectCasesAllBundles(sd, cResults, oId, items, "stale");
 		}
+		countReferences(sd, items);
 		return items;
 	}
 
@@ -1045,7 +1046,7 @@ public class OpsMonitorManager {
 	private void collectCaseItemsOrg(Connection sd, Connection cResults, String table, String gsi,
 			java.util.List<OpsItem> items, String mode) throws SQLException {
 		String bundleName = getSurveyDisplayName(sd, gsi);
-		StringBuilder sql = new StringBuilder("select prikey, instancename, _hrk, _assigned, instanceid, _s_id, "
+		StringBuilder sql = new StringBuilder("select prikey, instancename, _hrk, _assigned, instanceid, _s_id, _thread, "
 				+ "extract(epoch from (now() - _thread_created)) as age "
 				+ "from " + table + " where not _bad and _case_closed is null ");
 		boolean stale = mode.equals("stale");
@@ -1077,6 +1078,8 @@ public class OpsMonitorManager {
 				long ageDays = (long) (rs.getDouble("age") / 86400);
 				OpsItem it = new OpsItem("case", label, bundleName, rs.getString("_assigned"),
 						ageDays, false, caseLink(gsi, rs.getString("instanceid")));
+				it.gsi = gsi;
+				it.thread = rs.getString("_thread");
 				if(mode.equals("unassigned")) {
 					it.status = "unassigned";
 				} else if(stale) {
@@ -1107,7 +1110,7 @@ public class OpsMonitorManager {
 				String bundleName = getSurveyDisplayName(sd, gsi);
 				PreparedStatement p = null;
 				try {
-					p = cResults.prepareStatement("select prikey, instancename, _hrk, _assigned, instanceid, "
+					p = cResults.prepareStatement("select prikey, instancename, _hrk, _assigned, instanceid, _thread, "
 							+ "extract(epoch from (now() - _thread_created)) as age "
 							+ "from " + table + " where not _bad and _case_closed is null "
 							+ "and _assigned is not null and _assigned <> '' "
@@ -1136,6 +1139,8 @@ public class OpsMonitorManager {
 						long ageDays = (long) (rs.getDouble("age") / 86400);
 						OpsItem it = new OpsItem("case", label, bundleName, owner,
 								ageDays, false, caseLink(gsi, rs.getString("instanceid")));
+						it.gsi = gsi;
+						it.thread = rs.getString("_thread");
 						it.status = ageDays >= staleDays ? "stale" : "open";
 						items.add(it);
 					}
@@ -1205,6 +1210,8 @@ public class OpsMonitorManager {
 						long ageDays = (long) (rs.getDouble("since") / 86400);
 						OpsItem it = new OpsItem("alert", alertMessage(name, rs), bundleName,
 								rs.getString("_assigned"), ageDays, false, caseLink(gsi, rs.getString("instanceid")));
+						it.gsi = gsi;
+						it.thread = rs.getString("thread");
 						it.status = "alert";
 						items.add(it);
 					}
@@ -1303,6 +1310,7 @@ public class OpsMonitorManager {
 			d.atRisk = new ArrayList<>(d.atRisk.subList(0, ATRISK_LIMIT));
 		}
 
+		countReferences(sd, d.atRisk);
 		return d;
 	}
 
@@ -1478,7 +1486,7 @@ public class OpsMonitorManager {
 			ArrayList<String> idents, java.util.List<OpsItem> items) throws SQLException {
 		String bundleName = getSurveyDisplayName(sd, gsi);
 		String ph = placeholders(idents.size());
-		String sql = "select prikey, instancename, _hrk, _assigned, instanceid, "
+		String sql = "select prikey, instancename, _hrk, _assigned, instanceid, _thread, "
 				+ "extract(epoch from (now() - _thread_created)) as age "
 				+ "from " + table + " where not _bad and _case_closed is null and string_to_array(replace(_assigned, ', ', ','), ',') && array[" + ph + "]::text[] "
 				+ "order by _thread_created asc limit " + ATRISK_LIMIT;
@@ -1502,11 +1510,42 @@ public class OpsMonitorManager {
 				long ageDays = (long) (rs.getDouble("age") / 86400);
 				OpsItem it = new OpsItem("case", label, bundleName, rs.getString("_assigned"),
 						ageDays, false, caseLink(gsi, rs.getString("instanceid")));
+				it.gsi = gsi;
+				it.thread = rs.getString("_thread");
 				it.status = ageDays >= staleDays ? "stale" : "open";
 				items.add(it);
 			}
 		} finally {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+		}
+	}
+
+	/*
+	 * How many people have each case in a list as a reference (read only), one query per bundle
+	 */
+	private void countReferences(Connection sd, java.util.List<OpsItem> items) {
+		Map<String, java.util.List<OpsItem>> byBundle = new HashMap<>();
+		for(OpsItem it : items) {
+			if(it.gsi != null && it.thread != null) {
+				byBundle.computeIfAbsent(it.gsi, k -> new ArrayList<>()).add(it);
+			}
+		}
+		for(Map.Entry<String, java.util.List<OpsItem>> e : byBundle.entrySet()) {
+			try (PreparedStatement pstmt = sd.prepareStatement("select thread, count(*) from record_user "
+					+ "where group_survey_ident = ? and access = 'reference' and thread = any(?) group by thread")) {
+				java.util.Set<String> threads = new java.util.HashSet<>();
+				for(OpsItem it : e.getValue()) threads.add(it.thread);
+				pstmt.setString(1, e.getKey());
+				pstmt.setArray(2, sd.createArrayOf("text", threads.toArray()));
+				ResultSet rs = pstmt.executeQuery();
+				Map<String, Integer> counts = new HashMap<>();
+				while(rs.next()) counts.put(rs.getString(1), rs.getInt(2));
+				for(OpsItem it : e.getValue()) {
+					it.references = counts.getOrDefault(it.thread, 0);
+				}
+			} catch (Exception ex) {
+				log.log(Level.WARNING, "Ops: counting references for " + e.getKey() + ": " + ex.getMessage());
+			}
 		}
 	}
 
@@ -1596,6 +1635,32 @@ public class OpsMonitorManager {
 		if(c.caseSurveyIdent == null) {
 			c.caseSurveyIdent = groupSurveyIdent;
 		}
+
+		// Who has the case: owners first, then references
+		if(c.thread != null) {
+			String tz = GeneralUtilityMethods.getOrganisationTZ(sd, oId);
+			try (PreparedStatement p = sd.prepareStatement("select ru.assignee_ident, u.name, ru.access, ru.source, ru.via_role, "
+					+ "ru.created_by, to_char(timezone(?, ru.created_at), 'YYYY-MM-DD HH24:MI') as added "
+					+ "from record_user ru left join users u on u.ident = ru.assignee_ident "
+					+ "where ru.group_survey_ident = ? and ru.thread = ? "
+					+ "order by case when ru.access = 'owner' then 0 else 1 end, ru.assignee_ident")) {
+				p.setString(1, tz == null ? "UTC" : tz);
+				p.setString(2, groupSurveyIdent);
+				p.setString(3, c.thread);
+				ResultSet rs = p.executeQuery();
+				while(rs.next()) {
+					org.smap.sdal.model.OpsPerson person = new org.smap.sdal.model.OpsPerson();
+					person.ident = rs.getString(1);
+					person.name = rs.getString(2);
+					person.access = rs.getString(3);
+					person.source = rs.getString(4);
+					person.viaRole = rs.getString(5);
+					person.addedBy = rs.getString(6);
+					person.added = rs.getString(7);
+					c.people.add(person);
+				}
+			}
+		}
 		return c;
 	}
 
@@ -1642,6 +1707,13 @@ public class OpsMonitorManager {
 		}
 
 		CaseManager cm = new CaseManager(localisation);
+		if("unreference".equals(type)) {		// Stop somebody having the case as a reference
+			if(assignTo == null || assignTo.trim().isEmpty()) {
+				return 0;
+			}
+			return new ReferenceManager(localisation).removeReferences(sd, cResults, table, instanceid,
+					java.util.List.of(assignTo.trim()), requestingUser);
+		}
 		if("remove".equals(type)) {
 			if(assignTo == null || assignTo.trim().isEmpty()) {
 				return 0;

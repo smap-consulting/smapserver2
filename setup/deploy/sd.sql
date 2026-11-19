@@ -1042,3 +1042,6 @@ alter table log_archive add column if not exists ref text;
 -- from before this was recorded were assigned by hand or copied from _assigned, so are not escalation's.
 alter table record_user add column if not exists source text;
 update record_user set source = 'backfill' where source is null and access = 'owner';
+
+-- The role an owner of a case was assigned through, so it can be shown who has a case because of a role
+alter table record_user add column if not exists via_role text;

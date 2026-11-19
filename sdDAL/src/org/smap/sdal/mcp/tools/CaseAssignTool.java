@@ -170,7 +170,7 @@ public class CaseAssignTool extends AbstractMcpTool {
 					return new MCPToolResult("Nobody in the role " + roleName.trim() + " can be given this case.", true);
 				}
 				changed = cm.addOwners(ctx.sd, ctx.cResults, ctx.localisation, tableForCase, instanceId, members,
-						survey.getIdent(), CaseManager.SOURCE_MCP, ctx.user, stringArg(arguments, "note"));
+						survey.getIdent(), CaseManager.SOURCE_MCP, roleName.trim(), ctx.user, stringArg(arguments, "note"));
 				text = "Gave the case to the " + members.size() + " people in " + roleName.trim() + " who can have it"
 						+ (notAllowed > 0 ? "; " + notAllowed + " could not." : ".");
 			} else if(action.equals("remove")) {

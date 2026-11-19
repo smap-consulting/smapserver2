@@ -364,7 +364,7 @@ public class OpsMonitor extends Application {
 			if(GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent) != oId) {
 				return Response.status(Response.Status.FORBIDDEN).entity("Case not in your organisation").build();
 			}
-			if(!"assign".equals(action) && !"release".equals(action) && !"remove".equals(action)) {
+			if(!"assign".equals(action) && !"release".equals(action) && !"remove".equals(action) && !"unreference".equals(action)) {
 				return Response.status(Response.Status.BAD_REQUEST).entity("Invalid action").build();
 			}
 

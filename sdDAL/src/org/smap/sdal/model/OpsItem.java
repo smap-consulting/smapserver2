@@ -12,6 +12,9 @@ public class OpsItem {
 	public boolean overdue;		// true = past due date; false = stale by age only
 	public String status;		// overdue | stale | open | in_progress | unassigned | alert (drives the badge)
 	public String link;
+	public int references;				// For a case, how many people have it as a reference (read only)
+	public transient String gsi;		// The case's bundle and thread, to count its references, not sent
+	public transient String thread;
 
 	public OpsItem(String type, String title, String bundle, String assignee, long ageDays, boolean overdue, String link) {
 		this.type = type;

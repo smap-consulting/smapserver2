@@ -576,7 +576,7 @@ public class ManagedForms extends Application {
 			}
 
 			int count = members.isEmpty() ? 1 : cm.addOwners(sd, cResults, localisation, tableName, instanceId, members,
-					surveyIdent, CaseManager.SOURCE_CONSOLE, request.getRemoteUser(), null);
+					surveyIdent, CaseManager.SOURCE_CONSOLE, CaseManager.roleName(sd, roleId), request.getRemoteUser(), null);
 			if(count == 0) {
 				response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 			} else {
