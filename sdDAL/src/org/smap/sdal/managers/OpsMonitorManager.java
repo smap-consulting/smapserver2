@@ -75,6 +75,7 @@ public class OpsMonitorManager {
 	// everyone else is restricted to bundles they have unfiltered role access to.
 	private String requestingUser;
 	private boolean securityManager;
+	private ArrayList<Integer> projectIds;		// Projects the requesting user is in; null for the org digest (no user)
 
 	private String staleInterval() {
 		return staleDays + " days";
@@ -87,6 +88,7 @@ public class OpsMonitorManager {
 	private void loadContext(Connection sd, int oId, String user, boolean fullAccess) {
 		loadSettings(sd, oId);
 		requestingUser = user;
+		projectIds = user == null ? null : getUserProjects(sd, oId, user);
 		if(fullAccess || user == null) {
 			securityManager = true;
 		} else {
@@ -96,6 +98,46 @@ public class OpsMonitorManager {
 				securityManager = false;
 			}
 		}
+	}
+
+	/*
+	 * The projects in the organisation the user is a member of.  Everybody, security managers too, only sees
+	 * the work of their own projects.  On an error the list is empty, so nothing is shown.
+	 */
+	private ArrayList<Integer> getUserProjects(Connection sd, int oId, String user) {
+		ArrayList<Integer> ids = new ArrayList<>();
+		try (PreparedStatement pstmt = sd.prepareStatement("select up.p_id from user_project up "
+				+ "join users u on u.id = up.u_id join project p on p.id = up.p_id "
+				+ "where u.ident = ? and p.o_id = ?")) {
+			pstmt.setString(1, user);
+			pstmt.setInt(2, oId);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				ids.add(rs.getInt(1));
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Ops: getting projects for " + user, e);
+		}
+		return ids;
+	}
+
+	/*
+	 * SQL fragment restricting a project id column to the user's projects.  Inlines the ids, which are
+	 * integers read from the database, so it adds no parameter.  "" when there is no user (org digest).
+	 */
+	private String projectSql(String pIdCol) {
+		if(projectIds == null) {
+			return "";
+		}
+		StringBuilder b = new StringBuilder(" and ").append(pIdCol).append(" in (");
+		if(projectIds.isEmpty()) {
+			b.append("-1");
+		}
+		for(int i = 0; i < projectIds.size(); i++) {
+			if(i > 0) b.append(",");
+			b.append(projectIds.get(i).intValue());
+		}
+		return b.append(") ").toString();
 	}
 
 	/*
@@ -120,6 +162,15 @@ public class OpsMonitorManager {
 	 * True if the requesting user may see the given bundle (security manager, or unfiltered role access).
 	 */
 	private boolean isBundleAccessible(Connection sd, String groupSurveyIdent) throws SQLException {
+		if(projectIds != null) {
+			try (PreparedStatement p = sd.prepareStatement("select 1 from survey s where s.group_survey_ident = ? "
+					+ "and not s.deleted" + projectSql("s.p_id") + "limit 1")) {
+				p.setString(1, groupSurveyIdent);
+				if(!p.executeQuery().next()) {
+					return false;
+				}
+			}
+		}
 		if(securityManager) {
 			return true;
 		}
@@ -417,7 +468,7 @@ public class OpsMonitorManager {
 				+ "and cs.settings is not null "
 				+ "and exists (select 1 from survey s, project p "
 				+ "  where s.group_survey_ident = cs.group_survey_ident "
-				+ "  and s.p_id = p.id and p.o_id = ? and not s.deleted)"
+				+ "  and s.p_id = p.id and p.o_id = ? and not s.deleted" + projectSql("s.p_id") + ")"
 				+ bundleRbacSql("cs.group_survey_ident");
 		PreparedStatement pstmt = null;
 		try {
@@ -492,6 +543,7 @@ public class OpsMonitorManager {
 				+ "from assignments a "
 				+ "join tasks t on t.id = a.task_id and not t.deleted "
 				+ "join project p on p.id = t.p_id and p.o_id = ?"
+				+ projectSql("t.p_id")
 				+ surveyIdentRbacSql("t.survey_ident");
 		PreparedStatement pstmt = null;
 		try {
@@ -606,6 +658,7 @@ public class OpsMonitorManager {
 				+ "from days left join upload_event ue "
 				+ "on date_trunc('day', ue.upload_time) = days.day "
 				+ "and ue.o_id = ? and ue.status = 'success' and not ue.incomplete "
+				+ projectSql("ue.p_id")
 				+ surveyIdRbacSql("ue.s_id")
 				+ "group by 1 order by 1 asc";
 		PreparedStatement pstmt = null;
@@ -708,7 +761,7 @@ public class OpsMonitorManager {
 				+ "count(*) filter (where a.status in ('unsent','accepted') and t.schedule_finish is not null and t.schedule_finish < now()) as overdue "
 				+ "from assignments a "
 				+ "join tasks t on t.id = a.task_id and not t.deleted "
-				+ "join project p on p.id = t.p_id and p.o_id = ? "
+				+ "join project p on p.id = t.p_id and p.o_id = ? " + projectSql("t.p_id")
 				+ "join users u on u.id = a.assignee "
 				+ "join user_role ur on ur.u_id = u.id "
 				+ "join role r on r.id = ur.r_id "
@@ -1008,7 +1061,7 @@ public class OpsMonitorManager {
 				+ "extract(epoch from (now() - t.created_at)) as created_age "
 				+ "from assignments a join tasks t on t.id = a.task_id and not t.deleted "
 				+ "join project p on p.id = t.p_id and p.o_id = ? "
-				+ "where a.status in ('unsent','accepted') ");
+				+ "where a.status in ('unsent','accepted') " + projectSql("t.p_id"));
 		if(overdueOnly) {
 			sql.append("and t.schedule_finish is not null and t.schedule_finish < now() ");
 		}
@@ -1346,7 +1399,7 @@ public class OpsMonitorManager {
 				+ "coalesce(extract(epoch from avg(a.completed_date - a.assigned_date) "
 				+ "  filter (where a.status = 'submitted' and a.completed_date is not null and a.assigned_date is not null)), 0) as cyc_sec "
 				+ "from assignments a join tasks t on t.id = a.task_id and not t.deleted "
-				+ "where a.assignee in (" + ph + ")";
+				+ "where a.assignee in (" + ph + ")" + projectSql("t.p_id");
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
@@ -1366,6 +1419,7 @@ public class OpsMonitorManager {
 					+ "select to_char(days.day, 'YYYY-MM-DD') as day, count(a.id) as cnt "
 					+ "from days left join assignments a "
 					+ "on date_trunc('day', a.completed_date) = days.day and a.status = 'submitted' and a.assignee in (" + ph + ") "
+					+ (projectIds == null ? "" : "and a.task_id in (select t2.id from tasks t2 where true" + projectSql("t2.p_id") + ") ")
 					+ "group by 1 order by 1 asc";
 			pstmt = sd.prepareStatement(trendSql);
 			setInts(pstmt, 1, m.ids);
@@ -1382,7 +1436,7 @@ public class OpsMonitorManager {
 					+ "extract(epoch from (now() - t.schedule_finish)) as overdue_age, "
 					+ "extract(epoch from (now() - t.created_at)) as created_age "
 					+ "from assignments a join tasks t on t.id = a.task_id and not t.deleted "
-					+ "where a.assignee in (" + ph + ") and a.status in ('unsent','accepted') "
+					+ "where a.assignee in (" + ph + ") and a.status in ('unsent','accepted') " + projectSql("t.p_id")
 					+ "order by t.schedule_finish asc nulls last limit " + ATRISK_LIMIT;
 			pstmt = sd.prepareStatement(itemSql);
 			setInts(pstmt, 1, m.ids);
