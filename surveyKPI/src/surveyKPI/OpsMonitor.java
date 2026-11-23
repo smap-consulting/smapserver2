@@ -126,7 +126,8 @@ public class OpsMonitor extends Application {
 	@GET
 	@Path("/items")
 	@Produces("application/json")
-	public Response getItems(@Context HttpServletRequest request, @QueryParam("type") String type) {
+	public Response getItems(@Context HttpServletRequest request, @QueryParam("type") String type,
+			@QueryParam("user") String person) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-OpsMonitor-items";
@@ -142,7 +143,7 @@ public class OpsMonitor extends Application {
 
 			OpsMonitorManager om = new OpsMonitorManager(localisation);
 			cResults = ResultsDataSource.getConnection(connectionString);
-			ArrayList<OpsItem> items = om.getItems(sd, cResults, oId, type, request.getRemoteUser());
+			ArrayList<OpsItem> items = om.getItems(sd, cResults, oId, type, request.getRemoteUser(), person);
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(items)).build();

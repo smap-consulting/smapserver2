@@ -44,6 +44,7 @@ import org.smap.sdal.model.OpsTrendPoint;
 import org.smap.sdal.model.OpsBundle;
 import org.smap.sdal.model.OpsUnit;
 import org.smap.sdal.model.OpsUnitDetail;
+import org.smap.sdal.model.OpsWorkload;
 
 /*
  * Builds the senior-manager Operations Overview (L0).
@@ -437,7 +438,9 @@ public class OpsMonitorManager {
 		ov.kpis.add(subsKpi);
 
 		// 6. Per-unit (role) rollup - only roles that own open work (incl. a "No unit" row)
-		ov.units = getUnits(sd, cResults, oId);
+		Map<String, long[]> ownerCases = getOwnerCases(sd, cResults, oId);
+		ov.units = getUnits(sd, cResults, oId, ownerCases);
+		ov.people = getPeople(sd, oId, ownerCases);
 
 		// Unassigned reconciliation row so the unit table accounts for the open-cases total
 		if(ov.unassignedCases > 0) {
@@ -684,12 +687,12 @@ public class OpsMonitorManager {
 	 * assignments. An owner in several roles contributes to each. Owners in no role roll up into a
 	 * synthetic "No unit" row. Only roles that currently own open work are returned.
 	 */
-	private ArrayList<OpsUnit> getUnits(Connection sd, Connection cResults, int oId) throws SQLException {
-
-		Map<String, OpsUnit> units = new LinkedHashMap<>();
-
-		// 1. Open-case counts per owner, from the results tables (accessible bundles only)
-		Map<String, Integer> ownerCounts = new HashMap<>();
+	/*
+	 * Open cases in the accessible bundles, grouped by their owners (the _assigned list).  For each list of
+	 * owners: [0] the number of open cases, [1] the age in seconds of the oldest.
+	 */
+	private Map<String, long[]> getOwnerCases(Connection sd, Connection cResults, int oId) throws SQLException {
+		Map<String, long[]> ownerCases = new HashMap<>();
 		for(String gsi : getCaseBundles(sd, oId)) {
 			try {
 				String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, gsi);
@@ -698,37 +701,150 @@ public class OpsMonitorManager {
 				}
 				GeneralUtilityMethods.ensureTableCurrent(cResults, table, true);
 				ensureCaseIndexes(cResults, table);
-				PreparedStatement p = null;
-				try {
-					p = cResults.prepareStatement("select _assigned, count(*) as cnt from " + table
-							+ " where not _bad and _case_closed is null and _assigned is not null and _assigned <> '' "
-							+ "group by _assigned");
+				try (PreparedStatement p = cResults.prepareStatement("select _assigned, count(*) as cnt, "
+						+ "coalesce(extract(epoch from (now() - min(_thread_created))), 0) as oldest from " + table
+						+ " where not _bad and _case_closed is null and _assigned is not null and _assigned <> '' "
+						+ "group by _assigned")) {
 					ResultSet rs = p.executeQuery();
 					while(rs.next()) {
-						ownerCounts.merge(rs.getString("_assigned"), rs.getInt("cnt"), Integer::sum);
+						long[] v = ownerCases.computeIfAbsent(rs.getString("_assigned"), k -> new long[2]);
+						v[0] += rs.getLong("cnt");
+						v[1] = Math.max(v[1], (long) rs.getDouble("oldest"));
 					}
-				} finally {
-					try { if(p != null) p.close(); } catch(Exception e) {}
 				}
 			} catch (Exception e) {
 				log.log(Level.WARNING, "Ops units: skipping bundle " + gsi + ": " + e.getMessage());
 			}
 		}
+		return ownerCases;
+	}
 
-		// 2. Owner ident -> roles held (org)
+	/*
+	 * Owner ident -> roles held, for the organisation
+	 */
+	private Map<String, ArrayList<String>> getOwnerRoles(Connection sd, int oId) throws SQLException {
 		Map<String, ArrayList<String>> ownerRoles = new HashMap<>();
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = sd.prepareStatement("select u.ident, r.name from users u "
-					+ "join user_role ur on ur.u_id = u.id join role r on r.id = ur.r_id where u.o_id = ?");
+		try (PreparedStatement pstmt = sd.prepareStatement("select u.ident, r.name from users u "
+				+ "join user_role ur on ur.u_id = u.id join role r on r.id = ur.r_id where u.o_id = ?")) {
 			pstmt.setInt(1, oId);
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				ownerRoles.computeIfAbsent(rs.getString("ident"), k -> new ArrayList<>()).add(rs.getString("name"));
 			}
-		} finally {
-			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
 		}
+		return ownerRoles;
+	}
+
+	/*
+	 * True if the viewer may see a person's own figures: a security manager, or somebody who shares a role with them
+	 */
+	private boolean canSeePerson(java.util.Set<String> viewerRoles, ArrayList<String> personRoles) {
+		if(viewerRoles == null) {
+			return true;
+		}
+		if(personRoles != null) {
+			for(String r : personRoles) {
+				if(viewerRoles.contains(r)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	/*
+	 * Open work by person: the cases they are an owner of and their open tasks.  Only people with open work are
+	 * returned, most overdue first.  A case with several owners counts once for each of them.  A viewer who is not a
+	 * security manager only sees people who share one of their roles.
+	 */
+	private ArrayList<OpsWorkload> getPeople(Connection sd, int oId, Map<String, long[]> ownerCases) throws SQLException {
+
+		Map<String, OpsWorkload> people = new HashMap<>();
+		Map<String, Long> oldest = new HashMap<>();
+
+		for(Map.Entry<String, long[]> e : ownerCases.entrySet()) {
+			for(String owner : GeneralUtilityMethods.splitAssigned(e.getKey())) {
+				people.computeIfAbsent(owner, OpsWorkload::new).openCases += (int) e.getValue()[0];
+				oldest.merge(owner, e.getValue()[1], Math::max);
+			}
+		}
+
+		String sql = "select u.ident, "
+				+ "count(*) as open_tasks, "
+				+ "count(*) filter (where t.schedule_finish is not null and t.schedule_finish < now()) as overdue, "
+				+ "coalesce(extract(epoch from (now() - min(t.created_at))), 0) as oldest "
+				+ "from assignments a "
+				+ "join tasks t on t.id = a.task_id and not t.deleted "
+				+ "join project p on p.id = t.p_id and p.o_id = ? "
+				+ "join users u on u.id = a.assignee "
+				+ "where a.status in ('unsent','accepted') "
+				+ projectSql("t.p_id")
+				+ surveyIdentRbacSql("t.survey_ident")
+				+ "group by u.ident";
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setInt(1, oId);
+			if(!securityManager) {
+				pstmt.setString(2, requestingUser);
+			}
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String ident = rs.getString("ident");
+				OpsWorkload w = people.computeIfAbsent(ident, OpsWorkload::new);
+				w.openTasks = rs.getInt("open_tasks");
+				w.overdue = rs.getInt("overdue");
+				oldest.merge(ident, (long) rs.getDouble("oldest"), Math::max);
+			}
+		}
+
+		Map<String, ArrayList<String>> ownerRoles = getOwnerRoles(sd, oId);
+		java.util.Set<String> viewerRoles = securityManager ? null : getViewerRoleNames(sd, oId);
+		Map<String, String> names = new HashMap<>();
+		try (PreparedStatement pstmt = sd.prepareStatement("select ident, name from users where o_id = ?")) {
+			pstmt.setInt(1, oId);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				names.put(rs.getString(1), rs.getString(2));
+			}
+		}
+
+		ArrayList<OpsWorkload> out = new ArrayList<>();
+		for(OpsWorkload w : people.values()) {
+			if(!canSeePerson(viewerRoles, ownerRoles.get(w.ident))) {
+				continue;
+			}
+			w.name = names.get(w.ident);
+			if(w.name == null || w.name.trim().isEmpty()) {
+				w.name = w.ident;
+			}
+			if(w.openTasks > 0) {
+				w.overduePct = (w.overdue * 100.0) / w.openTasks;
+			}
+			w.rag = ragForPct(w.overduePct);
+			w.oldestDays = oldest.getOrDefault(w.ident, 0L) / 86400;
+			out.add(w);
+		}
+		out.sort((x, y) -> {
+			if(x.overdue != y.overdue) return y.overdue - x.overdue;
+			int wx = x.openCases + x.openTasks, wy = y.openCases + y.openTasks;
+			if(wx != wy) return wy - wx;
+			return x.name.compareToIgnoreCase(y.name);
+		});
+		return out;
+	}
+
+	private ArrayList<OpsUnit> getUnits(Connection sd, Connection cResults, int oId, Map<String, long[]> ownerCases) throws SQLException {
+
+		Map<String, OpsUnit> units = new LinkedHashMap<>();
+
+		// 1. Open-case counts per owner list, from the results tables (accessible bundles only)
+		Map<String, Integer> ownerCounts = new HashMap<>();
+		for(Map.Entry<String, long[]> e : ownerCases.entrySet()) {
+			ownerCounts.put(e.getKey(), (int) e.getValue()[0]);
+		}
+
+		// 2. Owner ident -> roles held (org)
+		Map<String, ArrayList<String>> ownerRoles = getOwnerRoles(sd, oId);
+		PreparedStatement pstmt = null;
 
 		// 3. Roles the viewer may see (non security manager only)
 		java.util.Set<String> viewerRoles = securityManager ? null : getViewerRoleNames(sd, oId);
@@ -1009,7 +1125,21 @@ public class OpsMonitorManager {
 	 *   all (default) - overdue tasks + stale cases (used by the digest)
 	 */
 	public ArrayList<OpsItem> getItems(Connection sd, Connection cResults, int oId, String type, String user) throws SQLException {
+		return getItems(sd, cResults, oId, type, user, null);
+	}
+
+	/*
+	 * type "person" lists the open cases and tasks of one person, given as person
+	 */
+	public ArrayList<OpsItem> getItems(Connection sd, Connection cResults, int oId, String type, String user,
+			String person) throws SQLException {
 		loadContext(sd, oId, user, false);
+		if("person".equals(type)) {
+			ArrayList<OpsItem> items = new ArrayList<>();
+			getPersonItems(sd, cResults, oId, person, items);
+			countReferences(sd, items);
+			return items;
+		}
 		ArrayList<OpsItem> items = new ArrayList<>();
 		if(type == null) {
 			type = "all";
@@ -1055,7 +1185,7 @@ public class OpsMonitorManager {
 	 * Tasks for the org. overdueOnly=true -> past due; false -> all in-progress.
 	 */
 	private void getTaskItems(Connection sd, int oId, java.util.List<OpsItem> items, boolean overdueOnly) throws SQLException {
-		StringBuilder sql = new StringBuilder("select t.title, t.tg_id, t.survey_name, a.assignee_name, "
+		StringBuilder sql = new StringBuilder("select t.title, t.tg_id, t.p_id, t.survey_name, a.assignee_name, "
 				+ "(t.schedule_finish is not null and t.schedule_finish < now()) as overdue, "
 				+ "extract(epoch from (now() - t.schedule_finish)) as overdue_age, "
 				+ "extract(epoch from (now() - t.created_at)) as created_age "
@@ -1083,13 +1213,76 @@ public class OpsMonitorManager {
 				}
 				boolean overdue = rs.getBoolean("overdue");
 				long ageDays = (long) ((overdue ? rs.getDouble("overdue_age") : rs.getDouble("created_age")) / 86400);
-				String link = "/app/tasks/taskManagement.html?tg_id=" + rs.getInt("tg_id");
+				String link = "/app/tasks/taskManagement.html?tg_id=" + rs.getInt("tg_id") + "&project=" + rs.getInt("p_id");
 				OpsItem it = new OpsItem("task", title, surveyName, rs.getString("assignee_name"), ageDays, overdue, link);
 				it.status = overdue ? "overdue" : "in_progress";
 				items.add(it);
 			}
 		} finally {
 			try { if(pstmt != null) pstmt.close(); } catch(Exception e) {}
+		}
+	}
+
+	/*
+	 * One person's open tasks and the open cases they are an owner of, if the viewer may see that person
+	 */
+	private void getPersonItems(Connection sd, Connection cResults, int oId, String person,
+			java.util.List<OpsItem> items) throws SQLException {
+		if(person == null || person.trim().isEmpty()) {
+			return;
+		}
+		java.util.Set<String> viewerRoles = securityManager ? null : getViewerRoleNames(sd, oId);
+		if(!canSeePerson(viewerRoles, getOwnerRoles(sd, oId).get(person))) {
+			return;
+		}
+
+		String sql = "select t.title, t.tg_id, t.p_id, t.survey_name, a.assignee_name, "
+				+ "(t.schedule_finish is not null and t.schedule_finish < now()) as overdue, "
+				+ "extract(epoch from (now() - t.schedule_finish)) as overdue_age, "
+				+ "extract(epoch from (now() - t.created_at)) as created_age "
+				+ "from assignments a join tasks t on t.id = a.task_id and not t.deleted "
+				+ "join project p on p.id = t.p_id and p.o_id = ? "
+				+ "join users u on u.id = a.assignee and u.ident = ? "
+				+ "where a.status in ('unsent','accepted') "
+				+ projectSql("t.p_id")
+				+ surveyIdentRbacSql("t.survey_ident")
+				+ "order by t.schedule_finish asc nulls last limit " + ATRISK_LIMIT;
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, person);
+			if(!securityManager) {
+				pstmt.setString(3, requestingUser);
+			}
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String title = rs.getString("title");
+				String surveyName = rs.getString("survey_name");
+				if(title == null || title.trim().isEmpty()) {
+					title = surveyName;
+				}
+				boolean overdue = rs.getBoolean("overdue");
+				long ageDays = (long) ((overdue ? rs.getDouble("overdue_age") : rs.getDouble("created_age")) / 86400);
+				String link = "/app/tasks/taskManagement.html?tg_id=" + rs.getInt("tg_id") + "&project=" + rs.getInt("p_id");
+				OpsItem it = new OpsItem("task", title, surveyName, rs.getString("assignee_name"), ageDays, overdue, link);
+				it.status = overdue ? "overdue" : "in_progress";
+				items.add(it);
+			}
+		}
+
+		ArrayList<String> idents = new ArrayList<>();
+		idents.add(person);
+		for(String gsi : getCaseBundles(sd, oId)) {
+			try {
+				String table = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, gsi);
+				if(table == null) {
+					continue;
+				}
+				GeneralUtilityMethods.ensureTableCurrent(cResults, table, true);
+				ensureCaseIndexes(cResults, table);
+				collectOpenCasesForRole(sd, cResults, table, gsi, idents, items);
+			} catch (Exception e) {
+				log.log(Level.WARNING, "Ops person items: skipping bundle " + gsi + ": " + e.getMessage());
+			}
 		}
 	}
 
@@ -1431,7 +1624,7 @@ public class OpsMonitorManager {
 
 			// All open tasks for the unit (overdue ones flagged) - listed in full so the list
 			// reconciles with the open-task / overdue counts above
-			String itemSql = "select t.title, t.tg_id, t.survey_name, a.assignee_name, "
+			String itemSql = "select t.title, t.tg_id, t.p_id, t.survey_name, a.assignee_name, "
 					+ "(t.schedule_finish is not null and t.schedule_finish < now()) as overdue, "
 					+ "extract(epoch from (now() - t.schedule_finish)) as overdue_age, "
 					+ "extract(epoch from (now() - t.created_at)) as created_age "
@@ -1449,7 +1642,7 @@ public class OpsMonitorManager {
 				}
 				boolean overdue = rs.getBoolean("overdue");
 				long ageDays = (long) ((overdue ? rs.getDouble("overdue_age") : rs.getDouble("created_age")) / 86400);
-				String link = "/app/tasks/taskManagement.html?tg_id=" + rs.getInt("tg_id");
+				String link = "/app/tasks/taskManagement.html?tg_id=" + rs.getInt("tg_id") + "&project=" + rs.getInt("p_id");
 				OpsItem it = new OpsItem("task", title, surveyName, rs.getString("assignee_name"), ageDays, overdue, link);
 				it.status = overdue ? "overdue" : "in_progress";
 				d.atRisk.add(it);

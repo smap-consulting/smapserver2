@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.OpsIssue;
 import org.smap.sdal.model.SqlFrag;
@@ -51,6 +52,7 @@ public class IssuesManager {
 	public static final String NOTIFICATION_ORPHAN = "notification_orphan";
 	public static final String TASK_DELETED_USER = "task_deleted_user";
 	public static final String TASK_NOT_SENT = "task_not_sent";
+	public static final String ASSIGNED_NOT_CASE = "assigned_not_case";
 
 	private static final String PERIOD = "30 days";
 	private static final int LIMIT = 1000;		// Per kind of issue
@@ -85,6 +87,7 @@ public class IssuesManager {
 		try { addAlertFilters(sd, cResults, user, issues); } catch (Exception e) { log.log(Level.SEVERE, "Issues: alert filters", e); }
 		try { addOrphanNotifications(sd, user, issues); } catch (Exception e) { log.log(Level.SEVERE, "Issues: orphan notifications", e); }
 		try { addTaskIssues(sd, user, issues); } catch (Exception e) { log.log(Level.SEVERE, "Issues: tasks", e); }
+		try { addAssignedNotCases(sd, user, securityManager, issues); } catch (Exception e) { log.log(Level.SEVERE, "Issues: assigned records not cases", e); }
 
 		for (OpsIssue i : issues) {
 			i.typeLabel = label("iss_" + i.type, i.type);
@@ -386,9 +389,77 @@ public class IssuesManager {
 	 * Open tasks assigned to users who have since been deleted, and task emails that could not be sent,
 	 * one issue per task group
 	 */
+	private void addAssignedNotCases(Connection sd, String user, boolean securityManager,
+			List<OpsIssue> issues) throws SQLException {
+
+		/*
+		 * Records assigned to somebody in a survey bundle that is not set up for case management.  They reach the
+		 * people they are assigned to but are not counted or shown as cases.  A bundle is set up for case management
+		 * when its case settings name a status question.
+		 */
+		java.util.Set<String> caseBundles = new java.util.HashSet<>();
+		Gson gson = new Gson();
+		try (PreparedStatement pstmt = sd.prepareStatement("select group_survey_ident, settings from cms_setting "
+				+ "where group_survey_ident is not null and settings is not null")) {
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				try {
+					CaseManagementSettings cms = gson.fromJson(rs.getString(2), CaseManagementSettings.class);
+					if (cms != null && cms.statusQuestion != null && cms.statusQuestion.trim().length() > 0) {
+						caseBundles.add(rs.getString(1));
+					}
+				} catch (Exception e) {
+					// Settings that cannot be read do not make a case bundle
+				}
+			}
+		}
+
+		String sql = "select s.s_id, s.p_id, s.display_name, p.name as project_name, ru.group_survey_ident, "
+				+ "count(distinct ru.thread) as cnt, "
+				+ time("min(ru.created_at)") + " as first_time, "
+				+ time("max(ru.created_at)") + " as last_time "
+				+ "from record_user ru "
+				+ "join survey s on s.ident = ru.group_survey_ident and not s.deleted "
+				+ "join project p on p.id = s.p_id "
+				+ "where ru.access = 'owner' "
+				+ "and s.s_id in (" + USER_SURVEYS + ") "
+				+ (securityManager ? "" : bundleRbacSql("ru.group_survey_ident"))
+				+ "group by s.s_id, s.p_id, s.display_name, p.name, ru.group_survey_ident "
+				+ "order by p.name, s.display_name "
+				+ "limit " + LIMIT;
+
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			int idx = 1;
+			pstmt.setString(idx++, tz);
+			pstmt.setString(idx++, tz);
+			pstmt.setString(idx++, user);
+			if (!securityManager) {
+				pstmt.setString(idx++, user);
+			}
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				if (caseBundles.contains(rs.getString("group_survey_ident"))) {
+					continue;
+				}
+				OpsIssue i = new OpsIssue(ASSIGNED_NOT_CASE);
+				i.sId = rs.getInt("s_id");
+				i.pId = rs.getInt("p_id");
+				i.survey = rs.getString("display_name");
+				i.project = rs.getString("project_name");
+				i.count = rs.getInt("cnt");
+				i.first = rs.getString("first_time");
+				i.last = rs.getString("last_time");
+				i.detail = label("iss_assigned_not_case_detail",
+						"Records are assigned to people but the survey bundle is not set up for case management, so they are not shown as cases");
+				i.fixUrl = "/app/cases.html?id=" + i.sId;
+				issues.add(i);
+			}
+		}
+	}
+
 	private void addTaskIssues(Connection sd, String user, List<OpsIssue> issues) throws SQLException {
 
-		String sql = "select t.tg_id, tg.name as tg_name, p.name as project_name, "
+		String sql = "select t.tg_id, p.id as p_id, tg.name as tg_name, p.name as project_name, "
 				+ "case when a.status = 'error' then 'not_sent' else 'deleted_user' end as kind, "
 				+ "count(*) as cnt, "
 				+ time("min(a.assigned_date)") + " as first_time, "
@@ -402,7 +473,7 @@ public class IssuesManager {
 				+ "and ((a.status in ('new', 'accepted') and a.assignee > 0 "
 				+ "    and not exists (select 1 from users u2 where u2.id = a.assignee)) "
 				+ "  or a.status = 'error') "
-				+ "group by t.tg_id, tg.name, p.name, case when a.status = 'error' then 'not_sent' else 'deleted_user' end "
+				+ "group by t.tg_id, p.id, tg.name, p.name, case when a.status = 'error' then 'not_sent' else 'deleted_user' end "
 				+ "order by t.tg_id "
 				+ "limit " + LIMIT;
 
@@ -422,7 +493,7 @@ public class IssuesManager {
 				i.last = rs.getString("last_time");
 				i.detail = label(notSent ? "iss_task_not_sent_detail" : "iss_task_deleted_user_detail",
 						notSent ? "Task emails could not be sent" : "Open tasks are assigned to a user who has been deleted");
-				i.fixUrl = "/app/tasks/taskManagement.html?tg_id=" + rs.getInt("tg_id");
+				i.fixUrl = "/app/tasks/taskManagement.html?tg_id=" + rs.getInt("tg_id") + "&project=" + rs.getInt("p_id");
 				issues.add(i);
 			}
 		}
