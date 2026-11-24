@@ -131,6 +131,7 @@ public class Workflow extends Application {
 		public String targetSurveyName;
 		public String filter;
 		public String remoteUser;   // "_data" or email string (display / legacy)
+		public String assignData;   // The rule that takes the assignee from the data, shown only, kept when saved
 		public int    userId;       // direct user assignment (> 0 means assign to this user)
 		public int    roleId;       // role assignment (> 0 means assign to first user with this role)
 		public int    projectId;
@@ -772,6 +773,7 @@ public class Workflow extends Application {
 						// Derive assignee fields
 						if (afs.assign_data != null && !afs.assign_data.trim().isEmpty()) {
 							tg.remoteUser = "_data";
+							tg.assignData = afs.assign_data;
 						} else if (afs.emails != null && !afs.emails.trim().isEmpty()) {
 							tg.remoteUser = afs.emails.trim();
 						} else if (afs.role_id > 0) {
@@ -871,6 +873,7 @@ public class Workflow extends Application {
 				afs.target_survey_id = newTargetSId;
 
 				// Update assignee — clear all and set only the selected type
+				String existingAssignData = afs.assign_data;
 				afs.role_id    = 0;
 				afs.user_id    = 0;
 				afs.emails     = null;
@@ -880,7 +883,8 @@ public class Workflow extends Application {
 				} else if (tg.userId > 0) {
 					afs.user_id = tg.userId;
 				} else if ("_data".equals(tg.remoteUser)) {
-					afs.assign_data = "_data";
+					// This page does not edit the rule that takes the assignee from the data, so keep it
+					afs.assign_data = existingAssignData;
 				} else if (tg.remoteUser != null && !tg.remoteUser.trim().isEmpty()) {
 					afs.emails = tg.remoteUser.trim();
 				}
@@ -1033,7 +1037,7 @@ public class Workflow extends Application {
 				afs.user_id = tg.userId;
 			} else if (tg.remoteUser != null && !tg.remoteUser.trim().isEmpty()) {
 				if ("_data".equals(tg.remoteUser)) {
-					afs.assign_data = "_data";
+					// There is no rule to take the assignee from, the step is left unassigned
 				} else {
 					afs.emails = tg.remoteUser;
 				}

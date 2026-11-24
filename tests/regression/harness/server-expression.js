@@ -6,6 +6,12 @@
 //       On any console page.  Saving notifications and case alerts with the test's broken filters must be
 //       refused with a message that says why, its good filters must be accepted (checked, not saved), and a
 //       console filter must get the same message.  Nothing is saved.
+//   {"part": "taskGroup", "project", "sId", "test"}
+//       On any console page.  Creates the test's task group once (kept), with a condition no record meets,
+//       so no task is ever made.  Returns its id.
+//   {"part": "assignKept", "tgId", "test"}
+//       After task_group_update has set it to assign from the test's question.  The workflow page sends the
+//       rule to show, and saving the step there, renamed and back, keeps the rule.
 //   {"part": "broken", "project", "nId", "test"}
 //       On any console page, after the removed question has been deleted.  The issues report lists the
 //       notification, saving it unchanged works, and changing it to another broken filter is refused.
@@ -69,6 +75,40 @@ if (CONFIG.part === 'setup') {
 			+ encodeURIComponent(f), { headers: H, cache: 'no-store' });
 		const t = await g.text();
 		check('accepted: ' + f, g.ok && t.indexOf('Error in filter') < 0, g.status + ' ' + t.slice(0, 120));
+	}
+
+} else if (CONFIG.part === 'taskGroup') {
+	const T = CONFIG.test.taskGroup;
+	let tg = (await getJson('/surveyKPI/tasks/taskgroups/' + CONFIG.project)).find(x => x.name === T.name);
+	let id = tg ? (tg.tg_id || tg.id) : 0;
+	if (!id) {
+		const r = await fetch('/surveyKPI/workflow/edit/taskgroup', { method: 'POST',
+			headers: { ...H, 'Content-Type': 'application/json' },
+			body: JSON.stringify({ name: T.name, sourceSurveyId: CONFIG.sId, targetSurveyId: CONFIG.sId, filter: T.filter }) });
+		const t = await r.text();
+		check('task group created', r.ok, r.ok ? '' : r.status + ' ' + t.slice(0, 160));
+		id = r.ok ? JSON.parse(t).tgId : 0;
+	}
+	check('task group found', id > 0, id);
+	result.tgId = id;
+
+} else if (CONFIG.part === 'assignKept') {
+	const T = CONFIG.test.taskGroup;
+	const get = async () => (await getJson('/surveyKPI/workflow/edit/taskgroups?ids=' + CONFIG.tgId))[0];
+	const put = tgs => fetch('/surveyKPI/workflow/edit/taskgroups', { method: 'PUT',
+		headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify(tgs) });
+	let tg = await get();
+	check('workflow page is sent the rule', tg && tg.remoteUser === '_data' && tg.assignData === T.assignData,
+		tg ? tg.remoteUser + ' ' + tg.assignData : 'missing');
+	if (tg) {
+		// The page saves the step as it was, with only the name changed
+		let r = await put([Object.assign({}, tg, { name: T.name + ' renamed', assignData: undefined })]);
+		check('renamed in the workflow page', r.ok, r.ok ? '' : r.status + ' ' + (await r.text()).slice(0, 160));
+		r = await put([Object.assign({}, tg, { assignData: undefined })]);
+		check('renamed back', r.ok, r.ok ? '' : r.status + ' ' + (await r.text()).slice(0, 160));
+		tg = await get();
+		check('rule kept', tg && tg.assignData === T.assignData && tg.name === T.name,
+			tg ? tg.name + ' ' + tg.assignData : 'missing');
 	}
 
 } else if (CONFIG.part === 'broken') {

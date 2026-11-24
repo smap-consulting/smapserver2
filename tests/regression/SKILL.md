@@ -181,6 +181,10 @@ counts and failures when the output would be long, as the tool truncates it.
      `{"part":"setup","project","sId","test":<the test file>}`, then `{"part":"refuse","project","sId","fId","group",
      "test"}`.  Delete the `removed` question with `survey_delete_question`; its reply (`stopsWorking` in the structured content) must say
      the change stops the test's notification working (a ✅/❌ row of its own).  Run `{"part":"broken","project","nId":<setup's>,"test"}`.
+     Then run `{"part":"taskGroup","project","sId","test"}`.  With `task_group_update` on its `tgId`: `assign_to`
+     "from_answer" with each of `taskGroup.refusedQuestions` must be refused with its `expect` (a row each); with
+     `assign_question` = `taskGroup.assignQuestion` it must succeed, or report nothing changed when already set; and
+     with no `assign_question` it must report nothing changed.  Run `{"part":"assignKept","tgId","test"}`.
      Last, add the `removed` question back with `survey_add_question` (same name, type and label), so the next run
      starts with a working filter.
 4. Do not submit forms.  Tests leave no data, apart from the settings-secrets write checks, which
@@ -188,7 +192,7 @@ counts and failures when the output would be long, as the tool truncates it.
    survey, the records and trail the dashboard-map test keeps, the records and grid the
    dashboard-region test keeps, the records the sqli-filter and sqli-autoupdate tests keep, and the
    records and duplicate upload the submission-totals test keeps, and the records the update-conflicts
-   test adds to its own surveys, one per scenario each run, and the two records the case-alerts test adds each run, and the notifications the conflict-notifications test keeps on the update-conflicts surveys and the six records it adds to them each run, and the notification the operational-issues test keeps on the case-alerts survey and the record it adds there each run, and the survey and two notifications the multiple-assignees test keeps and the three records it adds each run, and the survey, record and notification the server-expressions test keeps.
+   test adds to its own surveys, one per scenario each run, and the two records the case-alerts test adds each run, and the notifications the conflict-notifications test keeps on the update-conflicts surveys and the six records it adds to them each run, and the notification the operational-issues test keeps on the case-alerts survey and the record it adds there each run, and the survey and two notifications the multiple-assignees test keeps and the three records it adds each run, and the survey, record, notification and task group the server-expressions test keeps.
 
 ## Report
 

@@ -92,6 +92,10 @@ public class TaskGroupUpdateTool extends AbstractMcpTool {
 								+ "\"from_answer\" to take the assignee from an answer on the record, "
 								+ "or an email address. Only one applies - setting it replaces "
 								+ "whatever was there."),
+				"assign_question", property("string",
+						"With assign_to \"from_answer\": the question on the record whose answer is the "
+								+ "username, role name or email address to assign to. Needed unless the "
+								+ "group already takes its assignee from an answer, which is then kept."),
 				"target_survey", property("string",
 						"Optional. The ident of the survey the work is done in, from survey_list. The "
 								+ "group moves to that survey's project with it."));
@@ -212,6 +216,7 @@ public class TaskGroupUpdateTool extends AbstractMcpTool {
 						+ "Nothing was changed.", true);
 			}
 			/* One kind of assignee at a time: the others are cleared so none is left behind */
+			String wasAssignData = afs.assign_data;
 			afs.role_id = 0;
 			afs.user_id = 0;
 			afs.emails = null;
@@ -226,8 +231,25 @@ public class TaskGroupUpdateTool extends AbstractMcpTool {
 				afs.user_id = userId;
 				described = assignTo;
 			} else if("from_answer".equalsIgnoreCase(assignTo)) {
-				afs.assign_data = "_data";
-				described = "whoever an answer on the record names";
+				String question = stringArg(arguments, "assign_question");
+				question = question == null ? "" : question.trim();
+				if(question.startsWith("${") && question.endsWith("}")) {
+					question = question.substring(2, question.length() - 1).trim();
+				}
+				if(!question.isEmpty()) {
+					if(!question.matches("[\\p{L}_][\\p{L}\\p{N}_]*")) {
+						return new MCPToolResult("\"" + question + "\" is not a question name. "
+								+ "survey_questions lists them. Nothing was changed.", true);
+					}
+					afs.assign_data = "${" + question + "}";
+				} else if(wasAssignData != null && !wasAssignData.trim().isEmpty() && !wasAssignData.equals("_data")) {
+					afs.assign_data = wasAssignData;		// Already from an answer, keep which one
+				} else {
+					return new MCPToolResult("\"from_answer\" needs assign_question, the question whose "
+							+ "answer names who to assign to. survey_questions lists them. Nothing was "
+							+ "changed.", true);
+				}
+				described = describeAssignee(ctx, afs, oId);
 			} else {
 				afs.emails = assignTo;
 				described = assignTo;
@@ -357,7 +379,10 @@ public class TaskGroupUpdateTool extends AbstractMcpTool {
 			return "user " + afs.user_id;
 		}
 		if(afs.assign_data != null && !afs.assign_data.trim().isEmpty()) {
-			return "whoever an answer on the record names";
+			if(afs.assign_data.equals("_data")) {
+				return "an answer on the record, but which question was not kept";
+			}
+			return "whoever " + afs.assign_data + " names";
 		}
 		if(afs.emails != null && !afs.emails.trim().isEmpty()) {
 			return afs.emails;

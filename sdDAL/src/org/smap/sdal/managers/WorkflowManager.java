@@ -1715,7 +1715,9 @@ public class WorkflowManager {
 	 */
 	private String deriveAssignee(Connection sd, AssignFromSurvey afs) {
 		if (afs == null) return null;
-		if (afs.assign_data != null && !afs.assign_data.trim().isEmpty()) return "From Data";
+		if (afs.assign_data != null && !afs.assign_data.trim().isEmpty()) {
+			return afs.assign_data.equals("_data") ? "From Data" : "From Data: " + afs.assign_data;
+		}
 		if (afs.emails != null && !afs.emails.trim().isEmpty()) return afs.emails.trim();
 		if (afs.role_id > 0) {
 			String name = lookupRoleName(sd, afs.role_id);
