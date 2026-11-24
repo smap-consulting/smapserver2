@@ -282,7 +282,7 @@ public class SurveyTableManager {
 				if(rf != null) {
 					maxRecords = rf.maxRecords;
 					if(rf.filter != null && rf.filter.trim().length() > 0) {
-						refFilterFrag = new SqlFrag();
+						refFilterFrag = new SqlFrag(GeneralUtilityMethods.getColumnMapFromIdent(sd, linked_sIdent));
 						refFilterFrag.addSqlFragment(rf.filter, false, localisation, 0);
 						if(hasWhere) {
 							sql.append(" and ");
@@ -760,7 +760,7 @@ public class SurveyTableManager {
 						
 						if(colType.equals("server_calculate") && serverCalculate != null) {
 							ServerCalculation sc = gson.fromJson(serverCalculate, ServerCalculation.class);
-							calculation = new SqlFrag();
+							calculation = new SqlFrag(GeneralUtilityMethods.getColumnMap(refQuestionMap));
 							sc.populateSql(calculation, localisation);
 							colName = calculation.sql.toString();
 							if(newSqlDef.calcArray == null) {
@@ -1099,7 +1099,7 @@ public class SurveyTableManager {
 				ReferenceFilterManager rfm = new ReferenceFilterManager(localisation);
 				ReferenceFilter rf = rfm.getFilter(sd, linkerGroupIdent, sourceGroupIdent);
 				if(rf != null && rf.filter != null && rf.filter.trim().length() > 0) {
-					refFilterFrag = new SqlFrag();
+					refFilterFrag = new SqlFrag(GeneralUtilityMethods.getColumnMap(sd, sourceGroupIdent));
 					refFilterFrag.addSqlFragment(rf.filter, false, localisation, 0);
 					if(sqlDef.hasWhere) {
 						sqlBuild.append(" and ");

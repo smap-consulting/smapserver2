@@ -15,9 +15,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.CaseManagementSettings;
-import org.smap.sdal.model.Form;
 import org.smap.sdal.model.OpsIssue;
-import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.UpdateConflict;
 import org.smap.sdal.model.UpdateConflicts;
 
@@ -53,6 +51,7 @@ public class IssuesManager {
 	public static final String TASK_DELETED_USER = "task_deleted_user";
 	public static final String TASK_NOT_SENT = "task_not_sent";
 	public static final String ASSIGNED_NOT_CASE = "assigned_not_case";
+	public static final String EXPRESSION = "expression";			// A rule or server calculation that does not work
 
 	private static final String PERIOD = "30 days";
 	private static final int LIMIT = 1000;		// Per kind of issue
@@ -83,8 +82,7 @@ public class IssuesManager {
 		try { addConflicts(sd, cResults, user, securityManager, issues); } catch (Exception e) { log.log(Level.SEVERE, "Issues: conflicts", e); }
 		try { addLogErrors(sd, user, issues); } catch (Exception e) { log.log(Level.SEVERE, "Issues: log errors", e); }
 		try { addSubmissionErrors(sd, user, issues); } catch (Exception e) { log.log(Level.SEVERE, "Issues: submission errors", e); }
-		try { addNotificationFilters(sd, cResults, user, issues); } catch (Exception e) { log.log(Level.SEVERE, "Issues: notification filters", e); }
-		try { addAlertFilters(sd, cResults, user, issues); } catch (Exception e) { log.log(Level.SEVERE, "Issues: alert filters", e); }
+		try { addExpressions(sd, cResults, user, issues); } catch (Exception e) { log.log(Level.SEVERE, "Issues: server expressions", e); }
 		try { addOrphanNotifications(sd, user, issues); } catch (Exception e) { log.log(Level.SEVERE, "Issues: orphan notifications", e); }
 		try { addTaskIssues(sd, user, issues); } catch (Exception e) { log.log(Level.SEVERE, "Issues: tasks", e); }
 		try { addAssignedNotCases(sd, user, securityManager, issues); } catch (Exception e) { log.log(Level.SEVERE, "Issues: assigned records not cases", e); }
@@ -257,94 +255,67 @@ public class IssuesManager {
 	}
 
 	/*
-	 * Enabled notifications whose filter does not work with their survey as it is now, for example
-	 * because a question it uses has been deleted or renamed.  Found before the next submission fails.
+	 * Saved server expressions that do not work now, for example because a question they use has been
+	 * deleted or renamed: notification and case alert filters, task rules, PDF template rules, role row
+	 * filters, reference data filters and server calculations.  Found before they next fail.
 	 */
-	private void addNotificationFilters(Connection sd, Connection cResults, String user, List<OpsIssue> issues) throws SQLException {
+	private void addExpressions(Connection sd, Connection cResults, String user, List<OpsIssue> issues) throws SQLException {
 
-		String sql = "select f.id, f.name, f.filter, f.s_id, f.bundle, f.bundle_ident "
-				+ "from forward f "
-				+ "where f.enabled and f.filter is not null and trim(f.filter) != '' "
-				+ "and f.trigger in ('submission', 'conflict') "
-				+ "and ((not f.bundle and f.s_id in (" + USER_SURVEYS + ")) "
-				+ "  or (f.bundle and f.bundle_ident in (select s.group_survey_ident from survey s where s.s_id in (" + USER_SURVEYS + ")))) "
-				+ "order by f.id "
-				+ "limit " + LIMIT;
-
-		String sqlMembers = "select s.s_id from survey s where s.group_survey_ident = ? "
-				+ "and s.s_id in (" + USER_SURVEYS + ") order by s.s_id";
-
-		try (PreparedStatement pstmt = sd.prepareStatement(sql);
-				PreparedStatement pstmtMembers = sd.prepareStatement(sqlMembers)) {
+		String sql = "select distinct s.group_survey_ident from survey s "
+				+ "where s.s_id in (" + USER_SURVEYS + ") and s.group_survey_ident is not null";
+		ArrayList<String> bundles = new ArrayList<>();
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
 			pstmt.setString(1, user);
-			pstmt.setString(2, user);
 			ResultSet rs = pstmt.executeQuery();
-			while (rs.next()) {
-				int nId = rs.getInt("id");
-				String filter = rs.getString("filter");
-				List<Integer> surveys = new ArrayList<>();
-				if (rs.getBoolean("bundle")) {
-					pstmtMembers.setString(1, rs.getString("bundle_ident"));
-					pstmtMembers.setString(2, user);
-					ResultSet mrs = pstmtMembers.executeQuery();
-					while (mrs.next()) surveys.add(mrs.getInt(1));
+			while (rs.next()) bundles.add(rs.getString(1));
+		}
+
+		ServerExpressionValidator v = new ServerExpressionValidator(localisation);
+		int count = 0;
+		for (String bundle : bundles) {
+			for (ServerExpressionValidator.Problem p : v.checkBundle(sd, cResults, bundle, null)) {
+				if (++count > LIMIT) return;
+				OpsIssue i;
+				if (p.kind.equals(ServerExpressionValidator.KIND_NOTIFICATION)) {
+					i = new OpsIssue(NOTIFICATION_FILTER);
+				} else if (p.kind.equals(ServerExpressionValidator.KIND_ALERT)) {
+					i = new OpsIssue(ALERT_FILTER);
 				} else {
-					surveys.add(rs.getInt("s_id"));
+					i = new OpsIssue(EXPRESSION);
 				}
-				for (int sId : surveys) {
-					String error = checkFilter(sd, cResults, sId, filter, false);
-					if (error != null) {
-						OpsIssue i = new OpsIssue(NOTIFICATION_FILTER);
-						setSurvey(sd, i, sId);
-						i.item = rs.getString("name");
-						i.detail = localisation.getString("filter_error").replace("%s1", filter).replace("%s2", error);
-						i.fixUrl = notificationUrl(nId, i.pId);
-						issues.add(i);
-						break;		// One issue per notification
-					}
+				if (p.sId > 0) {
+					setSurvey(sd, i, p.sId);
 				}
+				i.item = (i.type.equals(EXPRESSION) ? p.what + ": " : "") + (p.name == null ? "" : p.name);
+				i.detail = p.expression == null ? p.error
+						: localisation.getString("filter_error").replace("%s1", p.expression).replace("%s2", p.error);
+				i.fixUrl = expressionUrl(sd, p, i.pId);
+				issues.add(i);
 			}
 		}
 	}
 
-	/*
-	 * Case management alerts whose filter does not work with their bundle's main table now
-	 */
-	private void addAlertFilters(Connection sd, Connection cResults, String user, List<OpsIssue> issues) throws SQLException {
-
-		String sql = "select a.id, a.name, a.filter, a.group_survey_ident "
-				+ "from cms_alert a "
-				+ "where a.filter is not null and trim(a.filter) != '' "
-				+ "and a.group_survey_ident in (select s.group_survey_ident from survey s where s.s_id in (" + USER_SURVEYS + ")) "
-				+ "order by a.id "
-				+ "limit " + LIMIT;
-
-		// The bundle's surveys, as the alert is evaluated against each of their main tables
-		String sqlMembers = "select s.s_id from survey s where s.group_survey_ident = ? and not s.deleted order by s.s_id";
-
-		try (PreparedStatement pstmt = sd.prepareStatement(sql);
-				PreparedStatement pstmtMembers = sd.prepareStatement(sqlMembers)) {
-			pstmt.setString(1, user);
-			ResultSet rs = pstmt.executeQuery();
-			while (rs.next()) {
-				int aId = rs.getInt("id");
-				String filter = rs.getString("filter");
-				pstmtMembers.setString(1, rs.getString("group_survey_ident"));
-				ResultSet mrs = pstmtMembers.executeQuery();
-				while (mrs.next()) {
-					int sId = mrs.getInt(1);
-					String error = checkFilter(sd, cResults, sId, filter, true);
-					if (error != null) {
-						OpsIssue i = new OpsIssue(ALERT_FILTER);
-						setSurvey(sd, i, sId);
-						i.item = rs.getString("name");
-						i.detail = localisation.getString("filter_error").replace("%s1", filter).replace("%s2", error);
-						i.fixUrl = "/app/cases.html?id=" + sId + "&alert_id=" + aId;
-						issues.add(i);
-						break;
-					}
-				}
-			}
+	// Where an expression is edited.  Pages that work on the user's current survey are opened as they are.
+	private String expressionUrl(Connection sd, ServerExpressionValidator.Problem p, int pId) throws SQLException {
+		switch (p.kind) {
+		case ServerExpressionValidator.KIND_NOTIFICATION:
+			return notificationUrl(p.id, pId);
+		case ServerExpressionValidator.KIND_ALERT:
+			return "/app/cases.html?id=" + p.sId + "&alert_id=" + p.id;
+		case ServerExpressionValidator.KIND_TASK:
+		case ServerExpressionValidator.KIND_TASK_ASSIGN:
+			String tgProject = name(sd, "select p_id::text from task_group where tg_id = ?", p.id);
+			return "/app/tasks/taskManagement.html?tg_id=" + p.id + (tgProject == null ? "" : "&project=" + tgProject);
+		case ServerExpressionValidator.KIND_SERVER_CALC:
+			return "/app/edit.html?id=" + p.sId;
+		case ServerExpressionValidator.KIND_TEMPLATE:
+			return "/app/templates.html";
+		case ServerExpressionValidator.KIND_ROW_FILTER:
+			return "/surveyRoles.html";
+		case ServerExpressionValidator.KIND_REF_FILTER:
+			return "/referenceFilters.html";
+		default:
+			return null;
 		}
 	}
 
@@ -497,84 +468,6 @@ public class IssuesManager {
 				issues.add(i);
 			}
 		}
-	}
-
-	/*
-	 * Whether a filter can be evaluated against a survey's data now.  Returns the database's error, or
-	 * null if it works or the survey has no data yet to check it against.  A notification's filter is
-	 * evaluated against the survey's forms joined together, an alert's against the main table only,
-	 * as each is when it runs.
-	 */
-	private String checkFilter(Connection sd, Connection cResults, int sId, String filter, boolean mainOnly) {
-
-		ArrayList<Form> forms = new ArrayList<>();
-		String sqlForms = "select f_id, parentform, table_name, reference from form where s_id = ?";
-		try (PreparedStatement pstmt = sd.prepareStatement(sqlForms)) {
-			pstmt.setInt(1, sId);
-			ResultSet rs = pstmt.executeQuery();
-			while (rs.next()) {
-				Form f = new Form();
-				f.id = rs.getInt("f_id");
-				f.parentform = rs.getInt("parentform");
-				f.tableName = rs.getString("table_name");
-				f.reference = rs.getBoolean("reference");
-				if (mainOnly && f.parentform != 0) continue;
-				forms.add(f);
-			}
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Issues: forms of survey " + sId, e);
-			return null;
-		}
-
-		String main = null;
-		for (Form f : forms) {
-			if (f.parentform == 0 && !f.reference) main = f.tableName;
-		}
-		try {
-			if (main == null || !GeneralUtilityMethods.tableExists(cResults, main)) {
-				return null;		// Nothing submitted yet, so nothing to check against
-			}
-		} catch (SQLException e) {
-			return null;
-		}
-
-		SqlFrag frag = new SqlFrag();
-		try {
-			frag.addSqlFragment(filter, false, localisation, 0);
-		} catch (Exception e) {
-			return e.getMessage() == null ? "" : e.getMessage();
-		}
-
-		StringBuilder sql = new StringBuilder("select count(*) from ")
-				.append(joinTables(forms, 0, null))
-				.append(" where ").append(main).append(".instanceid = '' and (")
-				.append(frag.sql).append(")");
-		try (PreparedStatement pstmt = cResults.prepareStatement(sql.toString())) {
-			GeneralUtilityMethods.setFragParams(pstmt, frag, 1, tz);
-			pstmt.executeQuery();
-			return null;
-		} catch (Exception e) {
-			String msg = e.getMessage() == null ? "" : e.getMessage();
-			int nl = msg.indexOf('\n');
-			return nl > 0 ? msg.substring(0, nl) : msg;		// Postgres adds the position on a second line
-		}
-	}
-
-	// Main table and its sub forms joined, as notifications evaluate their filter
-	private String joinTables(ArrayList<Form> forms, int parent, String parentTable) {
-		StringBuilder out = new StringBuilder();
-		for (Form f : forms) {
-			if (f.parentform == parent && !f.reference) {
-				if (parent != 0) {
-					out.append(" left outer join ").append(f.tableName)
-						.append(" on ").append(parentTable).append(".prikey = ").append(f.tableName).append(".parkey");
-				} else {
-					out.append(f.tableName);
-				}
-				out.append(joinTables(forms, f.id, f.tableName));
-			}
-		}
-		return out.toString();
 	}
 
 	/*

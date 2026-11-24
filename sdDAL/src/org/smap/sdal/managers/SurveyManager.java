@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -40,6 +41,7 @@ import java.util.logging.Logger;
 import org.smap.notifications.interfaces.TextProcessing;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapQuestionTypes;
@@ -1644,6 +1646,27 @@ public class SurveyManager {
 			resp.version = rs.getInt(1);
 			pstmt.close();
 
+			/*
+			 * Adding, removing, renaming or retyping a question can break a server expression elsewhere
+			 * in the bundle, a notification filter for example.  Check them before and after so the
+			 * user can be warned about the ones the changes broke.
+			 */
+			ServerExpressionValidator sev = null;
+			String sevGroup = null;
+			HashSet<String> brokenBefore = null;
+			if(cResults != null && changesQuestions(changes)) {
+				try {
+					sevGroup = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+					sev = new ServerExpressionValidator(localisation);
+					brokenBefore = new HashSet<> ();
+					for(ServerExpressionValidator.Problem p : sev.checkBundle(sd, cResults, sevGroup, null)) {
+						brokenBefore.add(p.kind + ":" + p.id);
+					}
+				} catch (Exception e) {
+					log.log(Level.SEVERE, "Check server expressions", e);
+					sev = null;
+				}
+			}
 
 			for(ChangeSet cs : changes) {		
 
@@ -1704,6 +1727,18 @@ public class SurveyManager {
 
 			if(resp.success > 0) {
 				sd.commit();
+				if(sev != null) {
+					try {
+						sev.forget(sevGroup);
+						for(ServerExpressionValidator.Problem p : sev.checkBundle(sd, cResults, sevGroup, null)) {
+							if(!brokenBefore.contains(p.kind + ":" + p.id)) {
+								resp.warnings.add(sev.describe(p));
+							}
+						}
+					} catch (Exception e) {
+						log.log(Level.SEVERE, "Check server expressions", e);
+					}
+				}
 				log.fine("Survey update to version: " + resp.version + ". " + 
 						resp.success + " successful changes and " + 
 						resp.failed + " failed changes");
@@ -1728,6 +1763,25 @@ public class SurveyManager {
 		}
 
 		return resp;
+	}
+
+	/*
+	 * Whether a set of changes adds, removes, renames or changes the type of a question
+	 */
+	private boolean changesQuestions(ArrayList<ChangeSet> changes) {
+		for(ChangeSet cs : changes) {
+			if("question".equals(cs.changeType)) {
+				return true;
+			}
+			if("property".equals(cs.changeType) && !"option".equals(cs.type) && cs.items != null) {
+				for(ChangeItem ci : cs.items) {
+					if(ci.property != null && ("name".equals(ci.property.prop) || "type".equals(ci.property.prop))) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
 	}
 
 	/*
@@ -2515,8 +2569,15 @@ public class SurveyManager {
 								Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
 								ServerCalculation sc = gson.fromJson(ci.property.newVal, ServerCalculation.class);
-								SqlFrag testCalc = new SqlFrag();
-								testCalc.addSqlFragment(sc.getExpression(), false, localisation, 0);
+								String requester = "SurveyManager - check server calculation";
+								Connection cResults = ResultsDataSource.getConnection(requester);
+								try {
+									new ServerExpressionValidator(localisation).validateServerCalculation(sd, cResults,
+											GeneralUtilityMethods.getGroupSurveyIdent(sd, sId), sc,
+											localisation.getString("se_w_server_calc") + " " + ci.property.name);
+								} finally {
+									ResultsDataSource.closeConnection(requester, cResults);
+								}
 						
 							}
 						}
@@ -3053,6 +3114,7 @@ public class SurveyManager {
 		}
 		
 		ArrayList<SqlFrag> columnSqlFrags = new ArrayList<SqlFrag>();
+		HashMap<String, String> columnMap = null;		// For server calculations, got when first needed
 		ArrayList<Question> questions = form.questions;
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtSelect = null;
@@ -3108,7 +3170,10 @@ public class SurveyManager {
 								continue;	// Select data columns are retrieved separately as there are multiple columns per question
 							} else if(qType.equals("server_calculate")) {
 								if (q.server_calculation != null) {
-									SqlFrag calc = new SqlFrag();
+									if(columnMap == null) {
+										columnMap = GeneralUtilityMethods.getColumnMap(sd, s.surveyData.id);
+									}
+									SqlFrag calc = new SqlFrag(columnMap);
 									q.server_calculation.populateSql(calc, localisation);
 									col = new StringBuffer("")
 											.append(calc.sql)

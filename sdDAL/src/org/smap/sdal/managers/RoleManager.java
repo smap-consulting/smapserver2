@@ -17,6 +17,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
@@ -693,22 +694,16 @@ public class RoleManager {
 		PreparedStatement pstmt = null;
 		
 		checkNotJson(role.row_filter, localisation);
-		SqlFrag sq = new SqlFrag();
-		sq.addSqlFragment(role.row_filter, false, localisation, 0);
-		
-		// Compile a list of columns not in the survey group and throw an error if there are any
-		StringBuilder bad = new StringBuilder();
-		String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, sIdent);
-		for(int i = 0; i < sq.columns.size(); i++) {		
-			if(GeneralUtilityMethods.getGroupColumnName(sd, groupSurveyIdent, sq.humanNames.get(i)) == null) {
-				if(bad.length() > 0) {
-					bad.append(", ");
-				}
-				bad.append(sq.columns.get(i));
+		if(role.row_filter != null && role.row_filter.trim().length() > 0) {
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, sIdent);
+			String requester = "RoleManager - check row filter";
+			Connection cResults = ResultsDataSource.getConnection(requester);
+			try {
+				new ServerExpressionValidator(localisation).validate(sd, cResults, groupSurveyIdent, false,
+						role.row_filter, ServerExpressionValidator.CONDITION, localisation.getString("se_w_row_filter"));
+			} finally {
+				ResultsDataSource.closeConnection(requester, cResults);
 			}
-		}
-		if(bad.length() > 0) {
-			throw new Exception(localisation.getString("r_mc") + " " + bad);
 		}
 		
 		// if the row filter is empty set it to null
@@ -818,6 +813,7 @@ public class RoleManager {
 		
 		PreparedStatement pstmt = null;
 		ArrayList<SqlFrag> rfArray = new ArrayList<SqlFrag> ();
+		HashMap<String, String> columnMap = null;		// Got when the first filter is found
 		
 		try {
 			ResultSet resultSet = null;
@@ -841,7 +837,10 @@ public class RoleManager {
 				String group = resultSet.getString("role_group");
 				if(sqlFragString != null && sqlFragString.trim().length() > 0) {
 					checkNotJson(sqlFragString, localisation);
-					SqlFrag sf = new SqlFrag();
+					if(columnMap == null) {
+						columnMap = GeneralUtilityMethods.getColumnMapFromIdent(sd, sIdent);
+					}
+					SqlFrag sf = new SqlFrag(columnMap);
 					sf.addSqlFragment(sqlFragString, false, localisation, 0);
 					sf.group = group;	
 					rfArray.add(sf);
@@ -862,6 +861,7 @@ public class RoleManager {
 		
 		PreparedStatement pstmt = null;
 		ArrayList<SqlFrag> rfArray = new ArrayList<SqlFrag> ();
+		HashMap<String, String> columnMap = null;		// Got when the first filter is found
 		ArrayList<Integer> roleids = new ArrayList<> ();
 		
 		if(roles != null && roles.size() > 0) {
@@ -889,7 +889,10 @@ public class RoleManager {
 					String sqlFragString = resultSet.getString("row_filter");
 					if(sqlFragString != null) {
 						checkNotJson(sqlFragString, localisation);
-						SqlFrag sf = new SqlFrag();
+						if(columnMap == null) {
+							columnMap = GeneralUtilityMethods.getColumnMapFromIdent(sd, sIdent);
+						}
+						SqlFrag sf = new SqlFrag(columnMap);
 						sf.addSqlFragment(sqlFragString, false, localisation, 0);
 						rfArray.add(sf);
 					}		

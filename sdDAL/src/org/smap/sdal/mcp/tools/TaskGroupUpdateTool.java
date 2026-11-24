@@ -12,6 +12,7 @@ import com.google.gson.GsonBuilder;
 
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.mcp.AbstractMcpTool;
 import org.smap.sdal.mcp.MCPScope;
 import org.smap.sdal.mcp.McpToolContext;
@@ -265,6 +266,8 @@ public class TaskGroupUpdateTool extends AbstractMcpTool {
 			return new MCPToolResult("\"" + currentName + "\" already reads that way, so nothing was "
 					+ "changed.", false);
 		}
+
+		new TaskManager(ctx.localisation, ctx.timezone).checkRule(ctx.sd, gson.toJson(afs), sourceSId, tgId);
 
 		StringBuilder sql = new StringBuilder("update task_group set name = ?, rule = ?, target_s_id = ?");
 		if(newProjectId > 0) {

@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -30,6 +31,7 @@ import org.smap.notifications.interfaces.EmitSMS;
 import org.smap.sdal.Utilities.EmailDeferredException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfUtilities;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.Action;
@@ -136,10 +138,47 @@ public class NotificationManager {
 	}
 
 	/*
+	 * Refuse a filter that will not work.  A filter that has not changed is left for the operational
+	 * issues report, so a notification whose filter a survey change broke can still be turned off.
+	 */
+	private void checkFilter(Connection sd, Notification n, Notification existing) throws Exception {
+		if(n.filter == null || n.filter.trim().length() == 0) {
+			return;
+		}
+		if(existing != null && n.filter.equals(existing.filter) && n.s_id == existing.s_id
+				&& n.bundle == existing.bundle && Objects.equals(n.bundle_ident, existing.bundle_ident)) {
+			return;
+		}
+		String groupSurveyIdent = n.bundle ? n.bundle_ident : GeneralUtilityMethods.getGroupSurveyIdent(sd, n.s_id);
+		checkFilter(sd, groupSurveyIdent, n.trigger, n.filter);
+	}
+
+	/*
+	 * Refuse a filter that will not work against a bundle, for pages that save notifications themselves
+	 */
+	public void checkFilter(Connection sd, String groupSurveyIdent, String trigger, String filter) throws Exception {
+		if(groupSurveyIdent == null || filter == null || filter.trim().length() == 0) {
+			return;		// Not for a survey, nothing to check it against
+		}
+		String requester = "NotificationManager - check filter";
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			// A server calculation notification looks at the main form only
+			new ServerExpressionValidator(localisation).validate(sd, cResults, groupSurveyIdent,
+					"server_calc".equals(trigger), filter, ServerExpressionValidator.CONDITION,
+					localisation.getString("se_w_notification"));
+		} finally {
+			ResultsDataSource.closeConnection(requester, cResults);
+		}
+	}
+
+	/*
 	 * Add a record to the notification table
 	 */
 	public int addNotification(Connection sd, PreparedStatement pstmt, String user,
 			Notification n, String tz) throws Exception {
+
+		checkFilter(sd, n, null);
 
 		String sql = "insert into forward(" +
 				" s_id, enabled, " +
@@ -225,6 +264,7 @@ public class NotificationManager {
 			Notification n, String tz) throws Exception {
 
 		Notification existing = getNotification(sd, n.id, tz);		// Get the current values so that changes can be logged
+		checkFilter(sd, n, existing);
 
 		String sql = null;
 		if(n.update_password) {

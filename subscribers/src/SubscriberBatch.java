@@ -1495,7 +1495,7 @@ public class SubscriberBatch {
 						 */
 						SqlFrag filterFrag = null;
 						if(filter != null && filter.length() > 0) {			
-							filterFrag = new SqlFrag();
+							filterFrag = new SqlFrag(GeneralUtilityMethods.getColumnMap(sd, groupSurveyIdent));
 							filterFrag.addSqlFragment(filter, false, localisation, 0);
 						}
 						if(filterFrag != null) {
@@ -1771,9 +1771,11 @@ public class SubscriberBatch {
 				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				
 				SqlFrag calculationFrag = null;
+				HashMap<String, String> columnMap = null;
 				if(serverCalculate != null && GeneralUtilityMethods.tableExists(cResults, table)) {
 					ServerCalculation sc = gson.fromJson(serverCalculate, ServerCalculation.class);
-					calculationFrag = new SqlFrag();
+					columnMap = GeneralUtilityMethods.getColumnMap(sd, sId);
+					calculationFrag = new SqlFrag(columnMap);
 					sc.populateSql(calculationFrag, localisation);
 						
 					/*
@@ -1795,7 +1797,7 @@ public class SubscriberBatch {
 					 */
 					SqlFrag filterFrag = null;
 					if(filter != null && filter.length() > 0) {			
-						filterFrag = new SqlFrag();
+						filterFrag = new SqlFrag(columnMap != null ? columnMap : GeneralUtilityMethods.getColumnMap(sd, sId));
 						filterFrag.addSqlFragment(filter, false, localisation, 0);
 					}
 					if(filterFrag != null) {

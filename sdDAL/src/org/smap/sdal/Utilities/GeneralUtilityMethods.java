@@ -109,6 +109,7 @@ import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.Search;
 import org.smap.sdal.model.SelectKeys;
+import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
@@ -3796,6 +3797,7 @@ public class GeneralUtilityMethods {
 
 		int oId = getOrganisationId(sd, user);
 		ArrayList<TableColumn> columnList = new ArrayList<TableColumn>();
+		HashMap<String, String> columnMap = null;		// For server calculations, got when first needed
 		ArrayList<TableColumn> realQuestions = new ArrayList<TableColumn>(); // Temporary array so that all property questions can be added first
 		boolean hasHRK = false;
 
@@ -4327,7 +4329,10 @@ public class GeneralUtilityMethods {
 					// Add server Calculates
 					if(qType.equals("server_calculate") && serverCalculate != null) {
 						ServerCalculation sc = gson.fromJson(serverCalculate, ServerCalculation.class);
-						c.calculation = new SqlFrag();
+						if(columnMap == null) {
+							columnMap = getColumnMap(sd, sId);
+						}
+						c.calculation = new SqlFrag(columnMap);
 						sc.populateSql(c.calculation, localisation);
 						c.readonly = true;		// All server calculations are read only
 					} 
@@ -7576,6 +7581,58 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * Question name to column name for the questions in a bundle, for a server expression to find the
+	 * column each ${name} refers to.  Keyed by the name as written and again in lower case, the first
+	 * survey in the bundle wins when two surveys use the same name.
+	 */
+	public static HashMap<String, String> getColumnMap(Connection sd, String groupSurveyIdent) throws SQLException {
+		HashMap<String, String> map = new HashMap<> ();
+		if(groupSurveyIdent == null) {
+			return map;
+		}
+		String sql = "select q.qname, q.column_name "
+				+ "from question q, form f, survey s "
+				+ "where q.f_id = f.f_id "
+				+ "and f.s_id = s.s_id "
+				+ "and s.group_survey_ident = ? "
+				+ "and not s.deleted "
+				+ "and not q.soft_deleted "
+				+ "and q.column_name is not null "
+				+ "order by s.s_id asc, q.q_id asc";
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setString(1, groupSurveyIdent);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String qname = rs.getString(1);
+				String column = rs.getString(2);
+				map.putIfAbsent(qname, column);
+				map.putIfAbsent(qname.toLowerCase(), column);
+			}
+		}
+		return map;
+	}
+
+	public static HashMap<String, String> getColumnMap(Connection sd, int sId) throws SQLException {
+		return getColumnMap(sd, getGroupSurveyIdent(sd, sId));
+	}
+
+	public static HashMap<String, String> getColumnMapFromIdent(Connection sd, String sIdent) throws SQLException {
+		return getColumnMap(sd, getGroupSurveyIdentFromIdent(sd, sIdent));
+	}
+
+	// The same from a map of the bundle's questions that the caller already has
+	public static HashMap<String, String> getColumnMap(HashMap<String, QuestionForm> questions) {
+		HashMap<String, String> map = new HashMap<> ();
+		for(QuestionForm qf : questions.values()) {
+			if(qf.qName != null && qf.columnName != null) {
+				map.putIfAbsent(qf.qName, qf.columnName);
+				map.putIfAbsent(qf.qName.toLowerCase(), qf.columnName);
+			}
+		}
+		return map;
+	}
+
+	/*
 	 * Check to see if the passed in survey response, identified by an instance id, is within the filtered set of responses
 	 */
 	public static boolean testFilter(Connection sd, Connection cResults, String user, ResourceBundle localisation, Survey survey, String filter, 
@@ -7593,7 +7650,7 @@ public class GeneralUtilityMethods {
 
 		// Add the filter
 		filterQuery.append(" and (");
-		SqlFrag frag = new SqlFrag();
+		SqlFrag frag = new SqlFrag(getColumnMap(sd, survey.surveyData.groupSurveyIdent));
 		frag.addSqlFragment(filter, false, localisation, 0);
 		filterQuery.append(frag.sql);
 		filterQuery.append(")");

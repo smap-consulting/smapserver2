@@ -1466,7 +1466,7 @@ public class TaskManager {
 				sql.append(", ST_AsGeoJson(" + geomColumn + ")");
 			}
 			if(as.assign_data != null && as.assign_data.trim().length() > 0) {
-				SqlFrag frag = new SqlFrag();
+				SqlFrag frag = new SqlFrag(GeneralUtilityMethods.getColumnMap(sd, sId));
 				frag.addSqlFragment(as.assign_data, false, localisation, 0);
 				sql.append(",").append(frag.sql.toString()).append(" as _assign_key");;
 			}
@@ -4094,6 +4094,59 @@ public class TaskManager {
 	}
 	
 	/*
+	 * Refuse a task rule whose filter or assignment expression will not work against its source
+	 * survey.  An expression that is the same as in the rule being replaced (tgId) is left for the
+	 * operational issues report.
+	 */
+	public void checkRule(Connection sd, String rule, int sourceSurveyId, int tgId) throws Exception {
+		if(rule == null || sourceSurveyId <= 0) {
+			return;
+		}
+		AssignFromSurvey as = new Gson().fromJson(rule, AssignFromSurvey.class);
+		if(as == null) {
+			return;
+		}
+		AssignFromSurvey old = null;
+		if(tgId > 0) {
+			try (PreparedStatement pstmt = sd.prepareStatement("select rule, source_s_id from task_group where tg_id = ?")) {
+				pstmt.setInt(1, tgId);
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next() && rs.getString(1) != null && rs.getInt(2) == sourceSurveyId) {
+					old = new Gson().fromJson(rs.getString(1), AssignFromSurvey.class);
+				}
+			}
+		}
+		String filter = as.filter == null ? null : as.filter.advanced;
+		String oldFilter = (old == null || old.filter == null) ? null : old.filter.advanced;
+		boolean checkFilter = filter != null && filter.trim().length() > 0 && !filter.equals(oldFilter);
+
+		// "_data" is how the workflow page marks a rule that assigns from the data, it is not an expression
+		String assign = as.assign_data;
+		boolean checkAssign = assign != null && assign.trim().length() > 0 && !assign.equals("_data")
+				&& !(old != null && assign.equals(old.assign_data));
+		if(!checkFilter && !checkAssign) {
+			return;
+		}
+
+		String requester = "TaskManager - check rule";
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			ServerExpressionValidator v = new ServerExpressionValidator(localisation);
+			if(checkFilter) {
+				v.validate(sd, cResults, sourceSurveyId, false, filter,
+						ServerExpressionValidator.CONDITION, localisation.getString("se_w_task"));
+			}
+			if(checkAssign) {
+				// Read from the main form when tasks are made
+				v.validate(sd, cResults, sourceSurveyId, true, assign,
+						ServerExpressionValidator.VALUE, localisation.getString("se_w_task_assign"));
+			}
+		} finally {
+			ResultsDataSource.closeConnection(requester, cResults);
+		}
+	}
+
+	/*
 	 * Create a task group if it does not exist or return the existing task group id
 	 * Task groups have unique names within a project
 	 */
@@ -4138,6 +4191,7 @@ public class TaskManager {
 		
 			// Create a task group if one was not found
 			if(taskGroupId == 0) {
+				checkRule(sd, rule, sourceSurveyId, 0);
 				String tgSql = "insert into task_group ( "
 						+ "name, "
 						+ "p_id, "

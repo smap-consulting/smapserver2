@@ -36,6 +36,7 @@ import org.smap.sdal.Utilities.QuestionInfo;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.ServerExpressionValidator;
 import org.smap.sdal.managers.QueryManager;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
@@ -195,8 +196,9 @@ public class ExportSurveyMedia extends Application {
 				SqlFrag filterFrag = null;
 				if(filter != null && filter.length() > 0) {
 		
-					filterFrag = new SqlFrag();
+					filterFrag = new SqlFrag(GeneralUtilityMethods.getColumnMap(sd, sId));
 					filterFrag.addSqlFragment(filter, false, localisation, 0);	
+					new ServerExpressionValidator(localisation).validateFilter(sd, cResults, sId, filter);
 		
 					for(String filterCol : filterFrag.columns) {
 						namedQuestions.add(filterCol);
@@ -368,11 +370,11 @@ public class ExportSurveyMedia extends Application {
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");
 				// Return an OK status so the message gets added to the web page
 				// Prepend the message with "Error: ", this will be removed by the client
-				responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
+				responseVal = Response.status(Status.OK).entity("Error: " + GeneralUtilityMethods.getSafeText(e.getMessage(), true)).build();
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Error", e);
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");
-				responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
+				responseVal = Response.status(Status.OK).entity("Error: " + GeneralUtilityMethods.getSafeText(e.getMessage(), true)).build();
 			} finally {
 				
 

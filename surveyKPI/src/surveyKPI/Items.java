@@ -51,6 +51,7 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.Dhis2ExportManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.ServerExpressionValidator;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SubmissionsManager;
 import org.smap.sdal.managers.UserLocationManager;
@@ -419,7 +420,7 @@ public class Items extends Application {
 				SqlFrag advancedFilterFrag = null;
 				if(advanced_filter != null && advanced_filter.length() > 0) {
 
-					advancedFilterFrag = new SqlFrag();
+					advancedFilterFrag = new SqlFrag(GeneralUtilityMethods.getColumnMap(sd, sId));
 					advancedFilterFrag.addSqlFragment(advanced_filter, false, localisation, 0);
 
 					for(String filterCol : advancedFilterFrag.humanNames) {
@@ -429,6 +430,7 @@ public class Items extends Application {
 							throw new ApplicationException(msg);
 						}
 					}
+					new ServerExpressionValidator(localisation).validateFilter(sd, cResults, sId, advanced_filter);
 				}
 				// Add the advanced filter fragment
 				if(advancedFilterFrag != null) {

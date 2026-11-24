@@ -608,7 +608,7 @@ public class LookupManager {
 				
 				if(colType.equals("server_calculate") && serverCalculate != null) {
 					ServerCalculation sc = gson.fromJson(serverCalculate, ServerCalculation.class);
-					calculation = new SqlFrag();
+					calculation = new SqlFrag(GeneralUtilityMethods.getColumnMap(sd, sId));
 					sc.populateSql(calculation, localisation);
 					details.filterArray = new ArrayList<>();
 					details.filterArray.add(calculation);

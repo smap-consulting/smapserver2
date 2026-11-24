@@ -174,17 +174,26 @@ counts and failures when the output would be long, as the tool truncates it.
      would be sent.  Then, with `{"part":<part>,"sId","ident","run":<the time in ms, the same for every part>,"test"}`,
      run the parts single, multiple, escalateAdd, escalateReplace, close and switchBack in that order, running a part
      again while it returns `pending`, for up to 3 minutes, as escalations are applied by a background process.
+   - `server-expression`: server expressions checked when saved.  Find `survey` with `survey_list`; when missing make
+     it with `survey_create` and its questions.  If the `removed` question is not in it (a run that stopped part way),
+     add it back with `survey_add_question`.  If `data_query` finds no record, check `survey_submission_effects` and submit the test's `record` with `data_submit` (kept).  Get the main form id and the bundle ident with `survey_get`.  On
+     `{server}/app/tasks/managed_forms.html` run `harness/server-expression.js` with `__CONFIG__` =
+     `{"part":"setup","project","sId","test":<the test file>}`, then `{"part":"refuse","project","sId","fId","group",
+     "test"}`.  Delete the `removed` question with `survey_delete_question`; its reply (`stopsWorking` in the structured content) must say
+     the change stops the test's notification working (a ✅/❌ row of its own).  Run `{"part":"broken","project","nId":<setup's>,"test"}`.
+     Last, add the `removed` question back with `survey_add_question` (same name, type and label), so the next run
+     starts with a working filter.
 4. Do not submit forms.  Tests leave no data, apart from the settings-secrets write checks, which
    put the setting they use back as it was, the records and tasks the xss test keeps in its own
    survey, the records and trail the dashboard-map test keeps, the records and grid the
    dashboard-region test keeps, the records the sqli-filter and sqli-autoupdate tests keep, and the
    records and duplicate upload the submission-totals test keeps, and the records the update-conflicts
-   test adds to its own surveys, one per scenario each run, and the two records the case-alerts test adds each run, and the notifications the conflict-notifications test keeps on the update-conflicts surveys and the six records it adds to them each run, and the notification the operational-issues test keeps on the case-alerts survey and the record it adds there each run, and the survey and two notifications the multiple-assignees test keeps and the three records it adds each run.
+   test adds to its own surveys, one per scenario each run, and the two records the case-alerts test adds each run, and the notifications the conflict-notifications test keeps on the update-conflicts surveys and the six records it adds to them each run, and the notification the operational-issues test keeps on the case-alerts survey and the record it adds there each run, and the survey and two notifications the multiple-assignees test keeps and the three records it adds each run, and the survey, record and notification the server-expressions test keeps.
 
 ## Report
 
 One table per test: for webform-constraint question, value, expected, actual; for settings-secrets
-check and detail; for xss page, check and detail; for sqli probe and detail; for mcp-totals check and detail; for update-conflict scenario, check and detail; for case-alert part, check and detail; for conflict-notification part or scenario, check and detail; for issues part, check and detail; for multiple-assignee part, check and detail; each with ✅/❌.  Then a summary line per test,
+check and detail; for xss page, check and detail; for sqli probe and detail; for mcp-totals check and detail; for update-conflict scenario, check and detail; for case-alert part, check and detail; for conflict-notification part or scenario, check and detail; for issues part, check and detail; for multiple-assignee part, check and detail; for server-expression part, check and detail; each with ✅/❌.  Then a summary line per test,
 PASS or FAIL with the number of failures.  For a failure include the `constraints` the harness
 returned, as the constraint as the page received it is usually the clue.  Close the Chrome tab.
 

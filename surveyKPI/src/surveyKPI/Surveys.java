@@ -48,6 +48,7 @@ import org.smap.sdal.managers.DocumentUploadManager;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.ServerExpressionValidator;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.model.ChangeElement;
@@ -1382,6 +1383,10 @@ public class Surveys extends Application {
 					pstmtClear.executeUpdate();
 				}
 				
+				if(tp.property.equals("rule")) {
+					checkTemplateRule(sd, request, tp);
+				}
+
 				int uId = GeneralUtilityMethods.getUserId(sd, request, request.getRemoteUser());
 				pstmt = sd.prepareStatement(sql);
 				if(tp.property.equals("not_available") || tp.property.equals("default_template")) {
@@ -1404,8 +1409,39 @@ public class Surveys extends Application {
 				if (pstmtClear != null) try {pstmtClear.close();} catch (SQLException e) {}
 			}
 		}
+		SDDataSource.closeConnection(connectionString, sd);
 		
 		return response;
+	}
+
+	/*
+	 * Refuse a template rule that will not work against the template's survey, an unchanged rule is
+	 * left for the operational issues report
+	 */
+	private void checkTemplateRule(Connection sd, HttpServletRequest request, TemplateProperty tp) throws Exception {
+		if(tp.value == null || tp.value.trim().length() == 0) {
+			return;
+		}
+		String sIdent = null;
+		try (PreparedStatement pstmt = sd.prepareStatement("select ident, rule from survey_template where t_id = ?")) {
+			pstmt.setInt(1, tp.id);
+			ResultSet rs = pstmt.executeQuery();
+			if(!rs.next() || tp.value.equals(rs.getString("rule"))) {
+				return;
+			}
+			sIdent = rs.getString("ident");
+		}
+		Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+		ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+		String requester = "SurveyKPI - check template rule";
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			new ServerExpressionValidator(localisation).validate(sd, cResults,
+					GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, sIdent), false, tp.value,
+					ServerExpressionValidator.CONDITION, localisation.getString("se_w_template"));
+		} finally {
+			ResultsDataSource.closeConnection(requester, cResults);
+		}
 	}
 	
 	/*

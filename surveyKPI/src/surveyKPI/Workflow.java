@@ -51,6 +51,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.NotificationManager;
+import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.WorkflowManager;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
@@ -521,6 +522,10 @@ public class Workflow extends Application {
 
 				// Get the stored notification so that the detail of the change can be logged
 				Notification before = nm.getNotification(sd, n.id, "UTC");
+				if(before != null && n.filter != null && !n.filter.equals(before.filter)) {
+					nm.checkFilter(sd, before.bundle ? before.bundle_ident
+							: GeneralUtilityMethods.getGroupSurveyIdent(sd, before.s_id), before.trigger, n.filter);
+				}
 
 				pstmtUpd.setString(1, n.name);
 				pstmtUpd.setString(2, n.remoteUser);
@@ -664,6 +669,9 @@ public class Workflow extends Application {
 				nd.sp_match_field  = n.spMatchField;
 				nd.sp_column_map   = n.spColumnMap;
 			}
+
+			new NotificationManager(localisation).checkFilter(sd, n.bundle ? bundleIdent
+					: GeneralUtilityMethods.getGroupSurveyIdent(sd, n.srcSurveyId), "submission", n.filter);
 
 			String sql = "insert into forward(s_id, enabled, trigger, target, filter, name, p_id, "
 					+ "remote_user, notify_details, bundle, bundle_ident, wf_prev_node_id, updated) "
@@ -810,7 +818,7 @@ public class Workflow extends Application {
 		PreparedStatement pstmtUpd = null;
 		PreparedStatement pstmtGetPid = null;
 		try {
-			String sqlGet = "select rule, target_s_id from task_group where tg_id = ? "
+			String sqlGet = "select rule, target_s_id, source_s_id from task_group where tg_id = ? "
 					+ "and p_id in (select p.id from project p, user_project up, users u "
 					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id)";
 			String sqlUpd = "update task_group set name = ?, rule = ?, target_s_id = ?, p_id = ? where tg_id = ? "
@@ -835,9 +843,11 @@ public class Workflow extends Application {
 				ResultSet rs = pstmtGet.executeQuery();
 				org.smap.sdal.model.AssignFromSurvey afs = new org.smap.sdal.model.AssignFromSurvey();
 				int existingTargetSId = 0;
+				int sourceSId = 0;
 				if (rs.next()) {
 					String existing = rs.getString("rule");
 					existingTargetSId = rs.getInt("target_s_id");
+					sourceSId = rs.getInt("source_s_id");
 					if (existing != null) {
 						org.smap.sdal.model.AssignFromSurvey parsed =
 							gson.fromJson(existing, org.smap.sdal.model.AssignFromSurvey.class);
@@ -886,8 +896,11 @@ public class Workflow extends Application {
 					rsp.close();
 				}
 
+				String ruleJson = gson.toJson(afs);
+				new TaskManager(localisation, "UTC").checkRule(sd, ruleJson, sourceSId, tg.tgId);
+
 				pstmtUpd.setString(1, tg.name);
-				pstmtUpd.setString(2, gson.toJson(afs));
+				pstmtUpd.setString(2, ruleJson);
 				pstmtUpd.setInt(3, newTargetSId);
 				pstmtUpd.setInt(4, newProjectId);
 				pstmtUpd.setInt(5, tg.tgId);
@@ -1029,6 +1042,8 @@ public class Workflow extends Application {
 				afs.filter = new org.smap.sdal.model.SqlWhereClause();
 				afs.filter.advanced = tg.filter;
 			}
+
+			new TaskManager(localisation, "UTC").checkRule(sd, gson.toJson(afs), tg.sourceSurveyId, 0);
 
 			String sql = "insert into task_group(name, p_id, source_s_id, target_s_id, rule, "
 					+ "address_params, dl_dist, complete_all, assign_auto, wf_prev_node_id) "

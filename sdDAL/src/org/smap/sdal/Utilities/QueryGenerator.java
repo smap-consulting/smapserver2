@@ -35,6 +35,7 @@ import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.SqlDesc;
+import org.smap.sdal.managers.ServerExpressionValidator;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.SqlParam;
@@ -178,7 +179,7 @@ public class QueryGenerator {
 			SqlFrag filterFrag = null;
 			if(filter != null && filter.length() > 0) {
 	
-				filterFrag = new SqlFrag();
+				filterFrag = new SqlFrag(GeneralUtilityMethods.getColumnMap(sd, sId));
 				filterFrag.addSqlFragment(filter, false, localisation, 0);
 	
 	
@@ -203,6 +204,7 @@ public class QueryGenerator {
 						}
 					}
 				}
+				new ServerExpressionValidator(localisation).validateFilter(sd, connectionResults, sId, filter);
 			}
 			
 			StringBuffer shpSqlBuf = new StringBuffer();

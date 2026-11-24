@@ -276,7 +276,7 @@ public class DataAggregateManager {
 		}
 
 		if(q.advancedFilter != null && q.advancedFilter.trim().length() > 0) {
-			SqlFrag frag = new SqlFrag();
+			SqlFrag frag = new SqlFrag(GeneralUtilityMethods.getColumnMapFromIdent(sd, q.sIdent));
 			frag.addSqlFragment(q.advancedFilter, false, localisation, 0);
 			/*
 			 * Validated against the caller's own columns, the same test the read path applies, so a

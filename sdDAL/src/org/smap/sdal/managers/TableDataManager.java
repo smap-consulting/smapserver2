@@ -269,7 +269,7 @@ public class TableDataManager {
 			SqlFrag filterFrag = null;
 			if(advanced_filter != null && advanced_filter.length() > 0) {
 	
-				filterFrag = new SqlFrag();
+				filterFrag = new SqlFrag(GeneralUtilityMethods.getColumnMap(sd, sId));
 				filterFrag.addSqlFragment(advanced_filter, false, localisation, 0);
 	
 	
@@ -289,6 +289,7 @@ public class TableDataManager {
 				}
 			}
 			if(filterFrag != null) {
+				new ServerExpressionValidator(localisation).validateFilter(sd, cResults, sId, advanced_filter);
 				sqlSelect.append(" and (").append(filterFrag.sql).append(")");
 			}
 			

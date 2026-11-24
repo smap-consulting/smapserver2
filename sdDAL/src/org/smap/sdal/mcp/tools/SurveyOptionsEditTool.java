@@ -234,7 +234,7 @@ public class SurveyOptionsEditTool extends AbstractMcpTool {
 		}
 
 		SurveyManager sm = new SurveyManager(ctx.localisation, ctx.timezone, ctx.clientId);
-		sm.applyChangeSetArray(ctx.sd, ctx.cResults, surveyId, ctx.user, changes, true);
+		org.smap.sdal.model.ChangeResponse changeResp = sm.applyChangeSetArray(ctx.sd, ctx.cResults, surveyId, ctx.user, changes, true);
 
 		Map<String, Object> data = new LinkedHashMap<>();
 		data.put("updated", Boolean.TRUE);
@@ -275,6 +275,7 @@ public class SurveyOptionsEditTool extends AbstractMcpTool {
 							+ "no label behind it.");
 		}
 
+		addExpressionWarnings(text, data, changeResp);
 		MCPToolResult result = new MCPToolResult(text.toString());
 		result.setStructuredContent(data);
 		return result;

@@ -267,7 +267,7 @@ public class SurveyAddQuestionTool extends AbstractMcpTool {
 
 		/* The agent, so the change log says which application added the question */
 		SurveyManager sm = new SurveyManager(ctx.localisation, ctx.timezone, ctx.clientId);
-		sm.applyChangeSetArray(ctx.sd, ctx.cResults, surveyId, ctx.user, changes, true);
+		org.smap.sdal.model.ChangeResponse changeResp = sm.applyChangeSetArray(ctx.sd, ctx.cResults, surveyId, ctx.user, changes, true);
 
 		Map<String, Object> data = new LinkedHashMap<>();
 		data.put("added", Boolean.TRUE);
@@ -284,6 +284,7 @@ public class SurveyAddQuestionTool extends AbstractMcpTool {
 				+ "the answers is added separately - survey_history shows that as pending until it "
 				+ "has been. Remove it again with survey_delete_question.");
 
+		addExpressionWarnings(text, data, changeResp);
 		MCPToolResult result = new MCPToolResult(text.toString());
 		result.setStructuredContent(data);
 		return result;

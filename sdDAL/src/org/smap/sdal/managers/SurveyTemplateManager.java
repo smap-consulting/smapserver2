@@ -415,6 +415,23 @@ public class SurveyTemplateManager {
 				}
 			}
 			
+			/*
+			 * The survey's server calculations and role row filters must work against its bundle.  A
+			 * survey being replaced is left out, its questions are about to go.
+			 */
+			ServerExpressionValidator sev = new ServerExpressionValidator(localisation);
+			if(valid) {
+				if(action.equals("replace")) {
+					sev.excludeSurvey(existingSurveyId);
+				}
+				for(ServerExpressionValidator.Problem p : sev.checkBundle(sd, cResults,
+						s.surveyData.groupSurveyIdent, s.surveyData.ident)) {
+					valid = false;
+					errMsg = sev.describe(p);
+					break;
+				}
+			}
+
 			if(!valid) {
 				new RoleManager(localisation).deleteSurveyRoles(sd, s.surveyData.ident);
 				sm.delete(sd, 
@@ -460,6 +477,15 @@ public class SurveyTemplateManager {
 				}
 			}
 			
+			/*
+			 * Warn about the bundle's other server expressions that do not work now, such as a
+			 * notification filter that names a question this survey no longer has
+			 */
+			sev = new ServerExpressionValidator(localisation);
+			for(ServerExpressionValidator.Problem p : sev.checkBundle(sd, cResults, s.surveyData.groupSurveyIdent, null)) {
+				warnings.add(new ApplicationWarning(sev.describe(p)));
+			}
+
 			/*
 			 * Save the FormXLS file so that it can be retrieved from the change history
 			 */

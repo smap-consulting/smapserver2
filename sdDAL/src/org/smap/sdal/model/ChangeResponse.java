@@ -10,4 +10,5 @@ public class ChangeResponse {
 	public int failed;		// Number of failed updates
 	public int version;		// The new version of the survey
 	public ArrayList<ChangeSet> changeSet;	
+	public ArrayList<String> warnings = new ArrayList<> ();	// Server expressions in the bundle that the changes broke
 }

@@ -7,11 +7,13 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.model.CMS;
 import org.smap.sdal.model.Case;
 import org.smap.sdal.model.CaseCount;
@@ -131,12 +133,43 @@ public class CaseManager {
 	}
 
 	/*
+	 * Refuse an alert filter that will not work against the bundle's main form.  An unchanged filter
+	 * is left for the operational issues report.
+	 */
+	private void checkAlertFilter(Connection sd, CaseManagementAlert alert) throws Exception {
+		if(alert.filter == null || alert.filter.trim().length() == 0) {
+			return;
+		}
+		if(alert.id > 0) {
+			try (PreparedStatement pstmt = sd.prepareStatement(
+					"select filter, group_survey_ident from cms_alert where id = ?")) {
+				pstmt.setInt(1, alert.id);
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next() && alert.filter.equals(rs.getString(1))
+						&& Objects.equals(alert.group_survey_ident, rs.getString(2))) {
+					return;
+				}
+			}
+		}
+		String requester = "CaseManager - check alert filter";
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			new ServerExpressionValidator(localisation).validate(sd, cResults, alert.group_survey_ident, true,
+					alert.filter, ServerExpressionValidator.CONDITION, localisation.getString("se_w_alert"));
+		} finally {
+			ResultsDataSource.closeConnection(requester, cResults);
+		}
+	}
+
+	/*
 	 * Create a new Case Management Alert
 	 */
 	public void createAlert(Connection sd, 
 			String user,
 			CaseManagementAlert alert) throws Exception {
 		
+		checkAlertFilter(sd, alert);
+
 		String sql = "insert into cms_alert (group_survey_ident, name, period, filter, changed_by, changed_ts) " +
 				" values (?, ?, ?, ?, ?, now());";
 		
@@ -170,6 +203,8 @@ public class CaseManager {
 			String user,
 			CaseManagementAlert alert) throws Exception {
 		
+		checkAlertFilter(sd, alert);
+
 		String sql = "update cms_alert "
 				+ "set group_survey_ident = ?, "
 				+ "name = ?,"
