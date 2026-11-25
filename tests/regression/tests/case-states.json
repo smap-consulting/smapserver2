@@ -1,0 +1,105 @@
+{
+  "name": "case-states",
+  "description": "Closing and reopening a case follow from its data (2026-11-25, 26.12.01). Several status values can close a case. A change of status to one of them, by console or MCP update or by a submission, sets the closed date, records a Closed event that says who had the case, and takes them all off it. A case can be closed by the submission that creates it, and that is recorded too. Changing to another closed value changes nothing. Changing back to an open value reopens the case: the closed date is cleared, _case_reopened set, a Reopened event recorded, the people who had it get it back, its alerts can fire again timed from the reopening, and the case_reopened notification trigger fires. Keeps its survey, the records it makes and one notification, which sends to the cs_note question, whose answers are not addresses, so nothing is sent.",
+  "kind": "case-state",
+  "survey": {
+    "name": "Case states test",
+    "project": "A project",
+    "choices": {
+      "cs_status": [
+        {
+          "value": "open",
+          "label": "Open"
+        },
+        {
+          "value": "done",
+          "label": "Done"
+        },
+        {
+          "value": "dropped",
+          "label": "Dropped"
+        }
+      ]
+    },
+    "questions": [
+      {
+        "type": "select1",
+        "name": "cs_status",
+        "label": "Status",
+        "option_list": "cs_status"
+      },
+      {
+        "type": "string",
+        "name": "cs_note",
+        "label": "Note"
+      }
+    ]
+  },
+  "settings": {
+    "status_question": "cs_status",
+    "final_status": "done, dropped"
+  },
+  "notification": {
+    "name": "Case states test - reopened",
+    "trigger": "case_reopened",
+    "emailQuestion": "cs_note",
+    "subject": "Regression case reopened"
+  },
+  "steps": [
+    {
+      "name": "close by console update",
+      "status": "done",
+      "expect": {
+        "closed": true,
+        "owners": [],
+        "event": "case_closed",
+        "eventText": "It was with"
+      }
+    },
+    {
+      "name": "another closed value",
+      "status": "dropped",
+      "expect": {
+        "closed": true,
+        "sameCloseTime": true,
+        "owners": [],
+        "event": null
+      }
+    },
+    {
+      "name": "reopen by console update",
+      "status": "open",
+      "expect": {
+        "closed": false,
+        "reopened": true,
+        "owners": [
+          "{user}"
+        ],
+        "event": "case_reopened",
+        "eventText": "It went back to",
+        "notification": true
+      }
+    },
+    {
+      "name": "close by submission",
+      "via": "submission",
+      "status": "done",
+      "expect": {
+        "closed": true,
+        "owners": [],
+        "event": "case_closed"
+      }
+    },
+    {
+      "name": "closed by its first submission",
+      "via": "new",
+      "status": "done",
+      "expect": {
+        "closed": true,
+        "owners": [],
+        "event": "case_closed",
+        "eventText": "its status was set to"
+      }
+    }
+  ]
+}

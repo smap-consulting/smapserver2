@@ -155,6 +155,20 @@ public class SubmissionEventManager {
 	/*
 	 * True if saving this instance changed answers somebody else had changed since the record was opened
 	 */
+	/*
+	 * Whether the version of a case this submission made opened it again
+	 */
+	private boolean hasReopened(Connection sd, String thread, String instanceId) throws SQLException {
+		try (PreparedStatement pstmt = sd.prepareStatement("select count(*) from record_event "
+				+ "where key = ? and event = ? and instanceid = ?")) {
+			pstmt.setString(1, thread);
+			pstmt.setString(2, RecordEventManager.CASE_REOPENED);
+			pstmt.setString(3, instanceId);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() && rs.getInt(1) > 0;
+		}
+	}
+
 	private boolean hasConflict(Connection sd, String thread, String instanceId) throws SQLException {
 		String sql = "select count(*) from record_event "
 				+ "where key = ? "
@@ -261,6 +275,22 @@ public class SubmissionEventManager {
 							instanceId);
 				}
 				
+				// Apply notifications for a case this submission opened again
+				if(thread != null && hasReopened(sd, thread, instanceId)) {
+					nm.notifyForReopen(
+							sd, 
+							cResults,
+							ueId, 
+							submittingUser,
+							temporaryUser,
+							"https",
+							server,
+							basePath,
+							urlprefix,
+							ident,
+							instanceId);
+				}
+
 				// Apply Tasks
 				TaskManager tm = new TaskManager(localisation, "UTC");
 				tm.updateTasksForSubmission(

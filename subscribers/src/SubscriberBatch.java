@@ -1475,8 +1475,12 @@ public class SubscriberBatch {
 							settingsCache.put(groupSurveyIdent, settings);
 						}						
 					}
-					if(settings != null && settings.finalStatus != null && settings.statusQuestion != null &&
+					if(settings != null && settings.hasClosedStatus() &&
 							GeneralUtilityMethods.hasColumn(cResults, table, settings.statusQuestion)) {
+
+						// A reopened case is timed from when it reopened
+						String since = GeneralUtilityMethods.hasColumn(cResults, table, "_case_reopened")
+								? "coalesce(_case_reopened, _thread_created)" : "_thread_created";
 						
 						/*
 						 * Find records in the case that match this alert
@@ -1486,9 +1490,9 @@ public class SubscriberBatch {
 						sqlMatch.append(" where not _bad and (")
 							.append(settings.statusQuestion)
 							.append(" is null or ")
-							.append("cast (").append(settings.statusQuestion).append(" as text)").append(" != ? ) ")
+							.append("not (cast (").append(settings.statusQuestion).append(" as text)").append(" = any(?)) ) ")
 							.append("and  _thread not in (select thread from case_alert_triggered where table_name = ? and a_id = ?) ")
-							.append("and _thread_created < now() - ?::interval ");	
+							.append("and ").append(since).append(" < now() - ?::interval ");	
 						
 						/*
 						 * Add context filter
@@ -1504,7 +1508,7 @@ public class SubscriberBatch {
 						
 						pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
 						int idx = 1;
-						pstmtMatches.setString(idx++, settings.finalStatus);
+						pstmtMatches.setArray(idx++, cResults.createArrayOf("text", settings.getClosedStatuses().toArray()));
 						pstmtMatches.setString(idx++, table);
 						pstmtMatches.setInt(idx++, aId);
 						pstmtMatches.setString(idx++, period);						
@@ -1532,7 +1536,7 @@ public class SubscriberBatch {
 								pstmtTriggered.setInt(1, aId);
 								pstmtTriggered.setString(2, table);
 								pstmtTriggered.setString(3, thread);
-								pstmtTriggered.setString(4, settings.finalStatus);
+								pstmtTriggered.setString(4, String.join(",", settings.getClosedStatuses()));
 
 								int insertCount = pstmtTriggered.executeUpdate();
 								if (insertCount == 0) {

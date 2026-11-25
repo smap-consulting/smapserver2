@@ -66,6 +66,8 @@ public class RecordEventManager {
 	public static String NEW_CASE = "new_case";
 	public static String EMAIL_REPLY = "email_reply";
 	public static String CONFLICT = "conflict";				// Somebody else changed the same answers after the record was opened
+	public static String CASE_CLOSED = "case_closed";		// A change of status closed the case
+	public static String CASE_REOPENED = "case_reopened";	// A change of status opened a closed case again
 	
 	public static String STATUS_SUCCESS = "success";
 	public static String STATUS_NEW = "new";
@@ -441,6 +443,8 @@ public class RecordEventManager {
 				if(changes != null) {
 					if(CONFLICT.equals(event.event)) {
 						event.conflict = gson.fromJson(changes, UpdateConflicts.class);
+					} else if(CASE_CLOSED.equals(event.event) || CASE_REOPENED.equals(event.event)) {
+						// Who had the case, kept to give it back; the description says what happened
 					} else {
 						event.changes = gson.fromJson(changes, new TypeToken<ArrayList<DataItemChange>>() {}.getType());
 					}

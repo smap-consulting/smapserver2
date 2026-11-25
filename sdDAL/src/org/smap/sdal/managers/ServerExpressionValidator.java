@@ -100,7 +100,7 @@ public class ServerExpressionValidator {
 			{"_assigned", "text"}, {"_complete", "boolean"}, {"_modified", "boolean"},
 			{SmapServerMeta.UPLOAD_TIME_NAME, "timestamp with time zone"}, {SmapServerMeta.SURVEY_ID_NAME, "integer"},
 			{"instanceid", "text"}, {"instancename", "text"}, {"_thread", "text"},
-			{"_thread_created", "timestamp with time zone"}, {"_case_closed", "timestamp with time zone"},
+			{"_thread_created", "timestamp with time zone"}, {"_case_closed", "timestamp with time zone"}, {"_case_reopened", "timestamp with time zone"},
 			{"_case_survey", "text"}, {"_alert", "text"},
 			{SmapServerMeta.SCHEDULED_START_NAME, "timestamp with time zone"}, {"_hrk", "text"},
 			{"_start", "timestamp with time zone"}, {"_end", "timestamp with time zone"}, {"_device", "text"}

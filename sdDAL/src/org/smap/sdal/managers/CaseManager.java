@@ -238,6 +238,47 @@ public class CaseManager {
 	}
 	
 	/*
+	 * The answers a select one status question offers, so a person can pick the ones that close a case.  Empty when
+	 * the question is not a select one, or has no fixed choices.  Each is the value and a label, from the first
+	 * survey in the bundle that has the question.
+	 */
+	public ArrayList<String[]> getStatusChoices(Connection sd, String groupSurveyIdent, String column) throws SQLException {
+		ArrayList<String[]> choices = new ArrayList<> ();
+		if(column == null || column.trim().isEmpty()) {
+			return choices;
+		}
+		String sql = "select o.ovalue, "
+				+ "(select t.value from translation t where t.s_id = f.s_id and t.text_id = o.label_id and t.type = 'none' "
+				+ "  order by t.language limit 1) as label "
+				+ "from question q, form f, survey s, option o "
+				+ "where q.f_id = f.f_id "
+				+ "and f.s_id = s.s_id "
+				+ "and o.l_id = q.l_id "
+				+ "and s.group_survey_ident = ? "
+				+ "and not s.deleted "
+				+ "and q.column_name = ? "
+				+ "and q.qtype = 'select1' "
+				+ "and not q.soft_deleted "
+				+ "and not o.externalfile "
+				+ "order by s.s_id, o.seq";
+		ArrayList<String> seen = new ArrayList<> ();
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setString(1, groupSurveyIdent);
+			pstmt.setString(2, column.trim());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String value = rs.getString(1);
+				if(value != null && !seen.contains(value)) {
+					seen.add(value);
+					String label = rs.getString(2);
+					choices.add(new String[] {value, label == null ? value : label});
+				}
+			}
+		}
+		return choices;
+	}
+
+	/*
 	 * Update a Case Management Setting
 	 */
 	public void updateSettings(Connection sd, 
@@ -252,6 +293,17 @@ public class CaseManager {
 			}
 		}
 		
+		/*
+		 * The closed statuses, and finalStatus as the first of them for anything that reads only that.  A save
+		 * from something that knows only finalStatus makes it the one closed status.
+		 */
+		if(settings.closedStatuses == null) {
+			settings.closedStatuses = settings.getClosedStatuses();
+		} else {
+			settings.closedStatuses = settings.getClosedStatusesListed();
+		}
+		settings.finalStatus = settings.closedStatuses.isEmpty() ? null : settings.closedStatuses.get(0);
+
 		/*
 		 * A save that does not say whether the bundle allows multiple assignees keeps what it has
 		 */

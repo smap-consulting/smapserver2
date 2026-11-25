@@ -27,6 +27,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.CMS;
+import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.SubFormRowChange;
 import org.smap.sdal.Utilities.ApplicationException;
@@ -501,6 +502,18 @@ public class ActionManager {
 		}
 	}
 
+	/*
+	 * Whether a set of updates changes the case status
+	 */
+	private boolean changesStatus(ArrayList<Update> updates, String statusQuestion) {
+		for(Update u : updates) {
+			if(u.name != null && u.name.trim().equals(statusQuestion)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private int getPrikey(Connection cResults, String table, String instanceId) throws SQLException {
 		try (PreparedStatement pstmt = cResults.prepareStatement("select prikey from " + table + " where instanceid = ?")) {
 			pstmt.setString(1, instanceId);
@@ -643,8 +656,7 @@ public class ActionManager {
 
 			String statusQuestion = null;
 			String finalStatus = null;
-			if (cms != null && cms.settings != null && cms.settings.statusQuestion != null
-					&& cms.settings.finalStatus != null) {
+			if (cms != null && cms.settings != null && cms.settings.hasClosedStatus()) {
 				statusQuestion = cms.settings.statusQuestion;
 				finalStatus = cms.settings.finalStatus;
 			}
@@ -661,6 +673,19 @@ public class ActionManager {
 			 * the version anybody has open for editing stays as it was when they opened it
 			 * Bulk changes are made in place
 			 */
+			/*
+			 * The case's state before the change, so that a change of status that closes it, or opens it again,
+			 * is acted on.  Closing and reopening follow from the data, as they do for a submission.
+			 */
+			CaseStatusManager csm = new CaseStatusManager(localisation);
+			CaseManagementSettings caseSettings = null;
+			CaseStatusManager.State caseBefore = null;
+			if(statusQuestion != null && accessInstanceId != null && changesStatus(updates, statusQuestion)) {
+				caseSettings = cms.settings;
+				caseBefore = csm.read(cResults, topLevelForm.tableName,
+						getPrikey(cResults, topLevelForm.tableName, accessInstanceId), caseSettings);
+			}
+
 			if(!bulk && accessInstanceId != null) {
 				lockedBundle = GeneralUtilityMethods.getSurveyId(sd, groupSurveyIdent);	// The lock the subscriber takes when it merges
 				if(lockedBundle <= 0) {
@@ -746,11 +771,6 @@ public class ActionManager {
 					} else {
 						sqlUpdate.append(" set ").append(u.name).append(" = ? ");
 					}
-				}
-
-				// Set closed date
-				if (statusQuestion != null && u.name.equals(statusQuestion)) {
-					sqlUpdate.append(" ,").append("_case_closed").append(" = ? ");
 				}
 
 				if (isSubForm) {
@@ -846,16 +866,6 @@ public class ActionManager {
 					}
 				}
 
-				// Set closed date value
-				if (statusQuestion != null && u.name.equals(statusQuestion)) {
-					// Set case to closed if this is the final status
-					if (u.value == null || !u.value.equals(finalStatus)) {
-						pstmtUpdate.setTimestamp(paramCount++, null);
-					} else {
-						pstmtUpdate.setTimestamp(paramCount++, new Timestamp(new java.util.Date().getTime()));
-					}
-				}
-
 				if (isSubForm) {
 					pstmtUpdate.setInt(paramCount++, subFormPrimaryKey);
 				} else {
@@ -876,6 +886,13 @@ public class ActionManager {
 				changes.add(new DataItemChange(u.name, u.displayName, tc.type, u.value, u.currentValue));
 			}
 
+			String caseChange = CaseStatusManager.NONE;
+			if(caseSettings != null) {
+				int afterKey = versionKey > 0 ? versionKey : getPrikey(cResults, topLevelForm.tableName, accessInstanceId);
+				caseChange = csm.apply(sd, cResults, topLevelForm.tableName, afterKey, caseBefore, caseSettings, userIdent,
+						surveyIdent);
+			}
+
 			/*
 			 * Process update notifications after all the changes have been applied This
 			 * allows the filter to work on the latest record data
@@ -893,6 +910,10 @@ public class ActionManager {
 						u.value, // update value
 						null // thread used with submission notifications
 				);
+			}
+			if(CaseStatusManager.REOPENED.equals(caseChange)) {
+				nm.notifyForReopen(sd, cResults, 0, request.getRemoteUser(), false, "https", server, basePath,
+						urlprefix, surveyIdent, instanceId);
 			}
 			/*
 			 * save change log

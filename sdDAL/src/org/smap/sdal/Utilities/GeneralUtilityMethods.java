@@ -4002,6 +4002,16 @@ public class GeneralUtilityMethods {
 				c.type = SmapQuestionTypes.DATETIME;
 				c.question_name = c.column_name;
 				columnList.add(c);
+
+				// When a closed case last opened again, in a table that has had one
+				if(table_name != null && hasColumn(cResults, table_name, "_case_reopened")) {
+					c = new TableColumn();
+					c.column_name = "_case_reopened";
+					c.displayName = localisation.getString("a_cr");
+					c.type = SmapQuestionTypes.DATETIME;
+					c.question_name = c.column_name;
+					columnList.add(c);
+				}
 				
 				c = new TableColumn();
 				c.column_name = "_case_survey";
@@ -6658,6 +6668,15 @@ public class GeneralUtilityMethods {
 			}
 		}
 		return (count > 0);
+	}
+
+	/*
+	 * Add the column that records when a closed case was last opened again, to a table made before there was one
+	 */
+	public static void ensureCaseReopenedColumn(Connection cResults, String table) throws SQLException {
+		if(!hasColumn(cResults, table, "_case_reopened")) {
+			addColumn(cResults, table, "_case_reopened", "timestamp with time zone");
+		}
 	}
 
 	/*

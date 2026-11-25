@@ -49,6 +49,8 @@ import org.smap.sdal.legacy.IE;
 import org.smap.sdal.legacy.SurveyInstance;
 import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.managers.CaseManager;
+import org.smap.sdal.model.CaseManagementSettings;
+import org.smap.sdal.managers.CaseStatusManager;
 import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.KeyManager;
 import org.smap.sdal.managers.UploadEventManager;
@@ -735,6 +737,10 @@ public class SubRelationalDB extends Subscriber {
 						null,
 						0,
 						0);	
+
+				// A case can be closed by the submission that creates it
+				closeNewCase(sd, cResults, localisation, topLevelForm.tableName, keys.newKey, remoteUser,
+						survey.surveyData.ident, true);		// The record is already committed
 			}
 
 		} catch (Exception e) {
@@ -1223,7 +1229,7 @@ public class SubRelationalDB extends Subscriber {
 		 */
 		String statusQuestion = null;
 		String finalStatus = null;
-		if(cms != null && cms.settings != null && cms.settings.statusQuestion != null && cms.settings.finalStatus != null) {
+		if(cms != null && cms.settings != null && cms.settings.hasClosedStatus()) {
 			statusQuestion = cms.settings.statusQuestion;
 			finalStatus = cms.settings.finalStatus;
 		}
@@ -1279,7 +1285,7 @@ public class SubRelationalDB extends Subscriber {
 				}
 				
 				// Check for case closed
-				if(statusQuestion != null && colName.equals(statusQuestion) && value.equals(finalStatus)) {
+				if(statusQuestion != null && colName.equals(statusQuestion) && cms.settings.isClosed(value)) {
 					dmv.case_closed = new Timestamp(new java.util.Date().getTime());
 					log.fine("ccccccccccc: case marked closed.  Status question: " + statusQuestion + "Final status: " + finalStatus);
 				}
@@ -1337,6 +1343,22 @@ public class SubRelationalDB extends Subscriber {
 	 * Method to merge a previous records content into this new record
 	 * Source = the old records
 	 */
+	/*
+	 * Record a new case that its first submission closed, as any other closing is recorded
+	 */
+	private void closeNewCase(Connection sd, Connection cResults, ResourceBundle localisation, String table, int prikey,
+			String user, String surveyIdent, boolean commit) throws SQLException {
+		CaseStatusManager csm = new CaseStatusManager(localisation);
+		CaseManagementSettings caseSettings = csm.settingsForTable(sd, table);
+		if(caseSettings != null) {
+			String change = csm.apply(sd, cResults, table, prikey, null, caseSettings, user, surveyIdent);
+			if(commit && !cResults.getAutoCommit()) {
+				cResults.commit();
+			}
+			log.fine("New case status: " + change);
+		}
+	}
+
 	private void combineTableContent(
 			Connection sd,
 			Connection cResults,
@@ -1681,16 +1703,6 @@ public class SubRelationalDB extends Subscriber {
 							0,
 							0);
 
-					/*
-					 * Release the case if it has been closed
-					 */
-					if(isCaseClosed) {
-						CaseManager cm = new CaseManager(localisation);
-						cm.assignRecord(sd, cResults, localisation, table, newInstance, user, "release",
-								null, localisation.getString("cm_auto_release"), user, true);
-					} else {
-						log.fine("Case not closed");
-					}
 				}
 				
 			} else {
@@ -1708,6 +1720,9 @@ public class SubRelationalDB extends Subscriber {
 						null,
 						0,
 						0);	
+
+				// A case can be closed by the submission that creates it
+				closeNewCase(sd, cResults, localisation, table, prikey, user, ident, false);	// Committed with the merge
 			}
 			
 
@@ -1717,6 +1732,18 @@ public class SubRelationalDB extends Subscriber {
 				
 				UtilityMethodsEmail.markRecord(cResults, sd, localisation, table, 
 						true, value, sourceKey, sId, f_id, true, false, user, true, tz, false, false);
+
+				/*
+				 * Close or open the case again if the status, as merged, says so.  The status may have come from
+				 * the earlier version when this survey does not ask it.
+				 */
+				CaseStatusManager csm = new CaseStatusManager(localisation);
+				CaseManagementSettings caseSettings = csm.settingsForTable(sd, table);
+				if(caseSettings != null) {
+					String change = csm.apply(sd, cResults, table, prikey, csm.read(cResults, table, sourceKey, caseSettings),
+							caseSettings, user, ident);
+					log.fine("Case status change: " + change);
+				}
 			}
 
 		} finally {

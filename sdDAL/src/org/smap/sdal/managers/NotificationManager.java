@@ -79,7 +79,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 public class NotificationManager {
 
 	public static final String TRIGGER_SUBMISSION = "submission";
-	public static final String TRIGGER_CONFLICT = "conflict";		// A save changed answers somebody else had changed since the record was opened
+	public static final String TRIGGER_CONFLICT = "conflict";
+	public static final String TRIGGER_REOPENED = "case_reopened";	// A change of status opened a closed case again		// A save changed answers somebody else had changed since the record was opened
 	public static String TOPIC_CM_ALERT = "cm_alert";			// Data: SubmissionMessage
 	public static String TOPIC_SUBMISSION = "submission";		// Data: SubmissionMessage
 	public static String TOPIC_PERIODIC = "periodic";			// Data: PeriodicMessage
@@ -1016,6 +1017,25 @@ public class NotificationManager {
 				ident, instanceId, null, null, null, null, TRIGGER_CONFLICT);
 	}
 	
+	/*
+	 * Send the notifications of a survey, or its bundle, that are triggered by a case being opened again
+	 */
+	public void notifyForReopen(
+			Connection sd, 
+			Connection cResults,
+			int ue_id,
+			String submittingUser,
+			boolean temporaryUser,
+			String scheme,
+			String serverName,
+			String basePath,
+			String serverRoot,
+			String ident,			// Survey Ident
+			String instanceId) throws Exception {
+		notify(sd, cResults, ue_id, submittingUser, temporaryUser, scheme, serverName, basePath, serverRoot,
+				ident, instanceId, null, null, null, null, TRIGGER_REOPENED);
+	}
+
 	private void notify(
 			Connection sd, 
 			Connection cResults,
@@ -1071,8 +1091,8 @@ public class NotificationManager {
 					+ "and n.target != 'document' "
 					+ "and n.enabled = 'true' ");
 
-			if(TRIGGER_CONFLICT.equals(trigger)) {
-				sqlGetNotifications.append(" and n.trigger = '" + TRIGGER_CONFLICT + "' ");
+			if(TRIGGER_CONFLICT.equals(trigger) || TRIGGER_REOPENED.equals(trigger)) {
+				sqlGetNotifications.append(" and n.trigger = '" + trigger + "' ");
 			} else if(updateQuestion == null) {
 				sqlGetNotifications.append(" and n.trigger = 'submission' ");
 				if(thread != null) {

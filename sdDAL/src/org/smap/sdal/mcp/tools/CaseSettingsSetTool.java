@@ -83,8 +83,9 @@ public class CaseSettingsSetTool extends AbstractMcpTool {
 						"The question holding a case's status, by name. survey_questions lists "
 						+ "them. Pass an empty string to stop the survey managing cases."),
 				"final_status", property("string",
-						"The answer to that question which means the case is finished. If the "
-						+ "question offers choices this has to be one of them."),
+						"The answer to that question which means the case is closed, or several separated by "
+						+ "commas, such as resolved, withdrawn. If the question offers choices each has to be one "
+						+ "of them. A case reopens when its status changes to any other answer."),
 				"criticality_question", property("string",
 						"Optional. The question holding how urgent a case is."),
 				"multiple_assignees", property("boolean",
@@ -114,7 +115,7 @@ public class CaseSettingsSetTool extends AbstractMcpTool {
 				? new CaseManagementSettings() : existing.settings;
 		Map<String, Object> previous = new LinkedHashMap<>();
 		previous.put("statusQuestion", previousSettings.statusQuestion);
-		previous.put("finalStatus", previousSettings.finalStatus);
+		previous.put("finalStatus", String.join(", ", previousSettings.getClosedStatuses()));
 		previous.put("criticalityQuestion", previousSettings.criticalityQuestion);
 		previous.put("multipleAssignees", previousSettings.allowsMultipleAssignees());
 
@@ -167,14 +168,19 @@ public class CaseSettingsSetTool extends AbstractMcpTool {
 			}
 
 			if(finalStatus == null) {
-				finalStatus = previousSettings.finalStatus;
+				finalStatus = String.join(",", previousSettings.getClosedStatuses());
 			}
-			if(finalStatus == null || finalStatus.trim().isEmpty()) {
+			List<String> closedWanted = new ArrayList<>();
+			for(String v : (finalStatus == null ? "" : finalStatus).split(",")) {
+				if(v.trim().length() > 0 && !closedWanted.contains(v.trim())) {
+					closedWanted.add(v.trim());
+				}
+			}
+			if(closedWanted.isEmpty()) {
 				return new MCPToolResult("A final_status is required: the answer to " + statusWanted
 						+ " that means a case is finished. Without one no case is ever closed.",
 						true);
 			}
-			finalStatus = finalStatus.trim();
 
 			/*
 			 * If the status question offers choices then the final status has to be one of them.
@@ -187,22 +193,28 @@ public class CaseSettingsSetTool extends AbstractMcpTool {
 						? null : withLists.surveyData.optionLists.get(status.list_name);
 				if(list != null && list.options != null && !list.options.isEmpty()) {
 					List<String> values = new ArrayList<>();
-					boolean found = false;
 					for(Option o : list.options) {
 						values.add(o.value);
-						if(finalStatus.equals(o.value)) {
-							found = true;
+					}
+					String missing = null;
+					for(String v : closedWanted) {
+						if(!values.contains(v)) {
+							missing = v;
+							break;
 						}
 					}
-					if(!found) {
-						return new MCPToolResult(statusWanted + " cannot be answered \"" + finalStatus
+					if(missing != null) {
+						return new MCPToolResult(statusWanted + " cannot be answered \"" + missing
 								+ "\". Its choices are: " + String.join(", ", values)
 								+ ". A final status that is not one of them would leave every case "
 								+ "open for ever.", true);
 					}
 				}
 			}
-			settings.finalStatus = finalStatus;
+			settings.closedStatuses = closedWanted;
+			settings.finalStatus = closedWanted.get(0);
+		} else {
+			settings.closedStatuses = new ArrayList<>();
 		}
 
 		cm.updateSettings(ctx.sd, ctx.user, groupIdent, settings);
@@ -213,6 +225,7 @@ public class CaseSettingsSetTool extends AbstractMcpTool {
 		data.put("usesCaseManagement", !turningOff);
 		data.put("statusQuestion", settings.statusQuestion);
 		data.put("finalStatus", settings.finalStatus);
+		data.put("closedStatuses", settings.closedStatuses);
 		data.put("criticalityQuestion", settings.criticalityQuestion);
 		data.put("multipleAssignees", settings.multipleAssignees != null ? settings.multipleAssignees
 				: previousSettings.allowsMultipleAssignees());
@@ -226,13 +239,13 @@ public class CaseSettingsSetTool extends AbstractMcpTool {
 		} else {
 			text.append("Records in \"").append(listed.getDisplayName()).append("\" are now cases. ")
 					.append(settings.statusQuestion).append(" holds the status, and a case is "
-							+ "finished when it is set to \"").append(settings.finalStatus)
-					.append("\".");
+							+ "closed while it has ").append(closedWords(settings.closedStatuses))
+					.append(", and opens again when it changes to anything else.");
 			if(settings.criticalityQuestion != null) {
 				text.append(" ").append(settings.criticalityQuestion)
 						.append(" holds how urgent it is.");
 			}
-			text.append("\n\nClosing a case is now setting that question to that value with "
+			text.append("\n\nClosing a case is now setting that question to one of those values with "
 					+ "data_update_record; the server records when. Cases can be given to people "
 					+ "with case_assign.");
 		}
@@ -263,5 +276,16 @@ public class CaseSettingsSetTool extends AbstractMcpTool {
 
 	private String column(Question q) {
 		return q.columnName != null && !q.columnName.isEmpty() ? q.columnName : q.name;
+	}
+
+	private static String closedWords(List<String> values) {
+		StringBuilder b = new StringBuilder();
+		for(int i = 0; i < values.size(); i++) {
+			if(i > 0) {
+				b.append(i == values.size() - 1 ? " or " : ", ");
+			}
+			b.append("\"").append(values.get(i)).append("\"");
+		}
+		return b.toString();
 	}
 }

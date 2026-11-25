@@ -63,6 +63,7 @@ public class WorkflowManager {
 	private static final String TYPE_SHAREPOINT_LIST = "sharepoint_list";
 	private static final String TYPE_DECISION        = "decision";
 	private static final String TYPE_CONFLICT        = "conflict";
+	private static final String TYPE_REOPENED        = "case_reopened";
 
 	// WorkItem role constants (determines visual shape)
 	private static final String ROLE_FORM         = "form";
@@ -221,7 +222,7 @@ public class WorkflowManager {
 
 				// Defer bundle notifications until all survey nodes are built
 				// A conflict is not a submission of the bundle's forms, so it gets its own trigger below
-				if (isBundle && !TYPE_CONFLICT.equals(trigger)) {
+				if (isBundle && !TYPE_CONFLICT.equals(trigger) && !TYPE_REOPENED.equals(trigger)) {
 					BundleNotif bn = new BundleNotif();
 					bn.fId             = fId;
 					bn.bundleIdent     = bundleIdent;
@@ -247,16 +248,16 @@ public class WorkflowManager {
 					// The predecessor node will already be (or will become) present in
 					// itemMap from its own record; no need to create it here.
 					srcKey = wfPrevNodeId;
-				} else if (TYPE_CONFLICT.equals(trigger)) {
+				} else if (TYPE_CONFLICT.equals(trigger) || TYPE_REOPENED.equals(trigger)) {
 					/*
-					 * A save that changed answers somebody else had changed: named after the survey,
-					 * or the bundle, whose records it watches, not after the notification.  Carries the
-					 * notification so it can be edited from here.
+					 * A save that changed answers somebody else had changed, or that opened a closed case
+					 * again: named after the survey, or the bundle, whose records it watches, not after the
+					 * notification.  Carries the notification so it can be edited from here.
 					 */
-					srcKey = "conflict:f:" + fId;
+					srcKey = trigger + ":f:" + fId;
 					WorkflowItem src = new WorkflowItem();
 					src.id      = srcKey;
-					src.type    = TYPE_CONFLICT;
+					src.type    = trigger;
 					src.role    = ROLE_TRIGGER;
 					src.name    = isBundle ? (bundleName != null ? bundleName : bundleIdent)
 							: (triggerSurvey != null ? triggerSurvey : "");

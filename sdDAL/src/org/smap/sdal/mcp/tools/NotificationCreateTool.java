@@ -94,7 +94,8 @@ public class NotificationCreateTool extends AbstractMcpTool {
 				"Optional. 'submission' (the default) sends when the survey is submitted. 'conflict' sends "
 				+ "when somebody saves a record and changes answers that somebody else changed after "
 				+ "they opened it. Their answers are kept and the conflict is listed in the record's "
-				+ "history for review."));
+				+ "history for review. 'case_reopened' sends when a change of status opens a closed case "
+				+ "again."));
 
 		Map<String, Object> schema = new LinkedHashMap<>();
 		schema.put("type", "object");
@@ -180,8 +181,9 @@ public class NotificationCreateTool extends AbstractMcpTool {
 			when = NotificationManager.TRIGGER_SUBMISSION;
 		}
 		when = when.trim();
-		if(!when.equals(NotificationManager.TRIGGER_SUBMISSION) && !when.equals(NotificationManager.TRIGGER_CONFLICT)) {
-			return new MCPToolResult("when must be 'submission' or 'conflict'.", true);
+		if(!when.equals(NotificationManager.TRIGGER_SUBMISSION) && !when.equals(NotificationManager.TRIGGER_CONFLICT)
+				&& !when.equals(NotificationManager.TRIGGER_REOPENED)) {
+			return new MCPToolResult("when must be 'submission', 'conflict' or 'case_reopened'.", true);
 		}
 		n.trigger = when;
 		n.target = "email";

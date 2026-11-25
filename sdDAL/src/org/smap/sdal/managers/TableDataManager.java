@@ -207,13 +207,13 @@ public class TableDataManager {
 			 * The default value of include_completed is "no"
 			 */
 			boolean completedFilter = false;
-			if((include_completed == null || include_completed.equals("no")) && cms != null && cms.settings != null && cms.settings.statusQuestion != null
+			if((include_completed == null || include_completed.equals("no")) && cms != null && cms.settings != null && cms.settings.hasClosedStatus()
 					&& GeneralUtilityMethods.hasColumn(cResults, table_name, cms.settings.statusQuestion)) {
 				completedFilter = true;
 				sqlGetData.append(" and (").append(cms.settings.statusQuestion)
 					.append(" is null or cast( ")
 					.append(cms.settings.statusQuestion)
-					.append(" as text) != ? or _assigned is not null)");
+					.append(" as text) != all(?) or _assigned is not null)");
 			}
 
 			// Add row selection clause
@@ -342,7 +342,7 @@ public class TableDataManager {
 				pstmt.setInt(paramCount++, start_parkey);
 			}
 			if(completedFilter) {
-				pstmt.setString(paramCount++,  cms.settings.finalStatus);
+				pstmt.setArray(paramCount++, cResults.createArrayOf("text", cms.settings.getClosedStatuses().toArray()));
 			}
 			if (parkey > 0) {
 				pstmt.setInt(paramCount++, parkey);

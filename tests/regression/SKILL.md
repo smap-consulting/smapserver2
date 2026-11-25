@@ -199,17 +199,29 @@ counts and failures when the output would be long, as the tool truncates it.
      `{"part":"valid","project","test"}`, which uploads it (kept).  Compare `survey_questions` with `survey.questions`
      (name, type, relevant, calculation, constraint, optionList) and `survey_options` for its list (yes, no).  Then run
      `{"part":"refused","project","test"}`: each broken XForm must be refused with its message and no survey made.
+   - `case-state`: closing and reopening a case.  Find `survey` with `survey_list`; when missing make its list with
+     `survey_options_edit`, then `survey_create` and its questions.  Set `settings` with `case_settings_set` (`survey_id`,
+     `status_question`, `final_status`); `case_settings` must list both closed values.  On
+     `{server}/app/tasks/managed_forms.html` run `harness/case-state.js` with `{"part":"notification","project","sId",
+     "test"}` (kept).  Check `survey_submission_effects` sends nothing to fixed addresses, then submit one record with
+     `data_submit` (`cs_status` open, `cs_note` "regression") and give it to the user from `whoami` with `case_assign`.
+     For each of `steps`: `via` new is a new record from `data_submit` (`cs_note` "regression"), checked on that record; `via` submission is `data_submit` with `continues` set to the record, otherwise
+     `data_update_record`; wait for a submission to load (`data_query` shows the status).  Then check with
+     `{"part":"record","sId","instanceid"}` and `data_audit` that: `_case_closed` is set or empty as `closed` says, and
+     unchanged when `sameCloseTime`; `_case_reopened` is set when `reopened`; `_assigned` is `owners` (`{user}` is the
+     user); the newest audit entry of `event` exists, after the step, containing `eventText`; and when `notification`
+     the history has the reopened notification.  ({user} = the whoami user.)
 4. Do not submit forms.  Tests leave no data, apart from the settings-secrets write checks, which
    put the setting they use back as it was, the records and tasks the xss test keeps in its own
    survey, the records and trail the dashboard-map test keeps, the records and grid the
    dashboard-region test keeps, the records the sqli-filter and sqli-autoupdate tests keep, and the
    records and duplicate upload the submission-totals test keeps, and the records the update-conflicts
-   test adds to its own surveys, one per scenario each run, and the two records the case-alerts test adds each run, and the notifications the conflict-notifications test keeps on the update-conflicts surveys and the six records it adds to them each run, and the notification the operational-issues test keeps on the case-alerts survey and the record it adds there each run, and the survey and two notifications the multiple-assignees test keeps and the three records it adds each run, and the survey, record, notification and task group the server-expressions test keeps, and the survey the form-expressions test keeps, and the survey the xform-upload test keeps.
+   test adds to its own surveys, one per scenario each run, and the two records the case-alerts test adds each run, and the notifications the conflict-notifications test keeps on the update-conflicts surveys and the six records it adds to them each run, and the notification the operational-issues test keeps on the case-alerts survey and the record it adds there each run, and the survey and two notifications the multiple-assignees test keeps and the three records it adds each run, and the survey, record, notification and task group the server-expressions test keeps, and the survey the form-expressions test keeps, and the survey the xform-upload test keeps, and the survey, notification and record the case-states test keeps (plus a new record each run).
 
 ## Report
 
 One table per test: for webform-constraint question, value, expected, actual; for settings-secrets
-check and detail; for xss page, check and detail; for sqli probe and detail; for mcp-totals check and detail; for update-conflict scenario, check and detail; for case-alert part, check and detail; for conflict-notification part or scenario, check and detail; for issues part, check and detail; for multiple-assignee part, check and detail; for server-expression part, check and detail; for form-expression change, check and detail; for xform-upload part, check and detail; each with ✅/❌.  Then a summary line per test,
+check and detail; for xss page, check and detail; for sqli probe and detail; for mcp-totals check and detail; for update-conflict scenario, check and detail; for case-alert part, check and detail; for conflict-notification part or scenario, check and detail; for issues part, check and detail; for multiple-assignee part, check and detail; for server-expression part, check and detail; for form-expression change, check and detail; for xform-upload part, check and detail; for case-state step, check and detail; each with ✅/❌.  Then a summary line per test,
 PASS or FAIL with the number of failures.  For a failure include the `constraints` the harness
 returned, as the constraint as the page received it is usually the clue.  Close the Chrome tab.
 
