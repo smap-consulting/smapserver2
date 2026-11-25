@@ -38,6 +38,7 @@ import org.apache.commons.fileupload2.core.DiskFileItemFactory;
 import org.apache.commons.fileupload2.jakarta.servlet6.JakartaServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.FormCheckException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -911,6 +912,11 @@ public class Surveys extends Application {
 			response = Response.ok(respString).build();
 			
 			
+		}  catch (FormCheckException e) {
+			// Nothing was saved, the editor shows why and keeps the changes so they can be put right
+			ChangeResponse resp = new ChangeResponse();
+			resp.refused.addAll(e.problems);
+			response = Response.ok(gson.toJson(resp)).build();
 		}  catch (Exception e) {
 			try {sd.rollback();} catch (Exception ex) {};
 			log.log(Level.SEVERE, "Exception", e);

@@ -1,0 +1,27 @@
+{
+  "name": "form-expressions",
+  "description": "Survey expressions are checked by Smap's own parser and checker (form-expressions.json) in place of the JavaRosa library, when a survey is uploaded and, newly, when it is changed in the online editor or through MCP (2026-11-25, 26.12.01). A change whose relevant, constraint, calculation or choice filter cannot be read, names a function that does not exist or gives it the wrong number of arguments, or makes calculations depend on each other in a loop, is refused with a message naming the question, the column and the character, and nothing is saved. A function used wrongly in a constraint, which JavaRosa never found, is saved with a warning for now. Keeps its survey; no records.",
+  "kind": "form-expression",
+  "survey": {
+    "name": "Form expression test",
+    "project": "A project",
+    "questions": [
+      { "type": "string", "name": "fe_a", "label": "A" },
+      { "type": "int", "name": "fe_b", "label": "B" }
+    ]
+  },
+  "refused": [
+    { "name": "misspelt function", "question": "fe_a", "property": "calculation", "value": "concate(${fe_b}, 'x')", "expect": "perhaps you mean concat()" },
+    { "name": "== for =", "question": "fe_a", "property": "relevant", "value": "${fe_b} == 1", "expect": "== is not an operator here, use =" },
+    { "name": "ends too soon", "question": "fe_a", "property": "relevant", "value": "${fe_b} = 1 and", "expect": "the expression ends too soon" },
+    { "name": "wrong number of arguments", "question": "fe_a", "property": "calculation", "value": "substr(${fe_b})", "expect": "substr() takes 2 or 3 arguments, not 1" },
+    { "name": "missing comma", "question": "fe_a", "property": "calculation", "value": "concat('a' ${fe_b})", "expect": "perhaps a comma is missing" },
+    { "name": "curly quote", "question": "fe_a", "property": "relevant", "value": "${fe_b} = ‘x’", "expect": "curly quote" }
+  ],
+  "loop": {
+    "first": { "question": "fe_a", "property": "calculation", "value": "concat(${fe_b}, 'x')" },
+    "second": { "question": "fe_b", "property": "calculation", "value": "string-length(${fe_a})" },
+    "expect": "depend on each other in a loop"
+  },
+  "warned": { "question": "fe_b", "property": "constraint", "value": "nosuchfn(.) < 5", "expect": "there is no function called nosuchfn()" }
+}

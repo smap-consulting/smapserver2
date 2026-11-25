@@ -40,6 +40,8 @@ import java.util.logging.Logger;
 
 import org.smap.notifications.interfaces.TextProcessing;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.FormCheckException;
+import org.smap.sdal.formexpressions.FormExpressionChecker;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.HtmlSanitise;
@@ -1651,6 +1653,18 @@ public class SurveyManager {
 			 * in the bundle, a notification filter for example.  Check them before and after so the
 			 * user can be warned about the ones the changes broke.
 			 */
+			/*
+			 * The form's own expressions and choices, checked before and after so that only a problem these
+			 * changes cause refuses them.  One already there is reported but does not stop an unrelated change.
+			 */
+			HashSet<String> formBefore = null;
+			if(cResults != null && changesForm(changes)) {
+				formBefore = new HashSet<> ();
+				for(FormExpressionChecker.Problem p : formProblems(sd, cResults, sId, userIdent)) {
+					formBefore.add(problemKey(p));
+				}
+			}
+
 			ServerExpressionValidator sev = null;
 			String sevGroup = null;
 			HashSet<String> brokenBefore = null;
@@ -1725,6 +1739,24 @@ public class SurveyManager {
 			// Update the form dependencies so that when new results are received it is simple to identify the impacted forms			
 			GeneralUtilityMethods.updateFormDependencies(sd, sId);
 
+			if(resp.success > 0 && formBefore != null) {
+				ArrayList<String> refused = new ArrayList<> ();
+				for(FormExpressionChecker.Problem p : formProblems(sd, cResults, sId, userIdent)) {
+					if(!formBefore.contains(problemKey(p))) {
+						if(p.error) {
+							refused.add(p.describe(localisation));
+						} else {
+							resp.warnings.add(p.describe(localisation));
+						}
+					}
+				}
+				if(!refused.isEmpty()) {
+					sd.rollback();
+					throw new FormCheckException(localisation.getString("fe_refused") + " " + String.join("; ", refused),
+							refused);
+				}
+			}
+
 			if(resp.success > 0) {
 				sd.commit();
 				if(sev != null) {
@@ -1763,6 +1795,35 @@ public class SurveyManager {
 		}
 
 		return resp;
+	}
+
+	/*
+	 * Whether a set of changes can affect the form's expressions or choices, anything but a label
+	 */
+	private boolean changesForm(ArrayList<ChangeSet> changes) {
+		for(ChangeSet cs : changes) {
+			if(!"label".equals(cs.changeType)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/*
+	 * The problems in a survey's expressions and choices, read as they stand in this transaction
+	 */
+	private List<FormExpressionChecker.Problem> formProblems(Connection sd, Connection cResults, int sId, String user)
+			throws Exception {
+		Survey s = getById(sd, cResults, user, false, sId, true, null, null, false, false, false, false, false,
+				"internal", false, false, true, "geojson", false, false, false);
+		if(s == null) {
+			return new ArrayList<> ();
+		}
+		return new FormExpressionChecker(localisation).checkSurvey(s);
+	}
+
+	private String problemKey(FormExpressionChecker.Problem p) {
+		return p.question + "|" + p.column + "|" + p.message;
 	}
 
 	/*

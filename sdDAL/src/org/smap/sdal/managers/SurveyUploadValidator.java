@@ -24,13 +24,13 @@ import java.util.ResourceBundle;
 import java.util.Stack;
 import java.util.regex.Pattern;
 
-import org.javarosa.xpath.XPathParseTool;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
+import org.smap.sdal.formexpressions.FormExpressionChecker;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Label;
@@ -83,6 +83,7 @@ public class SurveyUploadValidator {
 	}
 
 	private ResourceBundle localisation;
+	private FormExpressionChecker checker;
 	private ArrayList<ApplicationWarning> warnings;
 	private ErrorFormatter fmt;
 	private Survey survey;
@@ -99,6 +100,7 @@ public class SurveyUploadValidator {
 
 	public SurveyUploadValidator(ResourceBundle l, ArrayList<ApplicationWarning> w, ErrorFormatter fmt) {
 		localisation = l;
+		checker = new FormExpressionChecker(l);
 		warnings = w;
 		this.fmt = fmt;
 
@@ -232,36 +234,18 @@ public class SurveyUploadValidator {
 				throw fmt.error("tu_cr", rowNumber, "survey", "relevant", q.name, q.relevant);
 			}
 
-			checkParentheses(q.relevant, rowNumber, "survey", "relevant", q.name);
-			try {
-				XPathParseTool.parseXPath(GeneralUtilityMethods.convertAllxlsNamesToPseudoXPath(q.relevant));
-			} catch (Exception e) {
-				throw fmt.error("tu_jr", rowNumber, "survey", "relevant", e.getMessage(), null);
-			}
-			testXExprFunctions(q.relevant, true, rowNumber, "relevant");
+			checkExpression(q, "relevant", q.relevant, rowNumber);
 		}
 
 		// check constraint
 		if(q.constraint != null) {
-			checkParentheses(q.constraint, rowNumber, "survey", "constraint", q.name);
-			try {
-				XPathParseTool.parseXPath(GeneralUtilityMethods.convertAllxlsNamesToPseudoXPath(q.constraint));
-			} catch (Exception e) {
-				throw fmt.error("tu_jr", rowNumber, "survey", "constraint", e.getMessage(), null);
-			}
-			testXExprFunctions(q.constraint, true, rowNumber, "constraint");
+			checkExpression(q, "constraint", q.constraint, rowNumber);
 		}
 
 		// check calculate
 		if(q.calculation != null) {
-			checkParentheses(q.calculation, rowNumber, "survey", "calculation", q.name);
 			checkCalculationCircularReferences(q.calculation, rowNumber, "survey", "calculation", q.name);
-			try {
-				XPathParseTool.parseXPath(GeneralUtilityMethods.convertAllxlsNamesToPseudoXPath(q.calculation));
-			} catch (Exception e) {
-				throw fmt.error("tu_jr", rowNumber, "survey", "calculation", e.getMessage(), null);
-			}
-			testXExprFunctions(q.calculation, true, rowNumber, "calculation");
+			checkExpression(q, "calculation", q.calculation, rowNumber);
 		}
 
 		// check appearance
@@ -272,13 +256,7 @@ public class SurveyUploadValidator {
 
 		// Check choice filter
 		if(q.choice_filter != null) {
-			checkParentheses(q.choice_filter, rowNumber, "survey", "choice_filter", q.name);
-			try {
-				XPathParseTool.parseXPath(GeneralUtilityMethods.convertAllxlsNamesToPseudoXPath(q.choice_filter));
-			} catch (Exception e) {
-				throw fmt.error("tu_jr", rowNumber, "survey", "choice_filter", e.getMessage(), null);
-			}
-			testXExprFunctions(q.choice_filter, true, rowNumber, "choice_filter");
+			checkExpression(q, "choice_filter", q.choice_filter, rowNumber);
 		}
 
 		// Check intent
@@ -559,6 +537,31 @@ public class SurveyUploadValidator {
 			}
 		}
 
+		// Loops between calculations and relevance, and selects with no choices
+		for(FormExpressionChecker.Problem p : checker.checkLoopsAndChoices(survey)) {
+			Integer rowNumber = qNameMap.get(p.question);
+			ApplicationException e = fmt.error("tu_fq", rowNumber == null ? -1 : rowNumber, "survey", p.question,
+					p.message, null);
+			if(p.error) {
+				throw e;
+			}
+			warnings.add(new ApplicationWarning(e.getMessage()));
+		}
+
+	}
+
+	/*
+	 * An expression that cannot be read, or uses a function wrongly, is refused.  A problem the earlier checks did
+	 * not find is a warning for now.
+	 */
+	private void checkExpression(Question q, String column, String expression, int rowNumber) throws ApplicationException {
+		for(FormExpressionChecker.Problem p : checker.checkExpression(q.name, column, expression)) {
+			ApplicationException e = fmt.error("tu_fe", rowNumber, "survey", column, p.message, null);
+			if(p.error) {
+				throw e;
+			}
+			warnings.add(new ApplicationWarning(e.getMessage()));
+		}
 	}
 
 	public void validateOption(Option o, int rowNumber) throws ApplicationException {

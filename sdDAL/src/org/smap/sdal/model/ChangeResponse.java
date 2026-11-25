@@ -11,4 +11,5 @@ public class ChangeResponse {
 	public int version;		// The new version of the survey
 	public ArrayList<ChangeSet> changeSet;	
 	public ArrayList<String> warnings = new ArrayList<> ();	// Server expressions in the bundle that the changes broke
+	public ArrayList<String> refused = new ArrayList<> ();	// Problems in the form that stopped the changes being saved
 }

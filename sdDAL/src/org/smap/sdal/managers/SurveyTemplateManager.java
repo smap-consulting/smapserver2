@@ -37,7 +37,6 @@ import org.smap.sdal.model.Message;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.Utilities.JavaRosaUtilities;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -380,26 +379,11 @@ public class SurveyTemplateManager {
 			}
 			
 			/*
-			 * Validate the survey:
-			 * 	 using the JavaRosa API
-			 *    Ensure that it fits within the limit of 1,600 columns
+			 * Validate the survey: ensure that it fits within the limit of 1,600 columns.  Its expressions and
+			 * choices were checked as it was read.
 			 */
 			boolean valid = true;
 			String errMsg = null;
-			try {
-				JavaRosaUtilities.javaRosaSurveyValidation(localisation, s.surveyData.id, request.getRemoteUser(), tz, request);
-			} catch (Exception e) {
-								
-				// Error! Delete the survey we just created
-				log.log(Level.SEVERE, e.getMessage(), e);
-				valid = false;
-					
-				errMsg = e.getMessage();			
-				if(errMsg != null && errMsg.startsWith("no <translation>s defined")) {
-					errMsg = localisation.getString("tu_nl");
-				}					
-				
-			}
 			if(valid) {
 				ArrayList<FormLength> formLength = GeneralUtilityMethods.getFormLengths(sd, s.surveyData.id);
 				for(FormLength fl : formLength) {
