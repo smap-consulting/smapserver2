@@ -44,6 +44,8 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
+import org.smap.sdal.model.CaseManagementSettings;
+import org.smap.sdal.managers.CaseStatusManager;
 import org.smap.sdal.Utilities.AttachmentStore;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
@@ -1158,6 +1160,22 @@ public class ExchangeManager {
 		}
 	}
 
+	/*
+	 * Apply the case status rule to an imported record, once the bundle's case settings are known
+	 */
+	private HashMap<String, CaseManagementSettings> caseSettingsCache = new HashMap<> ();
+	private void closeImportedCase(Connection sd, Connection cResults, String table, int prikey, String user,
+			String sIdent) throws SQLException {
+		CaseStatusManager csm = new CaseStatusManager(localisation);
+		if(!caseSettingsCache.containsKey(table)) {
+			caseSettingsCache.put(table, csm.settingsForTable(sd, table));
+		}
+		CaseManagementSettings settings = caseSettingsCache.get(table);
+		if(settings != null) {
+			csm.apply(sd, cResults, table, prikey, null, settings, user, sIdent);
+		}
+	}
+
 	public int processRecord(
 			Connection sd,
 			ExchangeHeader eh, 
@@ -1442,6 +1460,11 @@ public class ExchangeManager {
 			ResultSet rs = eh.pstmtInsert.getGeneratedKeys();
 			if(rs.next()) {
 				form.keyMap.put(prikey, rs.getString(1));		// mapping between the in-sheet prikey and the value added to the database
+
+				// An imported case that is closed has that recorded in its history, as a submitted one has
+				if(form.parent == 0) {
+					closeImportedCase(sd, eh.pstmtInsert.getConnection(), form.table_name, rs.getInt(1), user, sIdent);
+				}
 			}
 			count++;
 		}

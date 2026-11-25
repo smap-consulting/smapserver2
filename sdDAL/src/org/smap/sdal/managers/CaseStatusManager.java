@@ -131,8 +131,9 @@ public class CaseStatusManager {
 		Timestamp closed;
 		Timestamp reopened = before == null ? now.reopened : before.reopened;	// A new version does not copy it
 		if(isClosed) {
-			// Closing again keeps the time it first closed
-			closed = wasClosed ? before.closed : new Timestamp(System.currentTimeMillis());
+			// Closing again keeps the time it first closed, as does a new record that brings its own, such as an import
+			closed = wasClosed ? before.closed
+					: (before == null && now.closed != null ? now.closed : new Timestamp(System.currentTimeMillis()));
 			if(!wasClosed) {
 				result = CLOSED;
 			}

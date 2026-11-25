@@ -1794,6 +1794,35 @@ public class OpsMonitorManager {
 				log.log(Level.WARNING, "Ops: counting references for " + e.getKey() + ": " + ex.getMessage());
 			}
 		}
+		countReopened(sd, items);
+	}
+
+	/*
+	 * How many times each case in a list has been opened again after closing, from its history
+	 */
+	private void countReopened(Connection sd, java.util.List<OpsItem> items) {
+		java.util.Set<String> threads = new java.util.HashSet<>();
+		for(OpsItem it : items) {
+			if(it.thread != null) threads.add(it.thread);
+		}
+		if(threads.isEmpty()) {
+			return;
+		}
+		try (PreparedStatement pstmt = sd.prepareStatement("select key, count(*) from record_event "
+				+ "where event = ? and key = any(?) group by key")) {
+			pstmt.setString(1, RecordEventManager.CASE_REOPENED);
+			pstmt.setArray(2, sd.createArrayOf("text", threads.toArray()));
+			ResultSet rs = pstmt.executeQuery();
+			Map<String, Integer> counts = new HashMap<>();
+			while(rs.next()) counts.put(rs.getString(1), rs.getInt(2));
+			for(OpsItem it : items) {
+				if(it.thread != null) {
+					it.reopened = counts.getOrDefault(it.thread, 0);
+				}
+			}
+		} catch (Exception ex) {
+			log.log(Level.WARNING, "Ops: counting reopened cases: " + ex.getMessage());
+		}
 	}
 
 	/*

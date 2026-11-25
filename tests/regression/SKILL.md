@@ -205,12 +205,18 @@ counts and failures when the output would be long, as the tool truncates it.
      `{server}/app/tasks/managed_forms.html` run `harness/case-state.js` with `{"part":"notification","project","sId",
      "test"}` (kept).  Check `survey_submission_effects` sends nothing to fixed addresses, then submit one record with
      `data_submit` (`cs_status` open, `cs_note` "regression") and give it to the user from `whoami` with `case_assign`.
+     Run the harness with `{"part":"alert","sId","group":<bundle ident>,"test"}` (kept), and wait until `data_audit`
+     shows the record's alert event, every 20 seconds for up to 4 minutes, before the steps.
      For each of `steps`: `via` new is a new record from `data_submit` (`cs_note` "regression"), checked on that record; `via` submission is `data_submit` with `continues` set to the record, otherwise
      `data_update_record`; wait for a submission to load (`data_query` shows the status).  Then check with
      `{"part":"record","sId","instanceid"}` and `data_audit` that: `_case_closed` is set or empty as `closed` says, and
      unchanged when `sameCloseTime`; `_case_reopened` is set when `reopened`; `_assigned` is `owners` (`{user}` is the
      user); the newest audit entry of `event` exists, after the step, containing `eventText`; and when `notification`
-     the history has the reopened notification.  ({user} = the whoami user.)
+     the history has the reopened notification.  Then run `{"part":"ops","group","test"}`: the open case's `reopened` must equal the Reopened events in its
+     `data_audit`.  Run `{"part":"import","sId","test"}` (turn `task_file` on with `survey_set_settings` first if it is
+     off): `data_query` with filter ${cs_note} = 'imported' finds the newest record closed, and its `data_audit` has a
+     case_closed event containing `import.expectEvent`.  After the reopen step, check `alert.check`: an alert event later than
+     the Reopened event, at least the alert's period after it.  ({user} = the whoami user.)
 4. Do not submit forms.  Tests leave no data, apart from the settings-secrets write checks, which
    put the setting they use back as it was, the records and tasks the xss test keeps in its own
    survey, the records and trail the dashboard-map test keeps, the records and grid the

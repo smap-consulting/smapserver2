@@ -13,6 +13,7 @@ public class OpsItem {
 	public String status;		// overdue | stale | open | in_progress | unassigned | alert (drives the badge)
 	public String link;
 	public int references;				// For a case, how many people have it as a reference (read only)
+	public int reopened;				// For a case, how many times it has been opened again after closing
 	public transient String gsi;		// The case's bundle and thread, to count its references, not sent
 	public transient String thread;
 
