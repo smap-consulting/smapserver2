@@ -194,17 +194,22 @@ counts and failures when the output would be long, as the tool truncates it.
      For `loop`, `first` must save and `second` must be refused with `expect`; then set `first`'s property back to
      an empty string.  `warned` must save with a reply containing its `expect`; then set it back to an empty string.
      At the end neither question has a calculation, relevant or constraint.
+   - `xform-upload`: a survey uploaded as an XForm.  Find `survey` with `survey_list`.  On
+     `{server}/app/tasks/managed_forms.html`, when it is missing run `harness/xform-upload.js` with `__CONFIG__` =
+     `{"part":"valid","project","test"}`, which uploads it (kept).  Compare `survey_questions` with `survey.questions`
+     (name, type, relevant, calculation, constraint, optionList) and `survey_options` for its list (yes, no).  Then run
+     `{"part":"refused","project","test"}`: each broken XForm must be refused with its message and no survey made.
 4. Do not submit forms.  Tests leave no data, apart from the settings-secrets write checks, which
    put the setting they use back as it was, the records and tasks the xss test keeps in its own
    survey, the records and trail the dashboard-map test keeps, the records and grid the
    dashboard-region test keeps, the records the sqli-filter and sqli-autoupdate tests keep, and the
    records and duplicate upload the submission-totals test keeps, and the records the update-conflicts
-   test adds to its own surveys, one per scenario each run, and the two records the case-alerts test adds each run, and the notifications the conflict-notifications test keeps on the update-conflicts surveys and the six records it adds to them each run, and the notification the operational-issues test keeps on the case-alerts survey and the record it adds there each run, and the survey and two notifications the multiple-assignees test keeps and the three records it adds each run, and the survey, record, notification and task group the server-expressions test keeps, and the survey the form-expressions test keeps.
+   test adds to its own surveys, one per scenario each run, and the two records the case-alerts test adds each run, and the notifications the conflict-notifications test keeps on the update-conflicts surveys and the six records it adds to them each run, and the notification the operational-issues test keeps on the case-alerts survey and the record it adds there each run, and the survey and two notifications the multiple-assignees test keeps and the three records it adds each run, and the survey, record, notification and task group the server-expressions test keeps, and the survey the form-expressions test keeps, and the survey the xform-upload test keeps.
 
 ## Report
 
 One table per test: for webform-constraint question, value, expected, actual; for settings-secrets
-check and detail; for xss page, check and detail; for sqli probe and detail; for mcp-totals check and detail; for update-conflict scenario, check and detail; for case-alert part, check and detail; for conflict-notification part or scenario, check and detail; for issues part, check and detail; for multiple-assignee part, check and detail; for server-expression part, check and detail; for form-expression change, check and detail; each with ✅/❌.  Then a summary line per test,
+check and detail; for xss page, check and detail; for sqli probe and detail; for mcp-totals check and detail; for update-conflict scenario, check and detail; for case-alert part, check and detail; for conflict-notification part or scenario, check and detail; for issues part, check and detail; for multiple-assignee part, check and detail; for server-expression part, check and detail; for form-expression change, check and detail; for xform-upload part, check and detail; each with ✅/❌.  Then a summary line per test,
 PASS or FAIL with the number of failures.  For a failure include the `constraints` the harness
 returned, as the constraint as the page received it is usually the clue.  Close the Chrome tab.
 

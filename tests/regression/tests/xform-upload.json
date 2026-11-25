@@ -1,0 +1,25 @@
+{
+  "name": "xform-upload",
+  "description": "A survey uploaded as an XForm (.xml) is read into the same model as an XLSForm and given the same checks (shared validator, 26.12.01), including Smap's own expression checks that replaced JavaRosa (2026-11-25). A valid XForm creates the survey with its questions, choices, relevant, calculation and constraint; a constraint with an unknown function is accepted with a warning. An XForm whose expression is misspelt, uses == for =, has an unclosed bracket, the wrong number of arguments, a loop between calculations, or ends too soon is refused with a message saying what and where, and no survey is created. The upload page decodes the server's encoded message before showing it (fixed 2026-11-25). Keeps its survey; no records.",
+  "kind": "xform-upload",
+  "survey": {
+    "name": "XForm upload test",
+    "project": "A project",
+    "questions": [
+      { "name": "xa", "type": "string" },
+      { "name": "xb", "type": "int", "constraint": "nosuchfn(.) < 5" },
+      { "name": "xc", "type": "string", "relevant": "${xs} = 'yes'", "calculation": "concat(${xa}, '-', ${xb})" },
+      { "name": "xs", "type": "select1", "optionList": "xs" }
+    ]
+  },
+  "valid": { "binds": { "xb": "constraint=\"nosuchfn(.) &lt; 5\"", "xc": "calculate=\"concat(/data/xa, '-', /data/xb)\" relevant=\"/data/xs = 'yes'\"" }, "warning": "there is no function called nosuchfn()" },
+  "refusedName": "XForm upload test - refused",
+  "refused": [
+    { "name": "misspelt function", "binds": { "xc": "calculate=\"concate(/data/xa, 'x')\"" }, "expect": "perhaps you mean concat()" },
+    { "name": "== for =", "binds": { "xc": "relevant=\"/data/xb == 1\"" }, "expect": "== is not an operator here, use =" },
+    { "name": "unclosed bracket", "binds": { "xc": "calculate=\"concat(/data/xa, 'x'\"" }, "expect": "concat( is not closed with )" },
+    { "name": "wrong number of arguments", "binds": { "xc": "calculate=\"substr(/data/xa)\"" }, "expect": "substr() takes 2 or 3 arguments, not 1" },
+    { "name": "loop", "binds": { "xa": "calculate=\"concat(/data/xc, 'x')\"", "xc": "calculate=\"concat(/data/xa, 'y')\"" }, "expect": "depend on each other in a loop" },
+    { "name": "ends too soon", "binds": { "xc": "relevant=\"/data/xb = 1 and\"" }, "expect": "the expression ends too soon" }
+  ]
+}
