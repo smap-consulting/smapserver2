@@ -8,8 +8,8 @@
 //       On any console page.  Waits up to 35 seconds for each record to have the number of alert events it
 //       expects.  Returns "pending" while an alert that should fire has not, so call it again.
 //   {"part": "render", "sId": <survey id>, "instanceid": <the open record>, "alert": <alert name>}
-//       On /app/tasks/managed_forms.html.  Shows the record's history with the console's own code and checks
-//       the alert row and the Alerts switch.  The page's history is put back as it was.
+//       On /app/tasks/managed_forms.html with the record open.  Checks the alert entry in its Timeline and that
+//       the Alerts button hides it.  The button is put back as it was.
 const CONFIG = __CONFIG__;
 const H = { 'X-Requested-With': 'XMLHttpRequest' };
 const getJson = url => fetch(url, { headers: H, cache: 'no-store' })
@@ -137,27 +137,25 @@ if (CONFIG.part === 'setup') {
 		}
 	}
 } else if (CONFIG.part === 'render') {
+	// The record's timeline, with the record open in the console
 	const $ = window.jQuery;
-	check('console page', $ && $('#changes').length && $('#er_show_alerts').length, location.pathname);
-	if ($ && $('#er_show_alerts').length) {
-		const saved = window.gChanges;
-		const ev = await events(CONFIG.sId, CONFIG.instanceid);
-		window.gChanges = ev;
-		const $sw = $('#er_show_alerts');
-		const wasOn = $sw.prop('checked');
-		const rowsOf = () => $('#changes tbody tr').filter(function () { return $(this).find('.fa-bell').length > 0; });
-		$sw.prop('checked', true).trigger('change');
-		const rows = rowsOf();
-		check('alert row shown', rows.length === 1, rows.length + ' rows with a bell');
-		const cells = rows.first().children('td').map((i, c) => $(c).text().trim()).get();
-		check('event label', cells.includes(window.localise ? window.localise.set['alert'] : 'Alert') || cells.includes('Alert'), cells.join(' | '));
-		check('details name the alert', cells.some(c => c.indexOf(CONFIG.alert) >= 0), cells.join(' | '));
-		$sw.prop('checked', false).trigger('change');
-		check('Alerts switch hides it', rowsOf().length === 0, rowsOf().length + ' rows');
-		check('other events still shown', $('#changes tbody tr').length > 0, $('#changes tbody tr').length + ' rows');
-		$sw.prop('checked', wasOn);
-		window.gChanges = saved;
-		$sw.trigger('change');
+	check('console page', $ && $('#timeline').length, location.pathname);
+	const chip = () => $('#timeline .tl_chip[data-kind="alerts"]');
+	if ($ && chip().length) {
+		const wasOn = chip().attr('aria-pressed') === 'true';
+		const itemsOf = () => $('#timeline li');
+		const alertsOf = () => itemsOf().filter(function () { return $(this).find('.fa-bell').length > 0; });
+		if (!wasOn) chip().trigger('click');
+		const rows = alertsOf();
+		check('alert shown', rows.length === 1, rows.length + ' entries with a bell');
+		const text = rows.first().text();
+		const label = window.localise ? window.localise.set['alert'] : 'Alert';
+		check('event label', text.indexOf(label) >= 0 || text.indexOf('Alert') >= 0, text);
+		check('entry names the alert', text.indexOf(CONFIG.alert) >= 0, text);
+		chip().trigger('click');
+		check('Alerts button hides it', alertsOf().length === 0, alertsOf().length + ' entries');
+		check('other events still shown', itemsOf().length > 0, itemsOf().length + ' entries');
+		if (wasOn) chip().trigger('click');
 	}
 }
 result.pass = lines.length > 0 && lines.every(l => l.ok) && !result.pending;

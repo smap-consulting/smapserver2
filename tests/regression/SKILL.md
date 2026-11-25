@@ -146,7 +146,7 @@ counts and failures when the output would be long, as the tool truncates it.
      and submits the test's records.  The alert has no notifications, so nothing is sent.  The alert fires a minute
      after a record is made and the subscriber checks alerts on its own schedule, so wait 60 seconds, then run it with
      `{"part":"check","sId","records":<setup's records>,"alert":<alert.name>}`, again while it returns `pending`, for up
-     to 5 minutes.  Finally run it with `{"part":"render","sId","instanceid":<the open record>,"alert"}` on the same page.
+     to 5 minutes.  Finally open one of the records in the console (select it and choose the Timeline button, so its Timeline tab shows) and run it with `{"part":"render","sId","instanceid":<the open record>,"alert"}` on that page.
    - `conflict-notification`: notifications triggered by a conflicting update, on one survey and on a bundle.  It
      `uses` the update-conflicts surveys: a is the test survey, b its bundle survey, and the bundle's ident is a's
      (`survey_get`).  Open `{server}/app/tasks/managed_forms.html` and run `harness/conflict-notification.js` with
