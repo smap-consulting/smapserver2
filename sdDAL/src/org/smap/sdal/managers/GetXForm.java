@@ -460,7 +460,15 @@ public class GetXForm {
 					languageElement.appendChild(textElement);
 					
 					Element valueElement = outputDoc.createElement("value");
-					valueElement.setTextContent(t.getValue() == null ? null : sanitise.cleanText(t.getValue()));
+					// Convert ${name} references to output elements, as for labels
+					try {
+						String v = t.getValueXML(template.getQuestionPaths(), 0);
+						Element rootFrag = builder.parse(new InputSource(new StringReader(v))).getDocumentElement();
+						addXmlFrag(outputDoc, valueElement, rootFrag);
+					} catch (Exception e) {
+						log.log(Level.SEVERE, "Message " + t.getTextId() + ": " + e.getMessage(), e);
+						valueElement.setTextContent(t.getValue() == null ? null : sanitise.cleanText(t.getValue()));
+					}
 					textElement.appendChild(valueElement);
 				}
 			}

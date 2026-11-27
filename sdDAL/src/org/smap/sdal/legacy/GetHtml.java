@@ -465,7 +465,7 @@ public class GetHtml {
 				addSelectContents(sd, extraFieldsetElement, q, form, false, hideLabels);
 				
 				// Add constraint message at end to the outer fieldset
-				addConstraintMsg(q.constraint_msg, null, bodyElement, 0);
+				addConstraintMsg(convertMsgRefs(q.constraint_msg, q, form), null, bodyElement, 0);
 				
 				if(q.appearance.contains("literacy") && q.flash > 0) {
 					bodyElement.setAttribute("data-flash", String.valueOf(q.flash));
@@ -1684,7 +1684,7 @@ public class GetHtml {
 			}
 			
 			// Constraint
-			constraintMessageAdded = addConstraintMsg(q.labels.get(idx).constraint_msg, getLangId(lang), parent, idx);
+			constraintMessageAdded = addConstraintMsg(convertMsgRefs(q.labels.get(idx).constraint_msg, q, form), getLangId(lang), parent, idx);
 			if(q.isRequired()) {
 				if(q.labels.get(idx).required_msg != null) {
 					if(!requiredIndicatorAdded) {
@@ -1694,7 +1694,7 @@ public class GetHtml {
 						parent.appendChild(bodyElement);
 						requiredIndicatorAdded = true;
 					}
-					parent.appendChild(getRequiredMsg(q.labels.get(idx).required_msg,
+					parent.appendChild(getRequiredMsg(convertMsgRefs(q.labels.get(idx).required_msg, q, form),
 							getLangId(lang), !requiredMessageAdded));
 					requiredMessageAdded = true;
 				}
@@ -1705,7 +1705,7 @@ public class GetHtml {
 
 		// Constraint message (Without a language)
 		if(!constraintMessageAdded) {
-			addConstraintMsg(q.constraint_msg, null, parent, 0);
+			addConstraintMsg(convertMsgRefs(q.constraint_msg, q, form), null, parent, 0);
 		}
 
 		// Required (Without a language)
@@ -1945,6 +1945,21 @@ public class GetHtml {
 			return qName + form.id;
 		} else {
 			return qName;
+		}
+	}
+
+	/*
+	 * Convert ${name} references in a constraint or required message to outputs, as for labels
+	 */
+	private String convertMsgRefs(String msg, Question q, Form form) {
+		if (msg == null || !msg.contains("${")) {
+			return msg;
+		}
+		try {
+			return UtilityMethods.convertAllxlsNames(msg, true, paths, form.id, true, q.name, false);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Message for " + q.name + ": " + e.getMessage(), e);
+			return msg;
 		}
 	}
 
