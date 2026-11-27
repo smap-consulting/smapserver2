@@ -11,6 +11,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.OrgCachedResource;
 import org.smap.sdal.model.CustomUserReference;
 import org.smap.sdal.model.SqlFrag;
@@ -108,6 +109,10 @@ public class ExternalFileManager {
 				}
 			}
 
+		} catch (ApplicationException e) {
+			// A problem in the form design, e.g. a chart key that is not a column; no stack trace needed
+			log.warning("Creating CSV file " + filename + " for survey " + sId + ": " + e.getMessage());
+			lm.writeLog(sd, sId, userName, LogManager.ERROR, "Creating CSV file: " + e.getMessage(), 0, null);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
 			lm.writeLog(sd, sId, userName, LogManager.ERROR, "Creating CSV file: " + e.getMessage(), 0, null);
