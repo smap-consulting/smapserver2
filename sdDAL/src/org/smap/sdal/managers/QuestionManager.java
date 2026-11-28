@@ -106,10 +106,11 @@ public class QuestionManager {
 				+ "display_name,"
 				+ "compressed,"
 				+ "intent,"
-				+ "set_value"
+				+ "set_value,"
+				+ "trigger"
 				+ ") " 
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
 		PreparedStatement pstmtUpdateSeq = null;
 		String sqlUpdateSeq = "update question set seq = seq + 1 where f_id = ? and seq >= ?;";
@@ -328,6 +329,7 @@ public class QuestionManager {
 				pstmtInsertQuestion.setBoolean(29, true);		// All select questions now default to compressed
 				pstmtInsertQuestion.setString(30, q.intent);
 				pstmtInsertQuestion.setString(31, q.getSetValueArrayAsString(gson));
+				pstmtInsertQuestion.setString(32, (q.trigger == null || q.trigger.trim().length() == 0) ? null : q.trigger.trim());
 				
 				log.fine("Insert question: " + pstmtInsertQuestion.toString());
 				pstmtInsertQuestion.executeUpdate();
