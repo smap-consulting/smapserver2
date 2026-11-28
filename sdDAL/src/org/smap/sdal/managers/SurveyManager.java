@@ -2845,11 +2845,11 @@ public class SurveyManager {
 						}
 						
 						/*
-						 * If this is a parameter change on a geo question then set the source of any reference geometry
+						 * If this is a parameter change on a geo or range question then set the list it names
 						 */
 						if(ci.property.prop.equals("parameters")
-								&& GeneralUtilityMethods.isReferenceGeometryType(ci.property.qType)) {
-							updateReferenceGeometry(sd, sId, ci.property.qId, ci.property.qType, ci.property.oldVal, ci.property.newVal);
+								&& GeneralUtilityMethods.isListParameterType(ci.property.qType)) {
+							updateListParameter(sd, sId, ci.property.qId, ci.property.qType, ci.property.oldVal, ci.property.newVal);
 						}
 
 						// If this is a parameter change record any affected auto update questions
@@ -4754,15 +4754,15 @@ public class SurveyManager {
 	}
 
 	/*
-	 * A geo question's reference geometry comes from a choice list or ${question} in a repeat, held as
+	 * Geo reference geometry, from a choice list or ${question} in a repeat, and range tick labels are held as
 	 * a select's list is so the XForm gets an itemset for it.  A choice filter can be added in an XLSForm
 	 */
-	private void updateReferenceGeometry(Connection sd, int sId, int qId, String qType,
+	private void updateListParameter(Connection sd, int sId, int qId, String qType,
 			String oldParams, String params) throws SQLException {
 
-		String ref = GeneralUtilityMethods.getReferenceGeometry(qType,
+		String ref = GeneralUtilityMethods.getListParameter(qType,
 				GeneralUtilityMethods.convertParametersToArray(params));
-		String oldRef = GeneralUtilityMethods.getReferenceGeometry(qType,
+		String oldRef = GeneralUtilityMethods.getListParameter(qType,
 				GeneralUtilityMethods.convertParametersToArray(oldParams));
 		if(ref == null ? oldRef == null : ref.equals(oldRef)) {
 			return;		// Unchanged, keep any choice filter

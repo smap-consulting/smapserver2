@@ -1321,9 +1321,12 @@ public class GetXForm {
 		String initial = null;
 		if (parameters != null) {
 			for(KeyValueSimp kv : parameters) {
-				if(kv.k.equals(GeneralUtilityMethods.REFERENCE_GEOMETRY)
-						&& GeneralUtilityMethods.isReferenceGeometryType(q.getType())) {
+				if(GeneralUtilityMethods.isListParameter(q.getType(), kv.k)) {
 					continue;	// Written as an itemset from the question's nodeset
+				} else if(q.getType().equals("range")
+						&& (kv.k.equals(GeneralUtilityMethods.TICK_INTERVAL) || kv.k.equals(GeneralUtilityMethods.PLACEHOLDER))) {
+					// Range display settings are in the odk namespace, with hyphens as pyxform writes them
+					questionElement.setAttribute("odk:" + kv.k.replace('_', '-'), kv.v);
 				} else if(!kv.k.equals("initial")) {
 					questionElement.setAttribute(kv.k, kv.v);
 				} else {
@@ -2966,7 +2969,8 @@ public class GetXForm {
 
 		if(parameters != null) {
 			for(KeyValueSimp kv : parameters) {			
-				if(kv.k.equals("start") || kv.k.equals("end") || kv.k.equals("step")) {
+				if(kv.k.equals("start") || kv.k.equals("end") || kv.k.equals("step")
+						|| kv.k.equals(GeneralUtilityMethods.TICK_INTERVAL) || kv.k.equals(GeneralUtilityMethods.PLACEHOLDER)) {
 					if(kv.v.indexOf(".") >= 0) {
 						dataType = "decimal";
 						break;

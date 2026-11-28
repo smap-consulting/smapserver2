@@ -8467,13 +8467,30 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Get the reference geometry source of a question, or null if it has none
+	 * Range parameters
 	 */
-	public static String getReferenceGeometry(String type, ArrayList<KeyValueSimp> params) {
-		if(!isReferenceGeometryType(type)) {
-			return null;
+	public static final String TICK_INTERVAL = "tick_interval";
+	public static final String PLACEHOLDER = "placeholder";
+	public static final String TICK_LABELSET = "tick_labelset";		// A choice list of labels for ticks
+
+	/*
+	 * Return true if questions of this type can get a list of items from a parameter, held as a select's list is
+	 */
+	public static boolean isListParameterType(String type) {
+		return isReferenceGeometryType(type) || "range".equals(type);
+	}
+
+	/*
+	 * Get the list named by a question's parameters, or null if it has none
+	 * Geo questions name reference geometry and range questions name the labels of their ticks
+	 */
+	public static String getListParameter(String type, ArrayList<KeyValueSimp> params) {
+		String value = null;
+		if(isReferenceGeometryType(type)) {
+			value = getSurveyParameter(REFERENCE_GEOMETRY, params);
+		} else if("range".equals(type)) {
+			value = getSurveyParameter(TICK_LABELSET, params);
 		}
-		String value = getSurveyParameter(REFERENCE_GEOMETRY, params);
 		if(value != null) {
 			value = value.trim();
 			if(value.length() == 0) {
@@ -8481,6 +8498,14 @@ public class GeneralUtilityMethods {
 			}
 		}
 		return value;
+	}
+
+	/*
+	 * Return true if the parameter names a list and so is written as an itemset rather than an attribute
+	 */
+	public static boolean isListParameter(String type, String param) {
+		return (isReferenceGeometryType(type) && REFERENCE_GEOMETRY.equals(param))
+				|| ("range".equals(type) && TICK_LABELSET.equals(param));
 	}
 
 	/*

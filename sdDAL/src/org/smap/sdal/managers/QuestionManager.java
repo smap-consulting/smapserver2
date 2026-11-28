@@ -160,17 +160,16 @@ public class QuestionManager {
 						throw new Exception("Form not found");
 					}
 				}
-
-				// A geo question showing reference geometry gets its features from a list, as a select does
-				if(GeneralUtilityMethods.isReferenceGeometryType(q.type)) {
-					q.list_name = GeneralUtilityMethods.getReferenceGeometry(q.type,
+				// Geo reference geometry and range tick labels come from a list, as a select's choices do
+				if(GeneralUtilityMethods.isListParameterType(q.type)) {
+					q.list_name = GeneralUtilityMethods.getListParameter(q.type,
 							GeneralUtilityMethods.convertParametersToArray(q.parameters));
 				}
 
 				if(q.type.startsWith("select") || q.type.equals("rank")) {	// Get the list id
 					q.l_id = GeneralUtilityMethods.getListId(sd, sId, q.list_name);
 				} else if(q.list_name != null && !q.list_name.startsWith("${")
-						&& GeneralUtilityMethods.isReferenceGeometryType(q.type)) {
+						&& GeneralUtilityMethods.isListParameterType(q.type)) {
 					q.l_id = GeneralUtilityMethods.getListId(sd, sId, q.list_name);
 				} else if(q.type.equals("calculate")) {
 					q.visible = false;
@@ -298,7 +297,7 @@ public class QuestionManager {
 				String cascade_instance = null;
 
 				if(q.type.startsWith("select") || q.type.equals("rank")
-						|| (GeneralUtilityMethods.isReferenceGeometryType(q.type) && q.list_name != null)) {	// Reference geometry
+						|| (GeneralUtilityMethods.isListParameterType(q.type) && q.list_name != null)) {	// Reference geometry or range tick labels
 					if(q.list_name != null && q.list_name.startsWith("${")) {
 						cascade_instance = q.list_name;
 						String repQuestion = GeneralUtilityMethods.getNameFromXlsName(cascade_instance);
@@ -1860,7 +1859,7 @@ public class QuestionManager {
 				+ "where f.f_id = q.f_id "
 				+ "and q.l_id > 0 "
 				+ "and (q.qtype like 'select%' "
-				+ "or q.qtype in ('geopoint', 'geotrace', 'geoshape')) "	// Reference geometry list
+				+ "or q.qtype in ('geopoint', 'geotrace', 'geoshape', 'range')) "	// Reference geometry or tick labels list
 				+ "and f.f_id = ? ;";
 		PreparedStatement pstmtGetLists = null;
 

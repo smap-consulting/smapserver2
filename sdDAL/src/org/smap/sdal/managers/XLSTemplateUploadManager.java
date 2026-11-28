@@ -797,7 +797,10 @@ public class XLSTemplateUploadManager {
 		ArrayList<Form> forms = survey.surveyData.forms;
 		for(Form form : forms) {
 			for(Question q : form.questions) {
-				String ref = GeneralUtilityMethods.getReferenceGeometry(q.type, q.paramArray);
+				if(!GeneralUtilityMethods.isReferenceGeometryType(q.type)) {
+					continue;		// Range tick labels can only come from a choice list
+				}
+				String ref = GeneralUtilityMethods.getListParameter(q.type, q.paramArray);
 				if(ref == null || !ref.startsWith("${")) {
 					continue;
 				}
@@ -1043,10 +1046,10 @@ public class XLSTemplateUploadManager {
 		String paramString = XLSUtilities.getTextColumn(wb, row, "parameters", surveyHeader, lastCellNum, null);
 		q.paramArray = GeneralUtilityMethods.convertParametersToArray(paramString);
 
-		// A geo question showing reference geometry gets its features from a list, as a select does
-		String refGeometry = GeneralUtilityMethods.getReferenceGeometry(q.type, q.paramArray);
-		if(refGeometry != null) {
-			q.list_name = refGeometry;
+		// Geo reference geometry and range tick labels come from a list, as a select's choices do
+		String listParam = GeneralUtilityMethods.getListParameter(q.type, q.paramArray);
+		if(listParam != null) {
+			q.list_name = listParam;
 		}
 
 		// 12. autoplay

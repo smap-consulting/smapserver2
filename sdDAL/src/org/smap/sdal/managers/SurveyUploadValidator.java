@@ -18,8 +18,10 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  */
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.ResourceBundle;
 import java.util.Stack;
 import java.util.regex.Pattern;
@@ -35,6 +37,7 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Option;
+import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.SetValue;
@@ -201,6 +204,111 @@ public class SurveyUploadValidator {
 		return i + 1;
 	}
 
+	/*
+	 * Check the parameters of a range question, following the rules pyxform applies so a form
+	 * accepted here behaves the same in clients
+	 */
+	private void validateRange(Question q, int rowNumber) throws ApplicationException {
+
+		BigDecimal start = rangeParam(q, "start", "1", rowNumber);
+		BigDecimal end = rangeParam(q, "end", "10", rowNumber);
+		BigDecimal step = rangeParam(q, "step", "1", rowNumber);
+		BigDecimal tickInterval = rangeParam(q, GeneralUtilityMethods.TICK_INTERVAL, null, rowNumber);
+		BigDecimal placeholder = rangeParam(q, GeneralUtilityMethods.PLACEHOLDER, null, rowNumber);
+		String tickLabelset = GeneralUtilityMethods.getListParameter(q.type, q.paramArray);
+
+		if(tickInterval == null && placeholder == null && tickLabelset == null) {
+			return;		// Only the original start, end and step which clients already check
+		}
+
+		// The display parameters only apply to the default, vertical and no-ticks sliders
+		String appearance = q.appearance == null ? "" : q.appearance;
+		boolean noTicks = appearance.contains("no-ticks");
+		if(appearance.trim().length() > 0 && !appearance.contains("vertical") && !noTicks) {
+			throw fmt.error("tu_rng_app", rowNumber, "survey", q.name, null, null);
+		}
+
+		BigDecimal width = end.subtract(start).abs();
+		if(step.signum() == 0) {
+			throw fmt.error("tu_rng_zero", rowNumber, "survey", q.name, "step", null);
+		}
+		if(step.abs().compareTo(width) > 0) {
+			throw fmt.error("tu_rng_big", rowNumber, "survey", q.name, "step", null);
+		}
+
+		if(tickInterval != null) {
+			if(tickInterval.signum() == 0) {
+				throw fmt.error("tu_rng_zero", rowNumber, "survey", q.name, GeneralUtilityMethods.TICK_INTERVAL, null);
+			}
+			if(tickInterval.abs().compareTo(width) > 0) {
+				throw fmt.error("tu_rng_big", rowNumber, "survey", q.name, GeneralUtilityMethods.TICK_INTERVAL, null);
+			}
+			if(tickInterval.remainder(step).signum() != 0) {
+				throw fmt.error("tu_rng_mult", rowNumber, "survey", q.name, GeneralUtilityMethods.TICK_INTERVAL, null);
+			}
+		}
+
+		if(placeholder != null) {
+			if(placeholder.subtract(start).remainder(step).signum() != 0) {
+				throw fmt.error("tu_rng_tick", rowNumber, "survey", q.name, GeneralUtilityMethods.PLACEHOLDER, null);
+			}
+			if(placeholder.compareTo(start.min(end)) < 0 || placeholder.compareTo(start.max(end)) > 0) {
+				throw fmt.error("tu_rng_out", rowNumber, "survey", q.name, GeneralUtilityMethods.PLACEHOLDER, null);
+			}
+		}
+
+		if(tickLabelset != null) {
+			OptionList ol = tickLabelset.startsWith("$") ? null : survey.surveyData.optionLists.get(tickLabelset);
+			if(ol == null || ol.options == null || ol.options.isEmpty()) {
+				throw fmt.error("tu_rng_list", rowNumber, "survey", q.name, null, null);
+			}
+			BigDecimal tick = tickInterval != null ? tickInterval : step;
+			HashSet<BigDecimal> labelled = new HashSet<> ();
+			for(Option o : ol.options) {
+				BigDecimal v;
+				try {
+					v = new BigDecimal(o.value.trim());
+				} catch (Exception e) {
+					throw fmt.error("tu_rng_lnum", rowNumber, "survey", q.name, o.value, null);
+				}
+				if(v.compareTo(start.min(end)) < 0 || v.compareTo(start.max(end)) > 0) {
+					throw fmt.error("tu_rng_lout", rowNumber, "survey", q.name, o.value, null);
+				}
+				if(v.subtract(start).remainder(tick).signum() != 0) {
+					throw fmt.error("tu_rng_ltick", rowNumber, "survey", q.name, o.value, null);
+				}
+				labelled.add(v.stripTrailingZeros());
+			}
+			if(noTicks) {
+				// Without ticks only the ends of the slider can be labelled
+				HashSet<BigDecimal> ends = new HashSet<> ();
+				ends.add(start.stripTrailingZeros());
+				ends.add(end.stripTrailingZeros());
+				if(!ends.containsAll(labelled)) {
+					throw fmt.error("tu_rng_noticks", rowNumber, "survey", q.name, null, null);
+				}
+			}
+		}
+	}
+
+	/*
+	 * Get a numeric range parameter
+	 */
+	private BigDecimal rangeParam(Question q, String name, String def, int rowNumber) throws ApplicationException {
+		String v = GeneralUtilityMethods.getSurveyParameter(name, q.paramArray);
+		if(v == null || v.trim().length() == 0) {
+			v = def;
+		}
+		if(v == null) {
+			return null;
+		}
+		try {
+			return new BigDecimal(v.trim());
+		} catch (Exception e) {
+			throw fmt.error("tu_rng_num", rowNumber, "survey", q.name, name, null);
+		}
+	}
+
 	public void validateQuestion(Question q, int rowNumber, int formIndex) throws Exception {
 
 		/*
@@ -292,7 +400,9 @@ public class SurveyUploadValidator {
 		// List name not in choices
 		if(q.list_name != null  && !q.list_name.startsWith("$")) {
 			if(survey.surveyData.optionLists.get(q.list_name) == null) {
-				throw fmt.error("tu_lnf", rowNumber, "survey", q.list_name, null, null);
+				// A list named in the parameters column of a geo or range question rather than in the type
+				String code = GeneralUtilityMethods.isListParameterType(q.type) ? "tu_lnf_param" : "tu_lnf";
+				throw fmt.error(code, rowNumber, "survey", q.list_name, null, null);
 			}
 		}
 
@@ -324,6 +434,10 @@ public class SurveyUploadValidator {
 			}
 			q.paramArray = noDups;
 
+		}
+
+		if(q.type.equals("range")) {
+			validateRange(q, rowNumber);
 		}
 
 		// Check that parent and child forms have the form_identifier parameter
