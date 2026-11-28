@@ -575,7 +575,9 @@ public class SurveyTemplate {
 						targets = new ArrayList<SetValue> ();
 						triggers.put(triggerQuestion, targets);
 					}
-					targets.add(new SetValue(SetValue.TRIGGER, triggerValue, triggerRef));
+					SetValue sv = new SetValue(SetValue.TRIGGER, triggerValue, triggerRef);
+					sv.setGeopoint = GeneralUtilityMethods.isBackgroundGeopoint(q.getType(), q.isVisible(), trigger, triggerValue);
+					targets.add(sv);
 				}
 			}	
 			

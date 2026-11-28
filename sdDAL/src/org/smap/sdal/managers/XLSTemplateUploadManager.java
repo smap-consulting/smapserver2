@@ -374,6 +374,7 @@ public class XLSTemplateUploadManager {
 		}
 		v.validateForm(1, f);
 		resolveReferenceGeometry();
+		checkBackgroundGeopointTriggers();
 
 		/*
 		 * 5, Process the settings sheet
@@ -853,6 +854,34 @@ public class XLSTemplateUploadManager {
 		}
 	}
 
+	/*
+	 * The trigger of a background-geopoint must name one question in the survey
+	 */
+	private void checkBackgroundGeopointTriggers() throws ApplicationException {
+		HashMap<String, Question> names = new HashMap<> ();
+		for(Form form : survey.surveyData.forms) {
+			for(Question q : form.questions) {
+				if(q.name != null && !q.type.startsWith("end ")) {
+					names.put(q.name, q);
+				}
+			}
+		}
+		for(Form form : survey.surveyData.forms) {
+			for(Question q : form.questions) {
+				if(GeneralUtilityMethods.isBackgroundGeopoint(q.type, q.visible, q.trigger, q.calculation)) {
+					String t = q.trigger.trim();
+					Question target = null;
+					if(t.startsWith("${") && t.endsWith("}") && t.indexOf("${", 2) < 0) {
+						target = names.get(GeneralUtilityMethods.getNameFromXlsName(t));
+					}
+					if(target == null || target == q) {
+						throw new ApplicationException(refGeometryMsg("tu_bg_ref", q.name, t));
+					}
+				}
+			}
+		}
+	}
+
 	private String refGeometryMsg(String key, String qName, String ref) {
 		return localisation.getString(key)
 				.replace("%s1", GeneralUtilityMethods.getSafeText(qName, true))
@@ -1222,6 +1251,22 @@ public class XLSTemplateUploadManager {
 		q.visible = convertVisible(q.type);
 
 		/*
+		 * A background-geopoint records the location, without being shown, whenever the question named in
+		 * its trigger changes.  It is held as a geopoint that is not shown so it is stored, exported and
+		 * mapped as any other geopoint
+		 */
+		if(q.type.equals(GeneralUtilityMethods.BACKGROUND_GEOPOINT)) {
+			if(q.trigger == null || q.trigger.trim().length() == 0) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_bg_trig", rowNumSurvey, "survey", q.name, null, null);
+			}
+			if(q.calculation != null && q.calculation.trim().length() > 0) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_bg_calc", rowNumSurvey, "survey", q.name, null, null);
+			}
+			q.type = "geopoint";
+			q.visible = false;
+		}
+
+		/*
 		 * Validate question type compatability
 		 */
 		if(merge) {
@@ -1571,8 +1616,10 @@ public class XLSTemplateUploadManager {
 			out = "email";
 		} else if (type.equals("server_calculate")) {
 			out = "server_calculate";
-		} else if (type.equals("start-geopoint")) {	
+		} else if (type.equals("start-geopoint")) {
 			out = "start-geopoint";
+		} else if (type.equals(GeneralUtilityMethods.BACKGROUND_GEOPOINT)) {
+			out = GeneralUtilityMethods.BACKGROUND_GEOPOINT;
 		} else if (type.equals("hidden value")) {    // Commcare 
 			out = "calculate";
 		} else if (type.equals("label")) {			// Commcare 

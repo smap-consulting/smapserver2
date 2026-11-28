@@ -1204,13 +1204,22 @@ public class GetXForm {
 		if(targets != null && targets.size() > 0) {
 			Element questionElement = null;
 			for(SetValue sv : targets) {
+				String refQuestion = sv.ref;
+				String reference = getQuestionReference(template.getQuestionPaths(), f.getId(), refQuestion);
+
+				if(sv.setGeopoint) {
+					// background-geopoint: record the location when this question changes
+					questionElement = outputXML.createElement("odk:setgeopoint");
+					questionElement.setAttribute("event", sv.event);
+					questionElement.setAttribute("ref", reference);
+					currentParent.appendChild(questionElement);
+					continue;
+				}
+
 				questionElement = outputXML.createElement("setvalue");
 				questionElement.setAttribute("event", sv.event);
-				
-				String refQuestion = sv.ref;	
-				String reference = getQuestionReference(template.getQuestionPaths(), f.getId(), refQuestion);
 				questionElement.setAttribute("ref", reference);
-				
+
 				String calculate = UtilityMethods.convertAllxlsNames(sv.value, false,
 						template.getQuestionPaths(), f.getId(), false, q.getName(), false);	
 				questionElement.setAttribute("value", calculate);				

@@ -196,6 +196,8 @@ public class XLSFormManager {
 					value = "select_multiple " + q.list_name;
 				}  else if(q.type.equals("rank")) {
 					value = "rank " + q.list_name;
+				} else if(GeneralUtilityMethods.isBackgroundGeopoint(q.type, q.visible, q.trigger, q.calculation)) {
+					value = GeneralUtilityMethods.BACKGROUND_GEOPOINT;
 				} else if(q.propertyType && q.source_param != null) {
 					value = q.source_param;
 				} else {

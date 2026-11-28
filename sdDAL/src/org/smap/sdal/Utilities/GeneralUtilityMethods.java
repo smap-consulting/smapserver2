@@ -8467,6 +8467,18 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * A geopoint recorded without being shown whenever the question named in its trigger changes
+	 * Held as a geopoint that is not visible, has a trigger and no calculation
+	 */
+	public static final String BACKGROUND_GEOPOINT = "background-geopoint";
+
+	public static boolean isBackgroundGeopoint(String type, boolean visible, String trigger, String calculation) {
+		return "geopoint".equals(type) && !visible
+				&& trigger != null && trigger.trim().length() > 0
+				&& (calculation == null || calculation.trim().length() == 0);
+	}
+
+	/*
 	 * Range parameters
 	 */
 	public static final String TICK_INTERVAL = "tick_interval";
