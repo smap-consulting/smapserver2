@@ -1,5 +1,11 @@
 package org.smap.sdal.mcp.tools;
 
+import java.sql.ResultSet;
+
+import java.sql.PreparedStatement;
+
+import java.util.ArrayList;
+
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,7 +35,7 @@ import org.smap.sdal.model.Survey;
  */
 public class CaseAssignTool extends AbstractMcpTool {
 
-	private static final List<String> ACTIONS = Arrays.asList("assign", "release", "lock");
+	private static final List<String> ACTIONS = Arrays.asList("assign", "release", "lock", "remove", "unassign_all");
 
 	@Override
 	public String getName() {
@@ -45,7 +51,9 @@ public class CaseAssignTool extends AbstractMcpTool {
 	public String getDescription() {
 		return "Gives a case to somebody, releases it so anyone can take it, or locks it. A case is a "
 				+ "record, so find one with data_query. To give one away you must be able to see it. Closing is "
-				+ "different - see case_settings.";
+				+ "different - see case_settings. If the case's bundle allows multiple assignees (case_settings), "
+				+ "assign adds the person to those who have it, a role adds everyone in it, and remove takes one "
+				+ "person off; otherwise assign replaces whoever has it.";
 	}
 
 	@Override
@@ -74,9 +82,13 @@ public class CaseAssignTool extends AbstractMcpTool {
 				"survey_id", property("integer", "The survey the case is in, from survey_list"),
 				"instance_id", property("string", "The case's record, from data_query"),
 				"action", property("string",
-						"One of assign, release or lock. Default assign."),
+						"One of assign, release, lock, remove or unassign_all. Default assign. remove takes the "
+						+ "assignee off the case; unassign_all and release take everybody off."),
 				"assignee", property("string",
-						"For assign: the username to give the case to."),
+						"For assign: the username to give the case to.  For remove: the username to take off."),
+				"role", property("string",
+						"Optional, for assign: a role name, to give the case to everyone in it. Only when the "
+						+ "case's bundle allows multiple assignees."),
 				"note", property("string", "Optional. Why, recorded against the case."));
 		schema.put("required", new String[] { "survey_id", "instance_id" });
 		return schema;
@@ -119,6 +131,73 @@ public class CaseAssignTool extends AbstractMcpTool {
 		}
 
 		String assignee = stringArg(arguments, "assignee");
+		String roleName = stringArg(arguments, "role");
+		String tableForCase = GeneralUtilityMethods.getMainResultsTableSurveyIdent(ctx.sd, ctx.cResults, survey.getIdent());
+		CaseManager cm = new CaseManager(ctx.localisation);
+
+		/*
+		 * A role, or taking people off, are about the set of people who have a case
+		 */
+		if(tableForCase != null && ((action.equals("assign") && roleName != null && !roleName.trim().isEmpty())
+				|| action.equals("remove") || action.equals("unassign_all"))) {
+			boolean multiple = cm.allowsMultipleAssignees(ctx.sd, tableForCase);
+			int changed;
+			String text;
+			if(action.equals("assign")) {
+				if(!multiple) {
+					return new MCPToolResult("This case's bundle does not allow multiple assignees, so it cannot be "
+							+ "given to a role. Turn on multiple assignees with case_settings_set, or name one assignee.", true);
+				}
+				List<String> members = new ArrayList<>();
+				int notAllowed = 0;
+				RoleManager roleMgr = new RoleManager(ctx.localisation);
+				try (PreparedStatement pstmt = ctx.sd.prepareStatement("select u.ident from users u "
+						+ "join user_role ur on ur.u_id = u.id join role r on r.id = ur.r_id "
+						+ "where r.name = ? and r.o_id = ? and u.o_id = r.o_id and u.temporary = false order by u.ident")) {
+					pstmt.setString(1, roleName.trim());
+					pstmt.setInt(2, GeneralUtilityMethods.getOrganisationId(ctx.sd, ctx.user));
+					ResultSet rs = pstmt.executeQuery();
+					while(rs.next()) {
+						String m = rs.getString(1);
+						if(roleMgr.assignmentAllowed(ctx.sd, ctx.cResults, survey.getIdent(), instanceId, m, ctx.user, ctx.timezone, null)) {
+							members.add(m);
+						} else {
+							notAllowed++;
+						}
+					}
+				}
+				if(members.isEmpty()) {
+					return new MCPToolResult("Nobody in the role " + roleName.trim() + " can be given this case.", true);
+				}
+				changed = cm.addOwners(ctx.sd, ctx.cResults, ctx.localisation, tableForCase, instanceId, members,
+						survey.getIdent(), CaseManager.SOURCE_MCP, roleName.trim(), ctx.user, stringArg(arguments, "note"));
+				text = "Gave the case to the " + members.size() + " people in " + roleName.trim() + " who can have it"
+						+ (notAllowed > 0 ? "; " + notAllowed + " could not." : ".");
+			} else if(action.equals("remove")) {
+				if(assignee == null || assignee.trim().isEmpty()) {
+					return new MCPToolResult("remove needs an assignee: the username to take off the case.", true);
+				}
+				changed = cm.removeOwners(ctx.sd, ctx.cResults, ctx.localisation, tableForCase, instanceId,
+						List.of(assignee.trim()), ctx.user, stringArg(arguments, "note"));
+				text = "Took " + assignee.trim() + " off the case.";
+			} else {
+				changed = cm.removeOwners(ctx.sd, ctx.cResults, ctx.localisation, tableForCase, instanceId,
+						null, ctx.user, stringArg(arguments, "note"));
+				text = "Took everybody off the case.";
+			}
+			if(changed == 0) {
+				return new MCPToolResult("No such case.", true);
+			}
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("action", action);
+			data.put("survey", survey.getDisplayName());
+			data.put("instanceid", instanceId);
+			data.put("assignees", cm.getOwners(ctx.sd, ctx.cResults, tableForCase, instanceId));
+			MCPToolResult result = new MCPToolResult(text);
+			result.setStructuredContent(data);
+			return result;
+		}
+
 		if(action.equals("assign")) {
 			if(assignee == null || assignee.trim().isEmpty()) {
 				return new MCPToolResult("assign needs an assignee: the username to give the case "
@@ -147,7 +226,7 @@ public class CaseAssignTool extends AbstractMcpTool {
 
 		int count = new CaseManager(ctx.localisation).assignRecord(ctx.sd, ctx.cResults,
 				ctx.localisation, tableName, instanceId, assignee, action, survey.getIdent(),
-				stringArg(arguments, "note"), ctx.user, true);
+				stringArg(arguments, "note"), ctx.user, true, CaseManager.SOURCE_MCP);
 
 		if(count == 0) {
 			return new MCPToolResult("Nothing changed. The case may already be as you are asking "
@@ -159,6 +238,7 @@ public class CaseAssignTool extends AbstractMcpTool {
 		data.put("survey", survey.getDisplayName());
 		data.put("instanceid", instanceId);
 		data.put("assignee", assignee);
+		data.put("assignees", new CaseManager(ctx.localisation).getOwners(ctx.sd, ctx.cResults, tableName, instanceId));
 
 		String text;
 		if(action.equals("assign")) {

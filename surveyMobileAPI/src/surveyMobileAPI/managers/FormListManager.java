@@ -54,6 +54,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  * All surveys in a bundle share the same unique key
  */
 public class FormListManager {
+
+	/*
+	 * Changed when the forms generated for every survey change, so that devices download them again
+	 * r1: repeat rows have an id
+	 */
+	private static final String FORM_REVISION = ":r1";
 	
 	Authorise a = new Authorise(null, Authorise.ENUM);
 	
@@ -223,7 +229,7 @@ public class FormListManager {
 				form.formID = String.valueOf(s.getIdent());
 				form.name = s.getDisplayName();
 				form.version = String.valueOf(s.surveyData.version);
-				form.hash = "md5:version:" + form.version + ":" + form.formID;		// If the version changes the form should be re-downloaded
+				form.hash = "md5:version:" + form.version + ":" + form.formID + FORM_REVISION;		// If the version changes the form should be re-downloaded
 				form.downloadUrl = protocol + host + port + responsePath + "/formXML?key=" + form.formID;
 				if(s.hasManifest()) {
 					form.manifestUrl = protocol + host + port + responsePath +

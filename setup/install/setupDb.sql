@@ -283,7 +283,8 @@ create TABLE log (
 	note text,
 	measure int default 0,		-- In the case of translate this would be the number of characters
 	server text,
-	agent text					-- The application that acted, null when a person did it themselves
+	agent text,					-- The application that acted, null when a person did it themselves
+	ref text					-- What the entry is about, e.g. notification:12, so a problem can be traced to its setting
 	);
 CREATE INDEX log_time_key ON log(log_time);
 ALTER TABLE log OWNER TO ws;
@@ -301,7 +302,8 @@ create TABLE log_archive (
 	note text,
 	measure int default 0,		-- In the case of translate this would be the number of characters
 	server text,
-	agent text					-- Must match log: archive.sql moves rows with select *, positionally
+	agent text,					-- Must match log: archive.sql moves rows with select *, positionally
+	ref text
 	);
 ALTER TABLE log_archive OWNER TO ws;
 
@@ -1401,7 +1403,9 @@ CREATE TABLE public.record_user (
 	access text NOT NULL DEFAULT 'owner',	-- owner || reference
 	read_only boolean NOT NULL DEFAULT false,	-- true for reference
 	created_by text,
-	created_at timestamp with time zone DEFAULT now()
+	created_at timestamp with time zone DEFAULT now(),
+	source text,							-- What made an owner an owner: console, escalation, device, ops, mcp, backfill
+	via_role text							-- The role, by name, an owner was assigned through, null if assigned by name
 );
 CREATE UNIQUE INDEX record_user_unique ON record_user(assignee_ident, group_survey_ident, thread);
 CREATE INDEX record_user_assignee ON record_user(assignee_ident);

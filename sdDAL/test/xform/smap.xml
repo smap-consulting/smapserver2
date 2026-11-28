@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- An XForm in the style Smap creates: root "main", choice lists in instances, repeat template and copy -->
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:jr="http://openrosa.org/javarosa" xmlns:odk="http://www.opendatakit.org/xforms" xmlns:orx="http://openrosa.org/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <h:head>
+    <h:title>Visits</h:title>
+    <model>
+      <itext>
+        <translation lang="language">
+          <text id="1_question_country:label"><value>Country</value></text>
+          <text id="1_question_city:label"><value>City</value></text>
+          <text id="1_question_city:required"><value>A city is needed</value></text>
+          <text id="1_question_visits:label"><value>Visits</value></text>
+          <text id="1_question_n:label"><value>How many visits</value></text>
+          <text id="2_question_vdate:label"><value>Date of visit</value></text>
+          <text id="1_question_amount:label"><value>Amount</value></text>
+          <text id="1_question_total:label"><value>Total</value></text>
+          <text id="option_1:label"><value>Australia</value></text>
+          <text id="option_2:label"><value>Fiji</value></text>
+          <text id="option_3:label"><value>Sydney</value></text>
+          <text id="option_4:label"><value>Melbourne</value></text>
+          <text id="option_5:label"><value>Suva</value></text>
+        </translation>
+      </itext>
+      <instance>
+        <main id="s1_99" project="Test" version="3">
+          <meta>
+            <instanceID/>
+            <instanceName/>
+          </meta>
+          <_start/>
+          <_end/>
+          <_device/>
+          <loc/>
+          <country/>
+          <city/>
+          <n/>
+          <visits_count/>
+          <visits jr:template="">
+            <vdate/>
+          </visits>
+          <visits>
+            <vdate/>
+          </visits>
+          <amount/>
+          <total/>
+          <secret/>
+        </main>
+      </instance>
+      <instance id="countries">
+        <root>
+          <item><itextId>option_1:label</itextId><name>au</name></item>
+          <item><itextId>option_2:label</itextId><name>fj</name></item>
+        </root>
+      </instance>
+      <instance id="cities">
+        <root>
+          <item><itextId>option_3:label</itextId><name>syd</name><country>au</country></item>
+          <item><itextId>option_4:label</itextId><name>mel</name><country>au</country></item>
+          <item><itextId>option_5:label</itextId><name>suv</name><country>fj</country></item>
+        </root>
+      </instance>
+      <bind nodeset="/main/meta/instanceID" type="string" calculate="concat('uuid:', uuid())"/>
+      <bind nodeset="/main/meta/instanceName" type="string" calculate="concat(/main/country, ' ', /main/city)"/>
+      <bind nodeset="/main/_start" type="dateTime" jr:preload="timestamp" jr:preloadParams="start"/>
+      <bind nodeset="/main/_end" type="dateTime" jr:preload="timestamp" jr:preloadParams="end"/>
+      <bind nodeset="/main/_device" type="string" jr:preload="property" jr:preloadParams="deviceid"/>
+      <bind nodeset="/main/loc" type="geopoint"/>
+      <odk:setgeopoint event="odk-instance-first-load" ref="/main/loc"/>
+      <bind nodeset="/main/country" type="string" pii="pii"/>
+      <bind nodeset="/main/city" type="string" required="/main/country = 'au'" jr:requiredMsg="jr:itext('1_question_city:required')"/>
+      <bind nodeset="/main/n" type="int" constraint=". &gt; 0" jr:constraintMsg="Must be positive"/>
+      <bind nodeset="/main/visits" relevant="/main/n &gt; 0"/>
+      <bind nodeset="/main/visits/vdate" type="date"/>
+      <bind nodeset="/main/visits_count" type="string" calculate="/main/n"/>
+      <bind nodeset="/main/amount" type="decimal" readonly="/main/n &gt; 5"/>
+      <bind nodeset="/main/total" type="string" calculate=""/>
+      <bind nodeset="/main/secret" type="string" calculate="'x'"/>
+    </model>
+  </h:head>
+  <h:body>
+    <select1 ref="/main/country">
+      <label ref="jr:itext('1_question_country:label')"/>
+      <itemset nodeset="instance('countries')/root/item">
+        <value ref="name"/>
+        <label ref="jr:itext(itextId)"/>
+      </itemset>
+    </select1>
+    <select1 ref="/main/city" appearance="minimal">
+      <label ref="jr:itext('1_question_city:label')"/>
+      <itemset nodeset="instance('cities')/root/item[country= /main/country ]">
+        <value ref="name"/>
+        <label ref="jr:itext(itextId)"/>
+      </itemset>
+    </select1>
+    <input ref="/main/n">
+      <label ref="jr:itext('1_question_n:label')"/>
+    </input>
+    <group>
+      <label ref="jr:itext('1_question_visits:label')"/>
+      <repeat nodeset="/main/visits" jr:count="/main/visits_count" jr:noAddRemove="true()">
+        <input ref="/main/visits/vdate">
+          <label ref="jr:itext('2_question_vdate:label')"/>
+        </input>
+      </repeat>
+    </group>
+    <input ref="/main/amount">
+      <label ref="jr:itext('1_question_amount:label')"/>
+      <setvalue event="xforms-value-changed" ref="/main/total" value="/main/amount * 2"/>
+    </input>
+  </h:body>
+</h:html>

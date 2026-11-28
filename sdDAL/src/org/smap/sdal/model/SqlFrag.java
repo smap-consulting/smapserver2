@@ -1,6 +1,7 @@
 package org.smap.sdal.model;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,8 +25,25 @@ public class SqlFrag {
 	public ArrayList<String> humanNames = new ArrayList<String> ();
 	public String group;			// OR restrictions in a group, AND groups together
 
+	/*
+	 * Question name to column name, so a ${name} becomes the column the question was given.  The
+	 * column usually follows from the name but not always, for example a long name is cut short and
+	 * given a random ending.  Null when the caller has no survey, then the column is worked out
+	 * from the name.
+	 */
+	private Map<String, String> columnMap = null;
+	public ArrayList<String> unresolved = new ArrayList<String> ();	// ${names} not in the column map
+
 	private static Logger log = Logger.getLogger(SqlFrag.class.getName());
-	
+	private static final Pattern SAFE_COLUMN = Pattern.compile("^[\\p{L}\\p{N}_]+$");
+
+	public SqlFrag() {
+	}
+
+	public SqlFrag(Map<String, String> columnMap) {
+		this.columnMap = columnMap;
+	}
+
 	public void add(String in) {
 		if(sql.length() > 0) {
 			sql.append(" ");
@@ -221,7 +239,23 @@ public class SqlFrag {
 			String name = token.substring(2, token.length() - 1);
 			String humanName = origToken.substring(2, origToken.length() - 1);
 			boolean columnNameCaptured = false;
-			out = GeneralUtilityMethods.cleanName(name, true, true, false);		// TODO - This check will fail with long names, it should do a lookup of the question name to see if it exists and o get the column name
+			out = null;
+			if(columnMap != null) {
+				out = columnMap.get(humanName);
+				if(out == null) {
+					out = columnMap.get(name);		// Lower case
+				}
+				if(out == null && !unresolved.contains(humanName)) {
+					unresolved.add(humanName);
+				}
+				if(out != null && !SAFE_COLUMN.matcher(out).matches()) {
+					out = null;		// Only a plain name goes into the sql
+				}
+			}
+			if(out == null) {
+				// Not a question, or no survey given, the column follows from the name
+				out = GeneralUtilityMethods.cleanName(name, false, true, false);
+			}
 			for(int i = 0; i < columns.size(); i++) {
 				if(columns.get(i).equals(out)) {
 					columnNameCaptured = true;

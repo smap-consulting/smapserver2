@@ -1,0 +1,28 @@
+{
+  "name": "conflict-notifications",
+  "description": "Notifications triggered by a conflicting update (2026-11-16). A conflict notification set on one survey fires only for conflicts made by saving that survey; one set on the bundle fires for a conflict made by saving any of its surveys. The workflow page shows each as a conflict trigger named after its survey or bundle (not the notification), carrying the notification so it can be edited, leading to an email step that shows its subject and recipients; a bundle conflict notification is not drawn as fired by the bundle's forms. Each notification loads in the workflow edit drawer; a bundle notification did not, as the edit, save and delete queries only allowed project and survey notifications. Uses the update-conflicts surveys. The notifications send to the record's a_note question, whose answers are not email addresses, so no email is sent; they are kept on the surveys and also fire, sending nothing, during the update-conflicts test. Each run adds two records to the update-conflicts surveys.",
+  "kind": "conflict-notification",
+  "uses": "update-conflicts",
+  "notifications": [
+    { "name": "Regression conflict - stage 1", "on": "a", "subject": "Conflict on stage 1" },
+    { "name": "Regression conflict - stage 2", "on": "b", "subject": "Conflict on stage 2" },
+    { "name": "Regression conflict - bundle", "on": "bundle", "subject": "Conflict in the bundle" }
+  ],
+  "emailQuestion": "a_note",
+  "scenarios": [
+    {
+      "name": "stage-2-save",
+      "description": "Stage 2 is saved from a version stage 1 has since changed, so the conflict is made by a stage 2 save.",
+      "saver": "b",
+      "fired": ["Regression conflict - stage 2", "Regression conflict - bundle"],
+      "notFired": ["Regression conflict - stage 1"]
+    },
+    {
+      "name": "stage-1-save",
+      "description": "Stage 1 is saved from a version stage 2 has since changed, so the conflict is made by a stage 1 save.",
+      "saver": "a",
+      "fired": ["Regression conflict - stage 1", "Regression conflict - bundle"],
+      "notFired": ["Regression conflict - stage 2"]
+    }
+  ]
+}

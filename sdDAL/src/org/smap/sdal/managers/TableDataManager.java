@@ -138,8 +138,9 @@ public class TableDataManager {
 				columnSelect.append(table_name).append(".");
 			}
 			
-			// _assigned and _hrk should only be created in the top level table
-			if(c.column_name.equals(SurveyViewManager.ASSIGNED_COLUMN) && topLevelTable != null) {
+			// _assigned and _hrk should only be created in the top level table, and a sub form has no instanceid of its own
+			if((c.column_name.equals(SurveyViewManager.ASSIGNED_COLUMN) || c.column_name.equals("instanceid"))
+					&& topLevelTable != null) {
 				columnSelect.append(topLevelTable).append(".");
 			}
 			if(c.column_name.equals("_hrk") && topLevelTable != null) {
@@ -206,13 +207,13 @@ public class TableDataManager {
 			 * The default value of include_completed is "no"
 			 */
 			boolean completedFilter = false;
-			if((include_completed == null || include_completed.equals("no")) && cms != null && cms.settings != null && cms.settings.statusQuestion != null
+			if((include_completed == null || include_completed.equals("no")) && cms != null && cms.settings != null && cms.settings.hasClosedStatus()
 					&& GeneralUtilityMethods.hasColumn(cResults, table_name, cms.settings.statusQuestion)) {
 				completedFilter = true;
 				sqlGetData.append(" and (").append(cms.settings.statusQuestion)
 					.append(" is null or cast( ")
 					.append(cms.settings.statusQuestion)
-					.append(" as text) != ? or _assigned is not null)");
+					.append(" as text) != all(?) or _assigned is not null)");
 			}
 
 			// Add row selection clause
@@ -268,7 +269,7 @@ public class TableDataManager {
 			SqlFrag filterFrag = null;
 			if(advanced_filter != null && advanced_filter.length() > 0) {
 	
-				filterFrag = new SqlFrag();
+				filterFrag = new SqlFrag(GeneralUtilityMethods.getColumnMap(sd, sId));
 				filterFrag.addSqlFragment(advanced_filter, false, localisation, 0);
 	
 	
@@ -288,6 +289,7 @@ public class TableDataManager {
 				}
 			}
 			if(filterFrag != null) {
+				new ServerExpressionValidator(localisation).validateFilter(sd, cResults, sId, advanced_filter);
 				sqlSelect.append(" and (").append(filterFrag.sql).append(")");
 			}
 			
@@ -340,7 +342,7 @@ public class TableDataManager {
 				pstmt.setInt(paramCount++, start_parkey);
 			}
 			if(completedFilter) {
-				pstmt.setString(paramCount++,  cms.settings.finalStatus);
+				pstmt.setArray(paramCount++, cResults.createArrayOf("text", cms.settings.getClosedStatuses().toArray()));
 			}
 			if (parkey > 0) {
 				pstmt.setInt(paramCount++, parkey);

@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -51,6 +52,7 @@ import org.smap.sdal.legacy.Translation;
 import org.smap.sdal.legacy.UtilityMethods;
 import org.smap.sdal.model.CsvHeader;
 import org.smap.sdal.model.Instance;
+import org.smap.sdal.model.UniqueKey;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Line;
 import org.smap.sdal.model.ManifestValue;
@@ -98,6 +100,13 @@ public class GetXForm {
 	private static  String FILE_MIME="text/plain,application/pdf,application/vnd.ms-excel,application/msword,text/richtext,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip,application/x-zip-compressed" ;
 
 	private HashMap<String, Integer> gRecordCounts = new HashMap<> ();
+	
+	/*
+	 * Repeat rows carry a hidden id, set once when the row is created, so that a row can be 
+	 * matched across versions of a record when two people change it at the same time
+	 */
+	public static final String ROW_ID = "_row_id";
+	private HashSet<Integer> gRowIdForms = new HashSet<> ();	// Forms whose rows have the id
 	private HashMap<String, String> multiLanguageConstraints = new HashMap<> ();
 	private HashMap<String, String> multiLanguageRequireds = new HashMap<> ();
 	private HashMap<String, String> lonelyGuidance = new HashMap<> ();  // Store references of guidance that is not part of a hint - hack
@@ -451,7 +460,15 @@ public class GetXForm {
 					languageElement.appendChild(textElement);
 					
 					Element valueElement = outputDoc.createElement("value");
-					valueElement.setTextContent(t.getValue() == null ? null : sanitise.cleanText(t.getValue()));
+					// Convert ${name} references to output elements, as for labels
+					try {
+						String v = t.getValueXML(template.getQuestionPaths(), 0);
+						Element rootFrag = builder.parse(new InputSource(new StringReader(v))).getDocumentElement();
+						addXmlFrag(outputDoc, valueElement, rootFrag);
+					} catch (Exception e) {
+						log.log(Level.SEVERE, "Message " + t.getTextId() + ": " + e.getMessage(), e);
+						valueElement.setTextContent(t.getValue() == null ? null : sanitise.cleanText(t.getValue()));
+					}
 					textElement.appendChild(valueElement);
 				}
 			}
@@ -722,11 +739,16 @@ public class GetXForm {
 						currentParent.appendChild(questionElement);
 					}
 
+					boolean rowId = hasRowId(q, subForm);
+					
 					// Add template
 					if(!inRealForm) {
 						Element template = createNamedElement(outputDoc, subForm.getName());
 						template.setAttribute("jr:template", ""); // The model requires a local name only
 						populateForm(sd, outputDoc, template, INSTANCE, subForm, true, false, isWebForms);
+						if(rowId) {
+							template.appendChild(outputDoc.createElement(ROW_ID));
+						}
 						currentParent.appendChild(template);
 					}
 					
@@ -734,6 +756,9 @@ public class GetXForm {
 					if(!inTemplate) {
 						Element form = createNamedElement(outputDoc, subForm.getName());
 						populateForm(sd, outputDoc, form, INSTANCE, subForm, false, true, isWebForms);
+						if(rowId) {
+							form.appendChild(outputDoc.createElement(ROW_ID));
+						}
 						currentParent.appendChild(form);
 					}
 
@@ -809,6 +834,15 @@ public class GetXForm {
 					// Process sub form
 
 					populateForm(sd, outputDoc, currentParent, BIND, subForm, false, false, isWebForms);
+					if(hasRowId(q, subForm)) {
+						// Set once, when the row is created, and kept when the record is edited
+						Element rowIdBind = outputDoc.createElement("bind");
+						rowIdBind.setAttribute("nodeset", subForm.getPath(null) + "/" + ROW_ID);
+						rowIdBind.setAttribute("type", "string");
+						rowIdBind.setAttribute("readonly", "true()");
+						rowIdBind.setAttribute("calculate", "once(uuid())");
+						currentParent.appendChild(rowIdBind);
+					}
 					if (subForm.getRepeats(true, template.getQuestionPaths()) != null) {
 						// Add the calculation for repeat count
 						questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), true);
@@ -923,6 +957,14 @@ public class GetXForm {
 		
 	}
 
+	/*
+	 * True if the rows of a repeat have an id
+	 * Not for geometries collected as repeats or for repeats showing data from another form
+	 */
+	private boolean hasRowId(Question q, Form subForm) {
+		return subForm != null && q.getType().equals("begin repeat") && !q.isReference() && !subForm.getReference();
+	}
+	
 	/*
 	 * Populate the question element if this is part of the XForm bind
 	 */
@@ -1162,13 +1204,22 @@ public class GetXForm {
 		if(targets != null && targets.size() > 0) {
 			Element questionElement = null;
 			for(SetValue sv : targets) {
+				String refQuestion = sv.ref;
+				String reference = getQuestionReference(template.getQuestionPaths(), f.getId(), refQuestion);
+
+				if(sv.setGeopoint) {
+					// background-geopoint: record the location when this question changes
+					questionElement = outputXML.createElement("odk:setgeopoint");
+					questionElement.setAttribute("event", sv.event);
+					questionElement.setAttribute("ref", reference);
+					currentParent.appendChild(questionElement);
+					continue;
+				}
+
 				questionElement = outputXML.createElement("setvalue");
 				questionElement.setAttribute("event", sv.event);
-				
-				String refQuestion = sv.ref;	
-				String reference = getQuestionReference(template.getQuestionPaths(), f.getId(), refQuestion);
 				questionElement.setAttribute("ref", reference);
-				
+
 				String calculate = UtilityMethods.convertAllxlsNames(sv.value, false,
 						template.getQuestionPaths(), f.getId(), false, q.getName(), false);	
 				questionElement.setAttribute("value", calculate);				
@@ -1279,7 +1330,13 @@ public class GetXForm {
 		String initial = null;
 		if (parameters != null) {
 			for(KeyValueSimp kv : parameters) {
-				if(!kv.k.equals("initial")) {
+				if(GeneralUtilityMethods.isListParameter(q.getType(), kv.k)) {
+					continue;	// Written as an itemset from the question's nodeset
+				} else if(q.getType().equals("range")
+						&& (kv.k.equals(GeneralUtilityMethods.TICK_INTERVAL) || kv.k.equals(GeneralUtilityMethods.PLACEHOLDER))) {
+					// Range display settings are in the odk namespace, with hyphens as pyxform writes them
+					questionElement.setAttribute("odk:" + kv.k.replace('_', '-'), kv.v);
+				} else if(!kv.k.equals("initial")) {
 					questionElement.setAttribute(kv.k, kv.v);
 				} else {
 					initial = kv.v;
@@ -2255,10 +2312,18 @@ public class GetXForm {
 						 * If this is a compound question add the marker array
 						 */
 						if(value != null && qType.equals("geocompound")) {						
-							value = GeneralUtilityMethods.applyCompoundValue(instance.markers, value);			
+							value = GeneralUtilityMethods.applyCompoundValue(instance.markers, value);
 						}
 					}
-					
+
+					// No geometry supplied, use an answer given in ODK format, as a record submitted from values does
+					if((value == null || value.isEmpty()) && instance.values != null) {
+						String qValue = instance.values.get(qName);
+						if(qValue != null) {
+							value = qValue;
+						}
+					}
+
 				} else {
 					String qValue = instance.values.get(qName); 
 					if(qValue != null) {
@@ -2431,8 +2496,32 @@ public class GetXForm {
 					
 
 					boolean needTemplate = (!generatedTemplate && (parentElement == null));
-					populateFormData(outputDoc, item.subForm, -1, Integer.parseInt(priKey.value), cResults, sd, template,
-							currentParent, sId, survey_ident, needTemplate, simplifyMedia, order, count, initialData);
+					
+					/*
+					 * When rows are being added to a record, the existing rows of a repeat that the
+					 * subscriber appends to are left out, as it keeps them
+					 */
+					boolean existingKept = parentElement == null && initialData != null && initialData.appendRepeats
+							&& existingRowsKept(sd, sId, item.subForm, c);
+					if(!existingKept) {
+						populateFormData(outputDoc, item.subForm, -1, Integer.parseInt(priKey.value), cResults, sd, template,
+								currentParent, sId, survey_ident, needTemplate, simplifyMedia, order, count, initialData);
+					}
+
+					/*
+					 * New rows for a repeat of the main form go after the rows the record already has.
+					 * Rows nested inside a new row come with that row
+					 */
+					if(parentElement == null && initialData != null && initialData.appendRepeats
+							&& initialData.repeats != null) {
+						ArrayList<Instance> added = initialData.repeats.get(item.name);
+						if(added != null) {
+							for(Instance row : added) {
+								populateTaskDataForm(cResults, outputDoc, item.subForm, sd, template, currentParent, sId,
+										survey_ident, row, null, false, false);
+							}
+						}
+					}
 					
 				} else if (item.begin_group) {
 					Element childElement = null;
@@ -2496,6 +2585,30 @@ public class GetXForm {
 			}
 		}
 
+	}
+
+	/*
+	 * True if the subscriber keeps a repeat's existing rows when a record is updated directly, adding the
+	 * submitted rows to them.  This follows SubRelationalDB.combineTableContent: a key policy of
+	 * merge or replace on the repeat applies first, then append.  With neither, the existing rows are
+	 * replaced, unless instance_count limited the rows loaded, when the survey key policy decides
+	 */
+	private boolean existingRowsKept(Connection sd, int sId, Form subForm, String instanceCount) throws ApplicationException {
+		if(subForm.getMerge() || subForm.getReplace()) {
+			return false;
+		}
+		if(subForm.getAppend()) {
+			return true;
+		}
+		if(instanceCount == null) {
+			return false;
+		}
+		try {
+			UniqueKey uk = new KeyManager(localisation).get(sd, GeneralUtilityMethods.getGroupSurveyIdent(sd, sId));
+			return !SurveyManager.KP_REPLACE.equals(uk.key_policy);
+		} catch (Exception e) {
+			throw new ApplicationException(e.getMessage());
+		}
 	}
 
 	/*
@@ -2621,6 +2734,12 @@ public class GetXForm {
 			}
 		}
 		
+		boolean withRowId = parentId > 0 && gRowIdForms.contains(form.getId()) 
+				&& GeneralUtilityMethods.hasColumn(cResults, processForm.getTableName(), ROW_ID);
+		if(withRowId) {
+			sql.append(",").append(ROW_ID);
+		}
+		
 		sql.append(" from ").append(processForm.getTableName());
 		if (id != -1) {
 			sql.append(" where prikey=").append(id);
@@ -2694,6 +2813,9 @@ public class GetXForm {
 					Form subForm = template.getSubForm(processForm, q);
 
 					if (subForm != null) {
+						if(hasRowId(q, subForm)) {
+							gRowIdForms.add(subForm.getId());
+						}
 						record.add(new Results(qName, subForm, null, false, false, false, null, q.getParameters(), false));
 					}
 
@@ -2826,6 +2948,10 @@ public class GetXForm {
 					}
 				}
 			}
+			if(withRowId) {
+				// Last, as it is in the form
+				record.add(new Results(ROW_ID, null, resultSet.getString(ROW_ID), false, false, false, null, null, false));
+			}
 			output.add(record);
 		}
 
@@ -2852,7 +2978,8 @@ public class GetXForm {
 
 		if(parameters != null) {
 			for(KeyValueSimp kv : parameters) {			
-				if(kv.k.equals("start") || kv.k.equals("end") || kv.k.equals("step")) {
+				if(kv.k.equals("start") || kv.k.equals("end") || kv.k.equals("step")
+						|| kv.k.equals(GeneralUtilityMethods.TICK_INTERVAL) || kv.k.equals(GeneralUtilityMethods.PLACEHOLDER)) {
 					if(kv.v.indexOf(".") >= 0) {
 						dataType = "decimal";
 						break;

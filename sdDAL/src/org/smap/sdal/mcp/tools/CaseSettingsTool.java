@@ -98,8 +98,10 @@ public class CaseSettingsTool extends AbstractMcpTool {
 				? "(none set)" : cms.settings.statusQuestion);
 		data.put("finalStatus", cms.settings.finalStatus == null
 				? "(none set)" : cms.settings.finalStatus);
+		data.put("closedStatuses", cms.settings.getClosedStatuses());
 		data.put("criticalityQuestion", cms.settings.criticalityQuestion == null
 				? "(none set)" : cms.settings.criticalityQuestion);
+		data.put("multipleAssignees", cms.settings.allowsMultipleAssignees());
 
 		List<Map<String, Object>> alerts = new ArrayList<>();
 		if(cms.alerts != null) {
@@ -125,11 +127,15 @@ public class CaseSettingsTool extends AbstractMcpTool {
 			text.append("\n");
 		}
 		text.append("Cases in \"").append(survey.getDisplayName()).append("\":");
+		text.append(cms.settings.allowsMultipleAssignees()
+				? "\n- a case can be assigned to several people, or to everyone in a role"
+				: "\n- a case is assigned to one person at a time");
 		if(cms.settings.statusQuestion != null) {
 			text.append("\n- status is held in ").append(cms.settings.statusQuestion);
-			if(cms.settings.finalStatus != null) {
-				text.append(", and a case is finished when it is set to \"")
-						.append(cms.settings.finalStatus).append("\"");
+			if(!cms.settings.getClosedStatuses().isEmpty()) {
+				text.append(", and a case is closed while it is \"")
+						.append(String.join("\" or \"", cms.settings.getClosedStatuses()))
+						.append("\", and opens again if it changes to anything else");
 			}
 		} else {
 			text.append("\n- no status question is set, so no case is ever marked finished");
@@ -151,11 +157,12 @@ public class CaseSettingsTool extends AbstractMcpTool {
 				}
 			}
 		}
-		if(cms.settings.statusQuestion != null && cms.settings.finalStatus != null) {
+		if(cms.settings.hasClosedStatus()) {
 			text.append("\n\nTo close a case, set ").append(cms.settings.statusQuestion)
-					.append(" to \"").append(cms.settings.finalStatus)
+					.append(" to \"").append(cms.settings.getClosedStatuses().get(0))
 					.append("\" with data_update_record. The closing date is recorded by the "
-							+ "server when that happens.");
+							+ "server when that happens. Setting it back to another answer reopens the case and "
+							+ "gives it back to the people who had it.");
 		}
 
 		MCPToolResult result = new MCPToolResult(text.toString());

@@ -215,6 +215,9 @@ public class Server extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request), localisation);
+			cm.checkName(data.css);
+			
 			// The browser only has a placeholder for a secret that it did not change
 			data.keepSecrets(new ServerManager().getServer(sd, localisation));
 			
@@ -304,7 +307,6 @@ public class Server extends Application {
 			}
 			
 			// Set the css custom styling file
-			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request), localisation);
 			cm.setCurrentCssFile(data.css, 0);
 
 		} catch (Exception e) {

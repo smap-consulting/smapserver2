@@ -27,6 +27,7 @@ import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.constants.SmapQuestionTypes;
+import org.smap.sdal.managers.GetXForm;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
@@ -464,7 +465,7 @@ public class GetHtml {
 				addSelectContents(sd, extraFieldsetElement, q, form, false, hideLabels);
 				
 				// Add constraint message at end to the outer fieldset
-				addConstraintMsg(q.constraint_msg, null, bodyElement, 0);
+				addConstraintMsg(convertMsgRefs(q.constraint_msg, q, form), null, bodyElement, 0);
 				
 				if(q.appearance.contains("literacy") && q.flash > 0) {
 					bodyElement.setAttribute("data-flash", String.valueOf(q.flash));
@@ -873,6 +874,23 @@ public class GetHtml {
 				// Process sub form
 				for (Form subForm : survey.surveyData.forms) {
 					if (subForm.parentQuestion == q.id) { // continue with next form
+
+						/*
+						 * The id of each row, set when the row is created and kept when the record is edited
+						 * Matches the row id added to the model by GetXForm
+						 */
+						if(!subForm.reference) {
+							calculationLabel = outputDoc.createElement("div");
+							calculationLabel.setAttribute("class", "calculation non-select");
+							bodyElement.appendChild(calculationLabel);
+							calculationInput = outputDoc.createElement("input");
+							calculationInput.setAttribute("type", "hidden");
+							calculationInput.setAttribute("name", paths.get(getRefName(q.name, form)) + "/" + GetXForm.ROW_ID);
+							calculationInput.setAttribute("data-calculate", " once(uuid()) ");
+							calculationInput.setAttribute("data-type-xml", "string");
+							calculationLabel.appendChild(calculationInput);
+						}
+
 						processCalculationQuestions(bodyElement, subForm);
 						break;
 					}
@@ -1666,7 +1684,7 @@ public class GetHtml {
 			}
 			
 			// Constraint
-			constraintMessageAdded = addConstraintMsg(q.labels.get(idx).constraint_msg, getLangId(lang), parent, idx);
+			constraintMessageAdded = addConstraintMsg(convertMsgRefs(q.labels.get(idx).constraint_msg, q, form), getLangId(lang), parent, idx);
 			if(q.isRequired()) {
 				if(q.labels.get(idx).required_msg != null) {
 					if(!requiredIndicatorAdded) {
@@ -1676,7 +1694,7 @@ public class GetHtml {
 						parent.appendChild(bodyElement);
 						requiredIndicatorAdded = true;
 					}
-					parent.appendChild(getRequiredMsg(q.labels.get(idx).required_msg,
+					parent.appendChild(getRequiredMsg(convertMsgRefs(q.labels.get(idx).required_msg, q, form),
 							getLangId(lang), !requiredMessageAdded));
 					requiredMessageAdded = true;
 				}
@@ -1687,7 +1705,7 @@ public class GetHtml {
 
 		// Constraint message (Without a language)
 		if(!constraintMessageAdded) {
-			addConstraintMsg(q.constraint_msg, null, parent, 0);
+			addConstraintMsg(convertMsgRefs(q.constraint_msg, q, form), null, parent, 0);
 		}
 
 		// Required (Without a language)
@@ -1927,6 +1945,21 @@ public class GetHtml {
 			return qName + form.id;
 		} else {
 			return qName;
+		}
+	}
+
+	/*
+	 * Convert ${name} references in a constraint or required message to outputs, as for labels
+	 */
+	private String convertMsgRefs(String msg, Question q, Form form) {
+		if (msg == null || !msg.contains("${")) {
+			return msg;
+		}
+		try {
+			return UtilityMethods.convertAllxlsNames(msg, true, paths, form.id, true, q.name, false);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Message for " + q.name + ": " + e.getMessage(), e);
+			return msg;
 		}
 	}
 

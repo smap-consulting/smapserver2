@@ -1,0 +1,22 @@
+{
+  "name": "multiple-assignees",
+  "description": "Several people assigned to a case (26.12.01). With the bundle's Allow multiple assignees off a case has one assignee as it always has: assigning replaces, and assigning a role is refused. With it on, assigning adds people, a role adds everyone in it who can have the case, an administrator can take one person or everybody off, Lock adds you and Release takes only you off. An escalation adds its people and takes off the people an earlier escalation added, keeping those assigned in the console; one from a select multiple question adds everyone selected. Closing a case takes everybody off, and turning the setting off leaves owners as they are. Uses its own survey, which it keeps with two escalation notifications that send no email. Each run adds three records.",
+  "kind": "multiple-assignee",
+  "survey": {
+    "name": "Multiple assignee test",
+    "project": "A project",
+    "questions": [
+      { "type": "text", "name": "m_status", "label": "Status" },
+      { "type": "text", "name": "m_esc", "label": "Escalate" },
+      { "type": "select_multiple people", "name": "m_users", "label": "People" }
+    ],
+    "choices": { "people": ["neil", "tom", "sally1"] }
+  },
+  "caseSettings": { "statusQuestion": "m_status", "finalStatus": "closed" },
+  "users": { "a": "tom", "b": "sally1", "me": "neil" },
+  "role": "Accounts",
+  "notifications": [
+    { "name": "Regression multiple - escalate to user", "filter": "${m_esc} = 'a'", "assign": "tom" },
+    { "name": "Regression multiple - escalate from data", "filter": "${m_esc} = 'b'", "assign": "_data", "question": "m_users" }
+  ]
+}

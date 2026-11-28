@@ -8,11 +8,9 @@ import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.model.QuestionForm;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.model.ReferenceFilter;
-import org.smap.sdal.model.SqlFrag;
 
 /*****************************************************************************
 
@@ -189,7 +187,7 @@ public class ReferenceFilterManager {
 	}
 
 	/*
-	 * Validate that the filter parses and only references questions in the source survey bundle.
+	 * Validate that the filter works against the source survey bundle's main form, where it is applied.
 	 * A blank filter is valid (no restriction).
 	 */
 	public void validateFilter(Connection sd, String linkedSIdent, String filter) throws Exception {
@@ -197,20 +195,13 @@ public class ReferenceFilterManager {
 		if (filter == null || filter.trim().length() == 0) {
 			return;
 		}
-
-		// Parse the pseudo-SQL - this extracts the ${...} question names into humanNames
-		SqlFrag sq = new SqlFrag();
-		sq.addSqlFragment(filter, false, localisation, 0);
-
-		// SqlFrag only extracts names, it does not confirm they exist, so check them here
-		SurveyManager sm = new SurveyManager(localisation, "UTC");
-		HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, linkedSIdent, null, false);
-
-		for (String name : sq.humanNames) {
-			if (refQuestionMap.get(name) == null) {
-				// "not found in form" - the referenced question is not in the source survey
-				throw new ApplicationException(name + " " + localisation.getString("imp_nfi"));
-			}
+		String requester = "ReferenceFilterManager - check filter";
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			new ServerExpressionValidator(localisation).validate(sd, cResults, linkedSIdent, true, filter,
+					ServerExpressionValidator.CONDITION, localisation.getString("se_w_ref_filter"));
+		} finally {
+			ResultsDataSource.closeConnection(requester, cResults);
 		}
 	}
 

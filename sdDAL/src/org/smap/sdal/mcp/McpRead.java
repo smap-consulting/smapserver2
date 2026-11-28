@@ -86,7 +86,7 @@ public class McpRead {
 
 		ArrayList<TableColumn> columns = McpData.columns(ctx, survey, parentForm, fId,
 				tableName, isChildForm, includeBad, r.includeMeta);
-		columns = project(ctx, columns, r);
+		columns = project(ctx, columns, r, surveyId);
 		result.columns = columns;
 
 		/*
@@ -212,7 +212,7 @@ public class McpRead {
 	 * a name it cannot find, so selecting q1 while filtering on q3 would fail rather than answer.
 	 */
 	private static ArrayList<TableColumn> project(McpToolContext ctx, ArrayList<TableColumn> columns,
-			Request r) throws Exception {
+			Request r, int surveyId) throws Exception {
 
 		if(r.select == null || r.select.isEmpty()) {
 			return columns;
@@ -244,7 +244,7 @@ public class McpRead {
 		 * make sense of.
 		 */
 		if(r.filter != null && !r.filter.trim().isEmpty()) {
-			SqlFrag frag = new SqlFrag();
+			SqlFrag frag = new SqlFrag(GeneralUtilityMethods.getColumnMap(ctx.sd, surveyId));
 			frag.addSqlFragment(r.filter, false, ctx.localisation, 0);
 			keep.addAll(frag.columns);
 		}

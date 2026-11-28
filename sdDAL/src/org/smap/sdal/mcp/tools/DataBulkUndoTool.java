@@ -123,7 +123,7 @@ public class DataBulkUndoTool extends AbstractMcpTool {
 		 * a change in another survey cannot be replayed here.
 		 */
 		String sql = "select instanceid, changes from record_event "
-				+ "where change_set = ? and table_name = ? and changes is not null "
+				+ "where change_set = ? and table_name = ? and event = 'changes' and changes is not null "
 				+ "order by id asc";
 
 		Map<String, List<Change>> byInstance = new LinkedHashMap<>();
@@ -157,6 +157,8 @@ public class DataBulkUndoTool extends AbstractMcpTool {
 
 		int restored = 0;
 		int skipped = 0;
+		int failed = 0;
+		String firstFailure = null;
 		for(Map.Entry<String, List<Change>> e : byInstance.entrySet()) {
 			/*
 			 * A record that has since moved out of the caller's reach is left alone rather than
@@ -184,9 +186,17 @@ public class DataBulkUndoTool extends AbstractMcpTool {
 				continue;
 			}
 
-			am.processUpdateGroupSurvey(ctx.request, ctx.sd, ctx.cResults, ctx.user, surveyId,
-					e.getKey(), 0, groupSurvey, null, new Gson().toJson(updates), true, urlPrefix);
-			restored++;
+			String failure = DataUpdateRecordTool.failure(am.processUpdateGroupSurvey(ctx.request, ctx.sd,
+					ctx.cResults, ctx.user, surveyId, e.getKey(), 0, groupSurvey, null,
+					new Gson().toJson(updates), true, urlPrefix));
+			if(failure == null) {
+				restored++;
+			} else {
+				failed++;
+				if(firstFailure == null) {
+					firstFailure = failure;
+				}
+			}
 		}
 
 		Map<String, Object> structured = new LinkedHashMap<>();
@@ -195,11 +205,18 @@ public class DataBulkUndoTool extends AbstractMcpTool {
 		if(skipped > 0) {
 			structured.put("skipped", skipped);
 		}
+		if(failed > 0) {
+			structured.put("failed", failed);
+		}
 
 		StringBuilder text = new StringBuilder("Put ").append(restored).append(" record(s) back.");
 		if(skipped > 0) {
 			text.append(" ").append(skipped)
 					.append(" were left alone because you no longer have access to them.");
+		}
+		if(failed > 0) {
+			text.append(" ").append(failed).append(" could not be put back and were left as they were. "
+					+ "The first said: ").append(firstFailure);
 		}
 		text.append(" This undo is itself change set ").append(undoSet).append(".");
 

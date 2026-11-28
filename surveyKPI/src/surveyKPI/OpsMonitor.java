@@ -126,7 +126,8 @@ public class OpsMonitor extends Application {
 	@GET
 	@Path("/items")
 	@Produces("application/json")
-	public Response getItems(@Context HttpServletRequest request, @QueryParam("type") String type) {
+	public Response getItems(@Context HttpServletRequest request, @QueryParam("type") String type,
+			@QueryParam("user") String person) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-OpsMonitor-items";
@@ -142,7 +143,7 @@ public class OpsMonitor extends Application {
 
 			OpsMonitorManager om = new OpsMonitorManager(localisation);
 			cResults = ResultsDataSource.getConnection(connectionString);
-			ArrayList<OpsItem> items = om.getItems(sd, cResults, oId, type, request.getRemoteUser());
+			ArrayList<OpsItem> items = om.getItems(sd, cResults, oId, type, request.getRemoteUser(), person);
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(items)).build();
@@ -340,7 +341,8 @@ public class OpsMonitor extends Application {
 	}
 
 	/*
-	 * Assign or release a case. action = assign | release.
+	 * Assign or release a case. action = assign | release | remove.  With multiple assignees assign adds the
+	 * user, remove takes them off and release takes everybody off.
 	 */
 	@POST
 	@Path("/case/assign")
@@ -363,7 +365,7 @@ public class OpsMonitor extends Application {
 			if(GeneralUtilityMethods.getOrganisationIdForGroupSurveyIdent(sd, groupSurveyIdent) != oId) {
 				return Response.status(Response.Status.FORBIDDEN).entity("Case not in your organisation").build();
 			}
-			if(!"assign".equals(action) && !"release".equals(action)) {
+			if(!"assign".equals(action) && !"release".equals(action) && !"remove".equals(action) && !"unreference".equals(action)) {
 				return Response.status(Response.Status.BAD_REQUEST).entity("Invalid action").build();
 			}
 

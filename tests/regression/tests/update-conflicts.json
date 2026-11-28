@@ -1,0 +1,573 @@
+{
+  "name": "update-conflicts",
+  "description": "Saves of a record made from a version that somebody else has since replaced (smapserver2, conflicting update merge, 2026-11-12). Each answer is merged three ways: an answer the saver left as it was keeps the other change, and an answer both changed is a conflict the saver wins, recorded in the record's history and reviewed there. Repeat rows are matched by their hidden _row_id, or by their answers without one. Console edits make a new version so a device's later save does not undo them. Saves are posted as a device posts them, so the version opened can be chosen. Each run adds new records to the test's own surveys, one per scenario, which are kept.",
+  "kind": "update-conflict",
+  "survey": {
+    "name": "Update conflict test",
+    "project": "A project",
+    "choices": {
+      "uc_status": [
+        {
+          "value": "received",
+          "label": "Received"
+        },
+        {
+          "value": "with_pp",
+          "label": "With PP"
+        },
+        {
+          "value": "closed",
+          "label": "Closed"
+        }
+      ]
+    },
+    "questions": [
+      {
+        "name": "header",
+        "type": "string",
+        "label": "Header"
+      },
+      {
+        "name": "status",
+        "type": "select1",
+        "label": "Status",
+        "option_list": "uc_status"
+      },
+      {
+        "name": "a_note",
+        "type": "string",
+        "label": "Stage 1 note"
+      }
+    ],
+    "groups": [
+      {
+        "name": "visits",
+        "repeating": true,
+        "label": "Visits",
+        "questions": [
+          {
+            "name": "visit_note",
+            "type": "string",
+            "label": "Visit note"
+          }
+        ]
+      }
+    ]
+  },
+  "bundle": {
+    "name": "Update conflict test stage 2",
+    "questions": [
+      {
+        "name": "b_note",
+        "type": "string",
+        "label": "Stage 2 note"
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "shared-header",
+      "description": "Stage 2 is saved from a copy opened before stage 1 changed the status. Its unchanged copy of the status must not undo stage 1's change.",
+      "steps": [
+        {
+          "save": "v1",
+          "survey": "a",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            }
+          ]
+        },
+        {
+          "save": "v2",
+          "survey": "a",
+          "opened": "v1",
+          "answers": {
+            "header": "h0",
+            "status": "with_pp",
+            "a_note": "a0"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            }
+          ]
+        },
+        {
+          "save": "v3",
+          "survey": "b",
+          "opened": "v1",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0",
+            "b_note": "b1"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            }
+          ]
+        },
+        {
+          "expect": {
+            "answers": {
+              "header": "h0",
+              "status": "with_pp",
+              "a_note": "a0",
+              "b_note": "b1"
+            },
+            "rows": [
+              "x"
+            ],
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "real-conflict",
+      "description": "Both stages change the status from the same version. The last save wins, a conflict is recorded, and reviewing it can put the other change back.",
+      "steps": [
+        {
+          "save": "v1",
+          "survey": "a",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            }
+          ]
+        },
+        {
+          "save": "v2",
+          "survey": "a",
+          "opened": "v1",
+          "answers": {
+            "header": "h0",
+            "status": "with_pp",
+            "a_note": "a0"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            }
+          ]
+        },
+        {
+          "save": "v3",
+          "survey": "b",
+          "opened": "v1",
+          "answers": {
+            "header": "h0",
+            "status": "closed",
+            "a_note": "a0",
+            "b_note": "b1"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            }
+          ]
+        },
+        {
+          "expect": {
+            "answers": {
+              "status": "closed",
+              "b_note": "b1"
+            },
+            "conflicts": 1,
+            "unresolved": 1,
+            "items": [
+              {
+                "name": "status",
+                "base": "received",
+                "theirs": "with_pp",
+                "mine": "closed"
+              }
+            ]
+          }
+        },
+        {
+          "resolve": {
+            "0": "theirs"
+          }
+        },
+        {
+          "expect": {
+            "answers": {
+              "status": "with_pp",
+              "b_note": "b1"
+            },
+            "unresolved": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "repeat-append",
+      "description": "Both stages add a row to the repeat from the same version. Both rows are kept, the other person's after the saver's.",
+      "steps": [
+        {
+          "save": "v1",
+          "survey": "a",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            }
+          ]
+        },
+        {
+          "save": "v2",
+          "survey": "a",
+          "opened": "v1",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            },
+            {
+              "visit_note": "y",
+              "rowId": "r2"
+            }
+          ]
+        },
+        {
+          "save": "v3",
+          "survey": "b",
+          "opened": "v1",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0",
+            "b_note": "b1"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            },
+            {
+              "visit_note": "z",
+              "rowId": "r3"
+            }
+          ]
+        },
+        {
+          "expect": {
+            "rows": [
+              "x",
+              "z",
+              "y"
+            ],
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "repeat-append-no-ids",
+      "description": "As repeat-append, from a copy of the form without row ids, so the rows are matched by their answers.",
+      "steps": [
+        {
+          "save": "v1",
+          "survey": "a",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            }
+          ],
+          "noRowIds": true
+        },
+        {
+          "save": "v2",
+          "survey": "a",
+          "opened": "v1",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": null
+            },
+            {
+              "visit_note": "y",
+              "rowId": null
+            }
+          ],
+          "noRowIds": true
+        },
+        {
+          "save": "v3",
+          "survey": "b",
+          "opened": "v1",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0",
+            "b_note": "b1"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": null
+            },
+            {
+              "visit_note": "z",
+              "rowId": null
+            }
+          ],
+          "noRowIds": true
+        },
+        {
+          "expect": {
+            "rows": [
+              "x",
+              "z",
+              "y"
+            ],
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "repeat-row-conflict",
+      "description": "Both stages change the same repeat row. The saver's value is kept and a conflict is recorded on the row's question.",
+      "steps": [
+        {
+          "save": "v1",
+          "survey": "a",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            }
+          ]
+        },
+        {
+          "save": "v2",
+          "survey": "a",
+          "opened": "v1",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0"
+          },
+          "rows": [
+            {
+              "visit_note": "y",
+              "rowId": "r1"
+            }
+          ]
+        },
+        {
+          "save": "v3",
+          "survey": "b",
+          "opened": "v1",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0",
+            "b_note": "b1"
+          },
+          "rows": [
+            {
+              "visit_note": "z",
+              "rowId": "r1"
+            }
+          ]
+        },
+        {
+          "expect": {
+            "rows": [
+              "z"
+            ],
+            "conflicts": 1,
+            "items": [
+              {
+                "name": "visit_note",
+                "base": "x",
+                "theirs": "y",
+                "mine": "z"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "row-deleted-and-changed",
+      "description": "Stage 1 changes a row that stage 2, saving from the same version, deletes. The deletion wins and is recorded as a conflict.",
+      "steps": [
+        {
+          "save": "v1",
+          "survey": "a",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            },
+            {
+              "visit_note": "w",
+              "rowId": "r2"
+            }
+          ]
+        },
+        {
+          "save": "v2",
+          "survey": "a",
+          "opened": "v1",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0"
+          },
+          "rows": [
+            {
+              "visit_note": "x2",
+              "rowId": "r1"
+            },
+            {
+              "visit_note": "w",
+              "rowId": "r2"
+            }
+          ]
+        },
+        {
+          "save": "v3",
+          "survey": "b",
+          "opened": "v1",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0",
+            "b_note": "b1"
+          },
+          "rows": [
+            {
+              "visit_note": "w",
+              "rowId": "r2"
+            }
+          ]
+        },
+        {
+          "expect": {
+            "rows": [
+              "w"
+            ],
+            "conflicts": 1,
+            "items": [
+              {
+                "kind": "mine_deleted"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "console-then-stale",
+      "description": "The header is changed in the console after a device opened the record. The device's later save keeps the console change, as the console change is now a version of its own.",
+      "steps": [
+        {
+          "save": "v1",
+          "survey": "a",
+          "answers": {
+            "header": "h0",
+            "status": "received",
+            "a_note": "a0"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            }
+          ]
+        },
+        {
+          "console": "c1",
+          "opened": "v1",
+          "updates": [
+            {
+              "name": "header",
+              "value": "h1"
+            }
+          ]
+        },
+        {
+          "save": "v3",
+          "survey": "b",
+          "opened": "v1",
+          "answers": {
+            "header": "h0",
+            "status": "closed",
+            "a_note": "a0",
+            "b_note": "b1"
+          },
+          "rows": [
+            {
+              "visit_note": "x",
+              "rowId": "r1"
+            }
+          ]
+        },
+        {
+          "expect": {
+            "answers": {
+              "header": "h1",
+              "status": "closed",
+              "b_note": "b1"
+            },
+            "conflicts": 0
+          }
+        }
+      ]
+    }
+  ]
+}

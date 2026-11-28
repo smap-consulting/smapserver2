@@ -23,38 +23,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ResourceBundle;
 
-import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.HtmlSanitise;
 
 public class JdbcSurveyManager {
 
 	ResourceBundle localisation = null;
-	
-	// Create new
-	PreparedStatement pstmt = null;
-	String sql = "insert into survey ("
-			+ "s_id, "
-			+ "last_updated_time, "
-			+ "display_name, "
-			+ "p_id, "
-			+ "def_lang, "
-			+ "class,"
-			+ "ident,"
-			+ "version,"
-			+ "manifest,"
-			+ "instance_name,"
-			+ "loaded_from_xls,"
-			+ "created) "
-			+ "values (nextval('s_seq'), now(), ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
-	
-	// Update survey ident based on id
-	PreparedStatement pstmtUpdate = null;
-	String sqlUpdate = "update survey set "
-			+ "ident = ? "
-			+ "where s_id = ?";
 	
 	// Retrieve
 	PreparedStatement pstmtGetByIdent = null;
@@ -96,50 +70,12 @@ public class JdbcSurveyManager {
 	public JdbcSurveyManager(Connection sd, ResourceBundle localisation) throws SQLException {
 		this.localisation = localisation;
 		
-		pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-		pstmtUpdate = sd.prepareStatement(sqlUpdate);
 		pstmtGetByIdent = sd.prepareStatement(sqlGet + sqlIdentWhere);
 		pstmtGetById = sd.prepareStatement(sqlGet + sqlIdWhere);
 		pstmtExists = sd.prepareStatement(sqlExists);
 		pstmtReplacement = sd.prepareStatement(sqlReplacement);
 	}
 	
-	/*
-	 * Store a new survey
-	 */
-	public void write(Survey s) throws SQLException, ApplicationException {
-		pstmt.setString(1, HtmlSanitise.checkCleanName(s.getDisplayName(), localisation) );
-		pstmt.setInt(2, s.getProjectId());
-		pstmt.setString(3, HtmlSanitise.checkCleanName(s.getDefLang(), localisation));
-		pstmt.setString(4, HtmlSanitise.checkCleanName(s.getSurveyClass(), localisation));
-		pstmt.setString(5, s.getIdent());
-		pstmt.setInt(6, s.getVersion());
-		pstmt.setString(7, s.getManifest());
-		pstmt.setString(8, s.getInstanceName());
-		pstmt.setBoolean(9, s.getLoadedFromXls());
-		pstmt.executeUpdate();
-					
-		ResultSet rs = pstmt.getGeneratedKeys();
-		if(rs.next()) {
-			s.setId(rs.getInt(1));
-			
-			String ident = s.getIdent();
-			if(ident == null || ident.trim().length() == 0) {
-				String surveyName = "s" + s.getProjectId() + "_" + s.getId();
-				s.setIdent(surveyName);
-				update(s);
-			}
-		}
-	}
-	
-	/*
-	 * Update a survey
-	 */
-	public void update(Survey s) throws SQLException {
-		pstmtUpdate.setString(1, s.getIdent());
-		pstmtUpdate.setInt(2, s.getId());
-		pstmtUpdate.executeUpdate();
-	}
 	
 	/*
 	 * Get a survey using its ident
@@ -191,8 +127,6 @@ public class JdbcSurveyManager {
 	 * Close statements
 	 */
 	public void close() {
-		try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {};
-		try {if(pstmtUpdate != null) {pstmtUpdate.close();}} catch(Exception e) {};
 		try {if(pstmtGetByIdent != null) {pstmtGetByIdent.close();}} catch(Exception e) {};
 		try {if(pstmtGetById != null) {pstmtGetById.close();}} catch(Exception e) {};
 		try {if(pstmtReplacement != null) {pstmtReplacement.close();}} catch(Exception e) {};

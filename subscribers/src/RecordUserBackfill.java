@@ -96,8 +96,8 @@ public class RecordUserBackfill {
 					+ "and s.group_survey_ident is not null");
 
 			pstmtInsert = sd.prepareStatement("insert into record_user "
-					+ "(assignee, assignee_ident, group_survey_ident, survey_ident, thread, access, read_only) "
-					+ "values ((select id from users where ident = ?), ?, ?, ?, ?, 'owner', false) "
+					+ "(assignee, assignee_ident, group_survey_ident, survey_ident, thread, access, read_only, source) "
+					+ "values ((select id from users where ident = ?), ?, ?, ?, ?, 'owner', false, 'backfill') "
 					+ "on conflict (assignee_ident, group_survey_ident, thread) do nothing");
 
 			ResultSet rsSurveys = pstmtSurveys.executeQuery();

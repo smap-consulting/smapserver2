@@ -17,6 +17,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
@@ -59,6 +60,101 @@ public class RoleManager {
 	
 	Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 	
+	/*
+	 * When an XLSForm replaces a survey its roles are written against the ident the new survey
+	 * had before it took over the ident of the survey it replaces.  Apply them to the survey:
+	 *  - a role in the XLSForm that the survey already has gets the filters and group from the XLSForm
+	 *  - a role in the XLSForm that the survey does not have is added
+	 *  - a role the survey has that is not in the XLSForm is kept, its name is returned so the user can
+	 *    be told.  Removing it could make the survey visible to everyone in the project
+	 */
+	public ArrayList<String> applyReplacementRoles(Connection sd, String fromIdent, String toIdent) throws SQLException {
+
+		ArrayList<String> kept = new ArrayList<> ();
+		if(fromIdent == null || toIdent == null || fromIdent.equals(toIdent)) {
+			return kept;
+		}
+
+		String sqlNew = "select r_id, column_filter, row_filter, role_group from survey_role where survey_ident = ?";
+		String sqlExisting = "select sr.id, sr.r_id, r.name from survey_role sr, role r "
+				+ "where sr.r_id = r.id and sr.survey_ident = ?";
+		String sqlUpdate = "update survey_role set column_filter = ?, row_filter = ?, role_group = coalesce(?, role_group) where id = ?";
+		String sqlMove = "update survey_role set survey_ident = ? where survey_ident = ? and r_id = ?";
+		String sqlDelete = "delete from survey_role where survey_ident = ?";
+
+		boolean autoCommit = sd.getAutoCommit();
+		try (PreparedStatement pstmtNew = sd.prepareStatement(sqlNew);
+				PreparedStatement pstmtExisting = sd.prepareStatement(sqlExisting);
+				PreparedStatement pstmtUpdate = sd.prepareStatement(sqlUpdate);
+				PreparedStatement pstmtMove = sd.prepareStatement(sqlMove);
+				PreparedStatement pstmtDelete = sd.prepareStatement(sqlDelete)) {
+
+			sd.setAutoCommit(false);
+
+			// Roles the survey already has
+			HashMap<Integer, Integer> existingRows = new HashMap<> ();		// r_id -> survey_role id
+			HashMap<Integer, String> existingNames = new HashMap<> ();
+			pstmtExisting.setString(1, toIdent);
+			ResultSet rs = pstmtExisting.executeQuery();
+			while(rs.next()) {
+				existingRows.put(rs.getInt("r_id"), rs.getInt("id"));
+				existingNames.put(rs.getInt("r_id"), rs.getString("name"));
+			}
+
+			// Roles in the XLSForm
+			HashSet<Integer> inXls = new HashSet<> ();
+			pstmtNew.setString(1, fromIdent);
+			rs = pstmtNew.executeQuery();
+			while(rs.next()) {
+				int rId = rs.getInt("r_id");
+				inXls.add(rId);
+				Integer existingId = existingRows.get(rId);
+				if(existingId != null) {
+					pstmtUpdate.setString(1, rs.getString("column_filter"));
+					pstmtUpdate.setString(2, rs.getString("row_filter"));
+					pstmtUpdate.setString(3, rs.getString("role_group"));
+					pstmtUpdate.setInt(4, existingId);
+					pstmtUpdate.executeUpdate();
+				} else {
+					pstmtMove.setString(1, toIdent);
+					pstmtMove.setString(2, fromIdent);
+					pstmtMove.setInt(3, rId);
+					pstmtMove.executeUpdate();
+				}
+			}
+
+			// Anything left against the old ident is no longer needed
+			pstmtDelete.setString(1, fromIdent);
+			pstmtDelete.executeUpdate();
+
+			sd.commit();
+
+			for(Integer rId : existingRows.keySet()) {
+				if(!inXls.contains(rId)) {
+					kept.add(existingNames.get(rId));
+				}
+			}
+		} catch (SQLException e) {
+			try {sd.rollback();} catch (Exception ex) {}
+			throw e;
+		} finally {
+			try {sd.setAutoCommit(autoCommit);} catch (Exception e) {}
+		}
+		return kept;
+	}
+
+	/*
+	 * Remove the roles written for a survey that was not saved
+	 */
+	public void deleteSurveyRoles(Connection sd, String sIdent) throws SQLException {
+		if(sIdent != null) {
+			try (PreparedStatement pstmt = sd.prepareStatement("delete from survey_role where survey_ident = ?")) {
+				pstmt.setString(1, sIdent);
+				pstmt.executeUpdate();
+			}
+		}
+	}
+
 	public RoleManager(ResourceBundle l) {
 		localisation = l;
 	}
@@ -598,22 +694,16 @@ public class RoleManager {
 		PreparedStatement pstmt = null;
 		
 		checkNotJson(role.row_filter, localisation);
-		SqlFrag sq = new SqlFrag();
-		sq.addSqlFragment(role.row_filter, false, localisation, 0);
-		
-		// Compile a list of columns not in the survey group and throw an error if there are any
-		StringBuilder bad = new StringBuilder();
-		String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, sIdent);
-		for(int i = 0; i < sq.columns.size(); i++) {		
-			if(GeneralUtilityMethods.getGroupColumnName(sd, groupSurveyIdent, sq.humanNames.get(i)) == null) {
-				if(bad.length() > 0) {
-					bad.append(", ");
-				}
-				bad.append(sq.columns.get(i));
+		if(role.row_filter != null && role.row_filter.trim().length() > 0) {
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, sIdent);
+			String requester = "RoleManager - check row filter";
+			Connection cResults = ResultsDataSource.getConnection(requester);
+			try {
+				new ServerExpressionValidator(localisation).validate(sd, cResults, groupSurveyIdent, false,
+						role.row_filter, ServerExpressionValidator.CONDITION, localisation.getString("se_w_row_filter"));
+			} finally {
+				ResultsDataSource.closeConnection(requester, cResults);
 			}
-		}
-		if(bad.length() > 0) {
-			throw new Exception(localisation.getString("r_mc") + " " + bad);
 		}
 		
 		// if the row filter is empty set it to null
@@ -723,6 +813,7 @@ public class RoleManager {
 		
 		PreparedStatement pstmt = null;
 		ArrayList<SqlFrag> rfArray = new ArrayList<SqlFrag> ();
+		HashMap<String, String> columnMap = null;		// Got when the first filter is found
 		
 		try {
 			ResultSet resultSet = null;
@@ -746,7 +837,10 @@ public class RoleManager {
 				String group = resultSet.getString("role_group");
 				if(sqlFragString != null && sqlFragString.trim().length() > 0) {
 					checkNotJson(sqlFragString, localisation);
-					SqlFrag sf = new SqlFrag();
+					if(columnMap == null) {
+						columnMap = GeneralUtilityMethods.getColumnMapFromIdent(sd, sIdent);
+					}
+					SqlFrag sf = new SqlFrag(columnMap);
 					sf.addSqlFragment(sqlFragString, false, localisation, 0);
 					sf.group = group;	
 					rfArray.add(sf);
@@ -767,6 +861,7 @@ public class RoleManager {
 		
 		PreparedStatement pstmt = null;
 		ArrayList<SqlFrag> rfArray = new ArrayList<SqlFrag> ();
+		HashMap<String, String> columnMap = null;		// Got when the first filter is found
 		ArrayList<Integer> roleids = new ArrayList<> ();
 		
 		if(roles != null && roles.size() > 0) {
@@ -794,7 +889,10 @@ public class RoleManager {
 					String sqlFragString = resultSet.getString("row_filter");
 					if(sqlFragString != null) {
 						checkNotJson(sqlFragString, localisation);
-						SqlFrag sf = new SqlFrag();
+						if(columnMap == null) {
+							columnMap = GeneralUtilityMethods.getColumnMapFromIdent(sd, sIdent);
+						}
+						SqlFrag sf = new SqlFrag(columnMap);
 						sf.addSqlFragment(sqlFragString, false, localisation, 0);
 						rfArray.add(sf);
 					}		

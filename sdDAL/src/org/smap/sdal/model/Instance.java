@@ -10,4 +10,5 @@ public class Instance {
 	public Line line_geometry; 
 	public HashMap<String, ArrayList<Instance>> repeats;
 	public ArrayList<DistanceMarker> markers;
+	public transient boolean appendRepeats;		// Add the repeat rows to an existing record being loaded, never read from stored JSON
 }

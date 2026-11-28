@@ -1,0 +1,14 @@
+{
+  "name": "operational-issues",
+  "description": "The operational issues report (2026-11-17). A notification whose filter names a question the survey does not have is listed as a filter that does not work, found by checking it, and after a submission as a notification error, recorded against the notification (log.ref) so its Fix button opens that notification in its project. Unreviewed conflicts from the conflict tests are listed with a Fix button that opens the record in the console. The page shows the issues, its filters work, and the XLSX download is a spreadsheet. Uses the case-alerts survey, which it keeps the notification on; the notification sends to the ca_name question, whose answers are not addresses, so nothing is sent. Each run adds one record to that survey. Since 26.12.01 a notification cannot be saved with a filter that does not work, so where the kept notification is missing its setup is refused: add ca_gone with survey_add_question, run setup, then delete ca_gone with survey_delete_question.",
+  "kind": "issues",
+  "uses": "case-alerts",
+  "notification": {
+    "name": "Regression issues - bad filter",
+    "filter": "${ca_gone} = 'x'",
+    "emailQuestion": "ca_name",
+    "subject": "Regression issues test"
+  },
+  "record": { "answers": { "ca_name": "Issues test", "ca_status": "open" } },
+  "conflictSurvey": "Update conflict test"
+}

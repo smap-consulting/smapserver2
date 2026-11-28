@@ -292,7 +292,7 @@ public class SurveyDeleteQuestionTool extends AbstractMcpTool {
 		changes.add(cs);
 
 		SurveyManager sm = new SurveyManager(ctx.localisation, ctx.timezone, ctx.clientId);
-		sm.applyChangeSetArray(ctx.sd, ctx.cResults, surveyId, ctx.user, changes, true);
+		org.smap.sdal.model.ChangeResponse changeResp = sm.applyChangeSetArray(ctx.sd, ctx.cResults, surveyId, ctx.user, changes, true);
 
 		Map<String, Object> data = new LinkedHashMap<>();
 		data.put("deleted", Boolean.TRUE);
@@ -319,6 +319,7 @@ public class SurveyDeleteQuestionTool extends AbstractMcpTool {
 					+ "appeared to be inside it are untouched and now sit at the top level of the "
 					+ "form. Nothing could be done about them here: with no end there is no way to "
 					+ "tell which ones they were.");
+			addExpressionWarnings(text, data, changeResp);
 			MCPToolResult broken = new MCPToolResult(text.toString());
 			broken.setStructuredContent(data);
 			return broken;
@@ -337,6 +338,7 @@ public class SurveyDeleteQuestionTool extends AbstractMcpTool {
 		}
 
 		if(isContainer) {
+			addExpressionWarnings(text, data, changeResp);
 			MCPToolResult container = new MCPToolResult(text.toString());
 			container.setStructuredContent(data);
 			return container;
@@ -351,6 +353,7 @@ public class SurveyDeleteQuestionTool extends AbstractMcpTool {
 					+ "entirely. survey_add_question can recreate it.");
 		}
 
+		addExpressionWarnings(text, data, changeResp);
 		MCPToolResult result = new MCPToolResult(text.toString());
 		result.setStructuredContent(data);
 		return result;

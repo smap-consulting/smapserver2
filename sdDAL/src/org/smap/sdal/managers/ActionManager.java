@@ -27,8 +27,10 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.CMS;
+import org.smap.sdal.model.CaseManagementSettings;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.SubFormRowChange;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
@@ -456,6 +458,106 @@ public class ActionManager {
 	}
 
 	/*
+	 * A message saying which question was given a value it cannot hold.  Names the question from the
+	 * survey definition and never repeats the value, which came from the request
+	 */
+	private String badValue(ResourceBundle l, String key, TableColumn tc) {
+		String name = tc.displayName != null && tc.displayName.length() > 0 ? tc.displayName : tc.column_name;
+		return l.getString(key).replace("%s1", name);
+	}
+
+	/*
+	 * The instance id of the record a sub form row belongs to, or null if there is no such row.
+	 * Followed up through each parent form, so a row of a repeat inside a repeat is found too
+	 */
+	private String recordOfRow(Connection sd, Connection cResults, int sId, Form f, int prikey)
+			throws SQLException {
+
+		if(prikey <= 0) {
+			return null;
+		}
+		StringBuilder sql = new StringBuilder();
+		Form current = f;
+		int depth = 0;
+		StringBuilder joins = new StringBuilder(f.tableName).append(" t0");
+		while(current.parentform > 0) {
+			if(++depth > 20) {
+				return null;		// Not a real form hierarchy
+			}
+			Form parent = GeneralUtilityMethods.getForm(sd, sId, current.parentform);
+			if(parent == null || parent.tableName == null) {
+				return null;
+			}
+			joins.append(" join ").append(parent.tableName).append(" t").append(depth)
+				.append(" on t").append(depth - 1).append(".parkey = t").append(depth).append(".prikey");
+			current = parent;
+		}
+		sql.append("select t").append(depth).append(".instanceid from ").append(joins)
+			.append(" where t0.prikey = ?");
+
+		try (PreparedStatement pstmt = cResults.prepareStatement(sql.toString())) {
+			pstmt.setInt(1, prikey);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() ? rs.getString(1) : null;
+		}
+	}
+
+	/*
+	 * Whether a set of updates changes the case status
+	 */
+	private boolean changesStatus(ArrayList<Update> updates, String statusQuestion) {
+		for(Update u : updates) {
+			if(u.name != null && u.name.trim().equals(statusQuestion)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private int getPrikey(Connection cResults, String table, String instanceId) throws SQLException {
+		try (PreparedStatement pstmt = cResults.prepareStatement("select prikey from " + table + " where instanceid = ?")) {
+			pstmt.setString(1, instanceId);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() ? rs.getInt(1) : 0;
+		}
+	}
+	
+	/*
+	 * The row in the latest version of a record that is the same as a row of an older version
+	 */
+	private int currentRow(Connection cResults, String table, int rowKey, int recordKey) throws Exception {
+		int parkey = 0;
+		String rowId = null;
+		boolean hasRowId = GeneralUtilityMethods.hasColumn(cResults, table, GetXForm.ROW_ID);
+		try (PreparedStatement pstmt = cResults.prepareStatement("select parkey" + (hasRowId ? ", " + GetXForm.ROW_ID : "") 
+				+ " from " + table + " where prikey = ?")) {
+			pstmt.setInt(1, rowKey);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				parkey = rs.getInt(1);
+				if(hasRowId) {
+					rowId = rs.getString(2);
+				}
+			}
+		}
+		if(parkey == recordKey) {
+			return rowKey;
+		}
+		if(rowId != null) {
+			try (PreparedStatement pstmt = cResults.prepareStatement("select prikey from " + table + " where parkey = ? and " + GetXForm.ROW_ID + " = ?")) {
+				pstmt.setInt(1, recordKey);
+				pstmt.setString(2, rowId);
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					return rs.getInt(1);
+				}
+			}
+		}
+		throw new ApplicationException("Update failed: Try refreshing your view of the data as someone may already "
+				+ "have updated this record.");
+	}
+	
+	/*
 	 * Process an update request that came from the console The update is for a
 	 * Group Survey
 	 */
@@ -474,6 +576,8 @@ public class ActionManager {
 
 		PreparedStatement pstmtUpdate = null;
 		PreparedStatement pstmtGetValue = null;
+		int lockedBundle = 0;
+		int versionKey = 0;		// The primary key of the new version of the record
 
 		try {
 
@@ -500,6 +604,24 @@ public class ActionManager {
 			}
 			if (f.parentform > 0) {
 				isSubForm = true;
+			}
+
+			/*
+			 * The record must be one this user can see.  For a sub form row that is the record the row
+			 * belongs to, found from the row, as the console does not send it.  A primary key is
+			 * sequential so it is never trusted on its own: when a record is named the row must be in it
+			 */
+			String accessInstanceId = instanceId;
+			if(isSubForm) {
+				String rowRecord = recordOfRow(sd, cResults, groupSurveyId, f, subFormPrimaryKey);
+				if(rowRecord == null || (instanceId != null && !instanceId.equals(rowRecord))) {
+					throw new ApplicationException(localisation.getString("rec_na"));
+				}
+				accessInstanceId = rowRecord;
+			}
+			RoleManager rm = new RoleManager(localisation);
+			if(!rm.canAccessRecord(sd, cResults, surveyIdent, topLevelForm.tableName, accessInstanceId, userIdent, tz)) {
+				throw new ApplicationException(localisation.getString("rec_na"));
 			}
 
 			ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(sd, cResults, localisation,
@@ -534,8 +656,7 @@ public class ActionManager {
 
 			String statusQuestion = null;
 			String finalStatus = null;
-			if (cms != null && cms.settings != null && cms.settings.statusQuestion != null
-					&& cms.settings.finalStatus != null) {
+			if (cms != null && cms.settings != null && cms.settings.hasClosedStatus()) {
 				statusQuestion = cms.settings.statusQuestion;
 				finalStatus = cms.settings.finalStatus;
 			}
@@ -546,6 +667,44 @@ public class ActionManager {
 			ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
 			// log.fine("Set autocommit false");
 			cResults.setAutoCommit(false);
+			
+			/*
+			 * A change to one record is made to a new version of it, as a submission is, so that 
+			 * the version anybody has open for editing stays as it was when they opened it
+			 * Bulk changes are made in place
+			 */
+			/*
+			 * The case's state before the change, so that a change of status that closes it, or opens it again,
+			 * is acted on.  Closing and reopening follow from the data, as they do for a submission.
+			 */
+			CaseStatusManager csm = new CaseStatusManager(localisation);
+			CaseManagementSettings caseSettings = null;
+			CaseStatusManager.State caseBefore = null;
+			if(statusQuestion != null && accessInstanceId != null && changesStatus(updates, statusQuestion)) {
+				caseSettings = cms.settings;
+				caseBefore = csm.read(cResults, topLevelForm.tableName,
+						getPrikey(cResults, topLevelForm.tableName, accessInstanceId), caseSettings);
+			}
+
+			if(!bulk && accessInstanceId != null) {
+				lockedBundle = GeneralUtilityMethods.getSurveyId(sd, groupSurveyIdent);	// The lock the subscriber takes when it merges
+				if(lockedBundle <= 0) {
+					lockedBundle = groupSurveyId;
+				}
+				RecordVersionManager.lock(sd, lockedBundle);
+				RecordVersionManager rvm = new RecordVersionManager(localisation);
+				instanceId = rvm.newVersion(sd, cResults, groupSurveyId, groupSurveyIdent, topLevelForm.id, 
+						topLevelForm.tableName, accessInstanceId, userIdent, tz);
+				versionKey = getPrikey(cResults, topLevelForm.tableName, instanceId);
+				
+				/*
+				 * A row of a repeat in the main form, shown from a version that has since been replaced, 
+				 * is the same row in the new version
+				 */
+				if(isSubForm && f.parentform == topLevelForm.id) {
+					subFormPrimaryKey = currentRow(cResults, f.tableName, subFormPrimaryKey, versionKey);
+				}
+			}
 			for (int i = 0; i < updates.size(); i++) {
 
 				Update u = updates.get(i);
@@ -614,11 +773,6 @@ public class ActionManager {
 					}
 				}
 
-				// Set closed date
-				if (statusQuestion != null && u.name.equals(statusQuestion)) {
-					sqlUpdate.append(" ,").append("_case_closed").append(" = ? ");
-				}
-
 				if (isSubForm) {
 					sqlUpdate.append("where prikey = ? ");
 				} else {
@@ -642,7 +796,13 @@ public class ActionManager {
 						if (u.value == null || u.value.trim().length() == 0) {
 							pstmtUpdate.setDate(paramCount++, null);
 						} else {
-							java.util.Date inputDate = dateFormat.parse(u.value);
+							java.util.Date inputDate;
+							try {
+								dateFormat.setLenient(false);
+								inputDate = dateFormat.parse(u.value.trim());
+							} catch (Exception e) {
+								throw new ApplicationException(badValue(localisation, "mf_bad_date", tc));
+							}
 							pstmtUpdate.setDate(paramCount++, new java.sql.Date(inputDate.getTime()));
 						}
 					} else if (tc.type.equals("dateTime")) {
@@ -650,7 +810,12 @@ public class ActionManager {
 							pstmtUpdate.setTimestamp(paramCount++, null);
 						} else {
 							// Value is in local time hence we need to add the timezone of the client
-							LocalDateTime localDateTime = LocalDateTime.parse(u.value);
+							LocalDateTime localDateTime;
+							try {
+								localDateTime = LocalDateTime.parse(u.value.trim());
+							} catch (Exception e) {
+								throw new ApplicationException(badValue(localisation, "mf_bad_dt", tc));
+							}
 							ZonedDateTime userZdt = ZonedDateTime.of(localDateTime,
 									TimeZone.getTimeZone(tz).toZoneId());
 							ZonedDateTime utcZdt = userZdt.withZoneSameInstant(TimeZone.getTimeZone("UtC").toZoneId());
@@ -658,28 +823,46 @@ public class ActionManager {
 							pstmtUpdate.setTimestamp(paramCount++, ts);
 						}
 					} else if (tc.type.equals("integer") || tc.type.equals("int")) {
-						int inputInt = Integer.parseInt(u.value);
-						pstmtUpdate.setInt(paramCount++, inputInt);
+						if (u.value.trim().length() == 0) {
+							pstmtUpdate.setNull(paramCount++, java.sql.Types.INTEGER);		// An empty answer clears it
+						} else {
+							int inputInt;
+							try {
+								inputInt = Integer.parseInt(u.value.trim());
+							} catch (Exception e) {
+								throw new ApplicationException(badValue(localisation, "mf_bad_int", tc));
+							}
+							pstmtUpdate.setInt(paramCount++, inputInt);
+						}
 					} else if (tc.type.equals("decimal") || tc.type.equals("range")) {
-						double inputDouble = Double.parseDouble(u.value);
-						pstmtUpdate.setDouble(paramCount++, inputDouble);
+						if (u.value.trim().length() == 0) {
+							pstmtUpdate.setNull(paramCount++, java.sql.Types.DOUBLE);
+						} else {
+							double inputDouble;
+							try {
+								inputDouble = Double.parseDouble(u.value.trim());
+							} catch (Exception e) {
+								throw new ApplicationException(badValue(localisation, "mf_bad_dec", tc));
+							}
+							pstmtUpdate.setDouble(paramCount++, inputDouble);
+						}
 					} else if (tc.type.equals("geopoint")) {
-						pstmtUpdate.setString(paramCount++, GeneralUtilityMethods.getWKTfromGeoJson(u.value));
+						if (u.value.trim().length() == 0) {
+							pstmtUpdate.setString(paramCount++, null);
+						} else {
+							String wkt;
+							try {
+								wkt = GeneralUtilityMethods.getWKTfromGeoJson(u.value);
+							} catch (Exception e) {
+								throw new ApplicationException(badValue(localisation, "mf_bad_geo", tc));
+							}
+							pstmtUpdate.setString(paramCount++, wkt);
+						}
 					} else if (tc.type.equals("string")) {
 						pstmtUpdate.setString(paramCount++, u.value);
 					} else {
 						log.fine("Warning: unknown type: " + tc.type + " value: " + u.value);
 						pstmtUpdate.setString(paramCount++, u.value);
-					}
-				}
-
-				// Set closed date value
-				if (statusQuestion != null && u.name.equals(statusQuestion)) {
-					// Set case to closed if this is the final status
-					if (u.value == null || !u.value.equals(finalStatus)) {
-						pstmtUpdate.setTimestamp(paramCount++, null);
-					} else {
-						pstmtUpdate.setTimestamp(paramCount++, new Timestamp(new java.util.Date().getTime()));
 					}
 				}
 
@@ -703,6 +886,13 @@ public class ActionManager {
 				changes.add(new DataItemChange(u.name, u.displayName, tc.type, u.value, u.currentValue));
 			}
 
+			String caseChange = CaseStatusManager.NONE;
+			if(caseSettings != null) {
+				int afterKey = versionKey > 0 ? versionKey : getPrikey(cResults, topLevelForm.tableName, accessInstanceId);
+				caseChange = csm.apply(sd, cResults, topLevelForm.tableName, afterKey, caseBefore, caseSettings, userIdent,
+						surveyIdent);
+			}
+
 			/*
 			 * Process update notifications after all the changes have been applied This
 			 * allows the filter to work on the latest record data
@@ -720,6 +910,10 @@ public class ActionManager {
 						u.value, // update value
 						null // thread used with submission notifications
 				);
+			}
+			if(CaseStatusManager.REOPENED.equals(caseChange)) {
+				nm.notifyForReopen(sd, cResults, 0, request.getRemoteUser(), false, "https", server, basePath,
+						urlprefix, surveyIdent, instanceId);
 			}
 			/*
 			 * save change log
@@ -744,7 +938,19 @@ public class ActionManager {
 					sId, null, 0, 0);
 
 			cResults.commit();
-			response = Response.ok().build();
+			
+			/*
+			 * Return the version that was changed, so the console works on that from now on
+			 */
+			HashMap<String, Object> result = new HashMap<>();
+			result.put("instanceid", instanceId);
+			if(versionKey > 0) {
+				result.put("prikey", versionKey);
+				if(isSubForm) {
+					result.put("row", subFormPrimaryKey);	// The row changed, in the new version
+				}
+			}
+			response = Response.ok(gson.toJson(result)).build();
 
 		} catch (Exception e) {
 			try {
@@ -759,6 +965,9 @@ public class ActionManager {
 				log.fine("Set autocommit true");
 				cResults.setAutoCommit(true);
 			} catch (Exception ex) {
+			}
+			if(lockedBundle > 0) {
+				RecordVersionManager.unlock(sd, lockedBundle);
 			}
 			try {
 				if (pstmtUpdate != null) {

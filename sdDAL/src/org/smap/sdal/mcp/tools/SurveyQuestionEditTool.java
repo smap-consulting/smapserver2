@@ -213,7 +213,7 @@ public class SurveyQuestionEditTool extends AbstractMcpTool {
 		}
 
 		SurveyManager sm = new SurveyManager(ctx.localisation, ctx.timezone, ctx.clientId);
-		sm.applyChangeSetArray(ctx.sd, ctx.cResults, surveyId, ctx.user, changes, true);
+		org.smap.sdal.model.ChangeResponse changeResp = sm.applyChangeSetArray(ctx.sd, ctx.cResults, surveyId, ctx.user, changes, true);
 
 		Map<String, Object> data = new LinkedHashMap<>();
 		data.put("updated", Boolean.TRUE);
@@ -236,6 +236,7 @@ public class SurveyQuestionEditTool extends AbstractMcpTool {
 		}
 		text.append("\n\nThe previous values are above, and this tool sets them back.");
 
+		addExpressionWarnings(text, data, changeResp);
 		MCPToolResult result = new MCPToolResult(text.toString());
 		result.setStructuredContent(data);
 		return result;

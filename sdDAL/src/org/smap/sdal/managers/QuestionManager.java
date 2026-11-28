@@ -106,10 +106,11 @@ public class QuestionManager {
 				+ "display_name,"
 				+ "compressed,"
 				+ "intent,"
-				+ "set_value"
+				+ "set_value,"
+				+ "trigger"
 				+ ") " 
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
 		PreparedStatement pstmtUpdateSeq = null;
 		String sqlUpdateSeq = "update question set seq = seq + 1 where f_id = ? and seq >= ?;";
@@ -160,8 +161,26 @@ public class QuestionManager {
 						throw new Exception("Form not found");
 					}
 				}
+				// A background-geopoint from the editor is held as a geopoint that is not shown
+				if(GeneralUtilityMethods.BACKGROUND_GEOPOINT.equals(q.type)) {
+					q.type = "geopoint";
+					q.visible = false;
+					q.source = "user";
+				}
+
+				// Geo reference geometry and range tick labels come from a list, as a select's choices do
+				if(GeneralUtilityMethods.isListParameterType(q.type)) {
+					q.list_name = GeneralUtilityMethods.getListParameter(q.type,
+							GeneralUtilityMethods.convertParametersToArray(q.parameters));
+					if(GeneralUtilityMethods.isReferenceGeometryType(q.type)) {
+						q.list_name = GeneralUtilityMethods.resolveRepeatGeometry(sd, sId, q.list_name);
+					}
+				}
 
 				if(q.type.startsWith("select") || q.type.equals("rank")) {	// Get the list id
+					q.l_id = GeneralUtilityMethods.getListId(sd, sId, q.list_name);
+				} else if(q.list_name != null && !q.list_name.startsWith("${")
+						&& GeneralUtilityMethods.isListParameterType(q.type)) {
 					q.l_id = GeneralUtilityMethods.getListId(sd, sId, q.list_name);
 				} else if(q.type.equals("calculate")) {
 					q.visible = false;
@@ -288,7 +307,8 @@ public class QuestionManager {
 				String nodeset_label = null;
 				String cascade_instance = null;
 
-				if(q.type.startsWith("select") || q.type.equals("rank")) {
+				if(q.type.startsWith("select") || q.type.equals("rank")
+						|| (GeneralUtilityMethods.isListParameterType(q.type) && q.list_name != null)) {	// Reference geometry or range tick labels
 					if(q.list_name != null && q.list_name.startsWith("${")) {
 						cascade_instance = q.list_name;
 						String repQuestion = GeneralUtilityMethods.getNameFromXlsName(cascade_instance);
@@ -309,6 +329,7 @@ public class QuestionManager {
 				pstmtInsertQuestion.setBoolean(29, true);		// All select questions now default to compressed
 				pstmtInsertQuestion.setString(30, q.intent);
 				pstmtInsertQuestion.setString(31, q.getSetValueArrayAsString(gson));
+				pstmtInsertQuestion.setString(32, (q.trigger == null || q.trigger.trim().length() == 0) ? null : q.trigger.trim());
 				
 				log.fine("Insert question: " + pstmtInsertQuestion.toString());
 				pstmtInsertQuestion.executeUpdate();
@@ -1849,7 +1870,8 @@ public class QuestionManager {
 		String sqlGetLists = "select q.l_id from question q, form f "
 				+ "where f.f_id = q.f_id "
 				+ "and q.l_id > 0 "
-				+ "and q.qtype like 'select%' "
+				+ "and (q.qtype like 'select%' "
+				+ "or q.qtype in ('geopoint', 'geotrace', 'geoshape', 'range')) "	// Reference geometry or tick labels list
 				+ "and f.f_id = ? ;";
 		PreparedStatement pstmtGetLists = null;
 

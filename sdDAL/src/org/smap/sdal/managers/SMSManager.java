@@ -406,13 +406,13 @@ public class SMSManager {
 						 * Get the case details
 						 */
 						String statusQuestion = null;
-						String finalStatus = null;
+						java.util.List<String> closedStatuses = null;
 						CaseManager cm = new CaseManager(localisation);
 						String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 						CMS caseSettings = cm.getCaseManagementSettings(sd, groupSurveyIdent);
-						if(caseSettings != null) {
+						if(caseSettings != null && caseSettings.settings != null && caseSettings.settings.hasClosedStatus()) {
 							statusQuestion = caseSettings.settings.statusQuestion;
-							finalStatus = caseSettings.settings.finalStatus;
+							closedStatuses = caseSettings.settings.getClosedStatuses();
 						}
 						
 						boolean checkStatus = false;
@@ -423,14 +423,14 @@ public class SMSManager {
 									.append(theirNumberColumn)
 									.append(" = ? ");
 							
-							if(statusQuestion != null && finalStatus != null) {
+							if(statusQuestion != null && closedStatuses != null) {
 								checkStatus  = true;
 								String statusColumn = GeneralUtilityMethods.getColumnName(sd, sId, statusQuestion);
 								sqlExists.append(" and (")
 									.append(statusColumn)
 									.append(" is null or ")
 									.append(statusColumn)
-									.append(" != ?)");
+									.append(" != all(?))");
 							}
 							
 							pstmtExists = cResults.prepareStatement(sqlExists.toString(), 
@@ -438,7 +438,7 @@ public class SMSManager {
 			                        ResultSet.CONCUR_UPDATABLE);
 							pstmtExists.setString(1, sms.theirNumber);
 							if(checkStatus) {
-								pstmtExists.setString(2, finalStatus);
+								pstmtExists.setArray(2, cResults.createArrayOf("text", closedStatuses.toArray()));
 							}
 							log.fine("Check for existing cases: " + pstmtExists.toString());
 							ResultSet rs = pstmtExists.executeQuery();

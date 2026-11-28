@@ -1,0 +1,91 @@
+{
+  "name": "server-expressions",
+  "description": "Server expressions, the filters, rules and server calculations evaluated as SQL, are checked when saved (2026-11-24, 26.12.01). A filter that names a question the bundle does not have, compares text with a number, or is not true or false is refused with a message that says why, for notifications and case alerts; a console filter gets the same readable message. A filter saved while its question exists and then broken by deleting the question is kept: the survey change warns about it (the MCP edit reply says so), the operational issues report lists it, the notification can still be saved unchanged, and changing it to another broken filter is refused. Keeps its survey, one record (so its results table exists: a console filter on a survey with no table returns nothing before it is checked, and a deleted question's kept column must not count as a meta column, fixed 2026-11-24) and one notification, which sends to the se_name question, whose answers are not addresses, and whose filter the record fails, so nothing is sent. A task group that takes its assignee from an answer keeps that rule when its step is saved in the workflow page, which shows the rule (2026-11-24); task_group_update from_answer takes the question in assign_question, refuses an unknown or invalid one, and keeps the existing rule when none is given. The task group is kept; its condition no record meets, so it makes no tasks.",
+  "kind": "server-expression",
+  "survey": {
+    "name": "Server expression test",
+    "project": "A project",
+    "questions": [
+      {
+        "type": "text",
+        "name": "se_name",
+        "label": "Name"
+      },
+      {
+        "type": "integer",
+        "name": "se_count",
+        "label": "Count"
+      },
+      {
+        "type": "text",
+        "name": "se_extra",
+        "label": "Extra"
+      }
+    ]
+  },
+  "removed": "se_extra",
+  "record": {
+    "se_name": "regression",
+    "se_count": 1
+  },
+  "notification": {
+    "name": "Server expression test - extra",
+    "filter": "${se_extra} = 'x'",
+    "emailQuestion": "se_name",
+    "subject": "Regression server expression test",
+    "changedTo": "${se_gone} = 'y'"
+  },
+  "refused": [
+    {
+      "name": "unknown question",
+      "filter": "${se_gone} = 'x'",
+      "expect": "no question called ${se_gone}"
+    },
+    {
+      "name": "text compared with a number",
+      "filter": "${se_name} > 5",
+      "expect": "operator does not exist"
+    },
+    {
+      "name": "number compared with text",
+      "filter": "${se_count} = 'abc'",
+      "expect": "operator does not exist"
+    },
+    {
+      "name": "not true or false",
+      "filter": "${se_name}",
+      "expect": "must be true or false"
+    },
+    {
+      "name": "unknown function",
+      "filter": "round(${se_name}) > 1",
+      "expect": "function round(text) does not exist"
+    },
+    {
+      "name": "unclosed quote",
+      "filter": "${se_name} = 'x",
+      "expect": "Missing matching single quote"
+    }
+  ],
+  "accepted": [
+    "${se_name} = 'x' and ${se_count} > 5",
+    "_upload_time > now() - {7_days}",
+    "${se_name} = '2024-01-01' or ${se_count} is null"
+  ],
+  "taskGroup": {
+    "name": "Server expression test - assign",
+    "filter": "${se_name} = 'never'",
+    "assignQuestion": "se_name",
+    "assignData": "${se_name}",
+    "refusedQuestions": [
+      {
+        "question": "se_gone",
+        "expect": "no question called ${se_gone}"
+      },
+      {
+        "question": "se name;",
+        "expect": "is not a question name"
+      }
+    ]
+  }
+}

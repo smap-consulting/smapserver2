@@ -62,6 +62,10 @@ public class LogManager {
 	public static String ERASE = "erase";
 	public static String DUPLICATE = "duplicate";
 	public static String ERROR = "error";
+
+	// What a log entry is about, in its ref column
+	public static String REF_NOTIFICATION = "notification:";
+	public static String REF_ALERT = "alert:";
 	public static String SUBMISSION_ERROR = "submission error";
 	public static String EXPIRED = "expired";
 	public static String GENERATE_REPORT_VIEW = "generate report view";
@@ -135,6 +139,23 @@ public class LogManager {
 			int measure,
 			String server,
 			String agent)  {
+		writeLogRef(sd, sId, uIdent, event, note, measure, server, agent, null);
+	}
+
+	/*
+	 * The same, naming the thing the entry is about, such as "notification:12" or "alert:3", so a
+	 * problem it records can be traced to the setting that causes it.
+	 */
+	public void writeLogRef(
+			Connection sd, 
+			int sId,
+			String uIdent,
+			String event,
+			String note,
+			int measure,
+			String server,
+			String agent,
+			String ref)  {
 		
 		String sql = "insert into log ("
 				+ "log_time,"
@@ -146,7 +167,8 @@ public class LogManager {
 				+ "note,"
 				+ "measure,"
 				+ "server,"
-				+ "agent) values (now(), ?, ?, (select e_id from organisation where id = ?), ?, ?, ?, ?, ?, ?);";
+				+ "agent,"
+				+ "ref) values (now(), ?, ?, (select e_id from organisation where id = ?), ?, ?, ?, ?, ?, ?, ?);";
 
 		PreparedStatement pstmt = null;
 		
@@ -167,6 +189,7 @@ public class LogManager {
 			pstmt.setInt(7, measure);
 			pstmt.setString(8,  server);
 			pstmt.setString(9,  agent);
+			pstmt.setString(10,  ref);
 				
 			pstmt.executeUpdate();
 			

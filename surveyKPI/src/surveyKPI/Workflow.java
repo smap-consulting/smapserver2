@@ -51,6 +51,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.NotificationManager;
+import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.WorkflowManager;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
@@ -130,6 +131,7 @@ public class Workflow extends Application {
 		public String targetSurveyName;
 		public String filter;
 		public String remoteUser;   // "_data" or email string (display / legacy)
+		public String assignData;   // The rule that takes the assignee from the data, shown only, kept when saved
 		public int    userId;       // direct user assignment (> 0 means assign to this user)
 		public int    roleId;       // role assignment (> 0 means assign to first user with this role)
 		public int    projectId;
@@ -344,7 +346,9 @@ public class Workflow extends Application {
 				+ "and (f.p_id in (select p.id from project p, user_project up, users u "
 				+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 				+ "  or f.s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
-				+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id)) "
+				+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id) "
+				+ "  or f.bundle_ident in (select s3.group_survey_ident from survey s3, project p, user_project up, users u "
+				+ "    where s3.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s3.deleted and p.o_id = u.o_id)) "
 				+ "order by f.id";
 
 		PreparedStatement pstmt = null;
@@ -359,6 +363,7 @@ public class Workflow extends Application {
 			pstmt.setArray(1, arr);
 			pstmt.setString(2, request.getRemoteUser());
 			pstmt.setString(3, request.getRemoteUser());
+			pstmt.setString(4, request.getRemoteUser());
 			ResultSet rs = pstmt.executeQuery();
 			List<WorkflowEditNotif> list = new ArrayList<>();
 			while (rs.next()) {
@@ -452,7 +457,9 @@ public class Workflow extends Application {
 					+ "and (p_id in (select p.id from project p, user_project up, users u "
 					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 					+ "  or s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
-					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id))";
+					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id) "
+				+ "  or bundle_ident in (select s3.group_survey_ident from survey s3, project p, user_project up, users u "
+				+ "    where s3.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s3.deleted and p.o_id = u.o_id))";
 
 			String sqlUpd = "update forward set name = ?, remote_user = ?, filter = ?, enabled = ?, "
 					+ "notify_details = ?, updated = true "
@@ -460,7 +467,9 @@ public class Workflow extends Application {
 					+ "and (p_id in (select p.id from project p, user_project up, users u "
 					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 					+ "  or s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
-					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id))";
+					+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id) "
+				+ "  or bundle_ident in (select s3.group_survey_ident from survey s3, project p, user_project up, users u "
+				+ "    where s3.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s3.deleted and p.o_id = u.o_id))";
 
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
@@ -475,6 +484,7 @@ public class Workflow extends Application {
 				pstmtGet.setInt(1, n.id);
 				pstmtGet.setString(2, request.getRemoteUser());
 				pstmtGet.setString(3, request.getRemoteUser());
+				pstmtGet.setString(4, request.getRemoteUser());
 				ResultSet rs = pstmtGet.executeQuery();
 				NotifyDetails nd = new NotifyDetails();
 				if (rs.next()) {
@@ -513,6 +523,10 @@ public class Workflow extends Application {
 
 				// Get the stored notification so that the detail of the change can be logged
 				Notification before = nm.getNotification(sd, n.id, "UTC");
+				if(before != null && n.filter != null && !n.filter.equals(before.filter)) {
+					nm.checkFilter(sd, before.bundle ? before.bundle_ident
+							: GeneralUtilityMethods.getGroupSurveyIdent(sd, before.s_id), before.trigger, n.filter);
+				}
 
 				pstmtUpd.setString(1, n.name);
 				pstmtUpd.setString(2, n.remoteUser);
@@ -522,6 +536,7 @@ public class Workflow extends Application {
 				pstmtUpd.setInt(6, n.id);
 				pstmtUpd.setString(7, request.getRemoteUser());
 				pstmtUpd.setString(8, request.getRemoteUser());
+				pstmtUpd.setString(9, request.getRemoteUser());
 				pstmtUpd.executeUpdate();
 
 				lm.writeLog(sd, n.srcSurveyId, request.getRemoteUser(), LogManager.CREATE,
@@ -560,7 +575,9 @@ public class Workflow extends Application {
 				+ "and (p_id in (select p.id from project p, user_project up, users u "
 				+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id) "
 				+ "  or s_id in (select s2.s_id from survey s2, project p, user_project up, users u "
-				+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id))";
+				+ "    where s2.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s2.deleted and p.o_id = u.o_id) "
+				+ "  or bundle_ident in (select s3.group_survey_ident from survey s3, project p, user_project up, users u "
+				+ "    where s3.p_id = p.id and p.id = up.p_id and up.u_id = u.id and u.ident = ? and not s3.deleted and p.o_id = u.o_id))";
 
 		PreparedStatement pstmt = null;
 		try {
@@ -570,6 +587,7 @@ public class Workflow extends Application {
 			pstmt.setInt(1, id);
 			pstmt.setString(2, request.getRemoteUser());
 			pstmt.setString(3, request.getRemoteUser());
+			pstmt.setString(4, request.getRemoteUser());
 			pstmt.executeUpdate();
 			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.DELETE,
 					localisation.getString("lm_wf_delete_notification").replace("%s1", String.valueOf(id)), 0, null);
@@ -652,6 +670,9 @@ public class Workflow extends Application {
 				nd.sp_match_field  = n.spMatchField;
 				nd.sp_column_map   = n.spColumnMap;
 			}
+
+			new NotificationManager(localisation).checkFilter(sd, n.bundle ? bundleIdent
+					: GeneralUtilityMethods.getGroupSurveyIdent(sd, n.srcSurveyId), "submission", n.filter);
 
 			String sql = "insert into forward(s_id, enabled, trigger, target, filter, name, p_id, "
 					+ "remote_user, notify_details, bundle, bundle_ident, wf_prev_node_id, updated) "
@@ -752,6 +773,7 @@ public class Workflow extends Application {
 						// Derive assignee fields
 						if (afs.assign_data != null && !afs.assign_data.trim().isEmpty()) {
 							tg.remoteUser = "_data";
+							tg.assignData = afs.assign_data;
 						} else if (afs.emails != null && !afs.emails.trim().isEmpty()) {
 							tg.remoteUser = afs.emails.trim();
 						} else if (afs.role_id > 0) {
@@ -798,7 +820,7 @@ public class Workflow extends Application {
 		PreparedStatement pstmtUpd = null;
 		PreparedStatement pstmtGetPid = null;
 		try {
-			String sqlGet = "select rule, target_s_id from task_group where tg_id = ? "
+			String sqlGet = "select rule, target_s_id, source_s_id from task_group where tg_id = ? "
 					+ "and p_id in (select p.id from project p, user_project up, users u "
 					+ "    where p.id = up.p_id and up.u_id = u.id and u.ident = ? and p.o_id = u.o_id)";
 			String sqlUpd = "update task_group set name = ?, rule = ?, target_s_id = ?, p_id = ? where tg_id = ? "
@@ -823,9 +845,11 @@ public class Workflow extends Application {
 				ResultSet rs = pstmtGet.executeQuery();
 				org.smap.sdal.model.AssignFromSurvey afs = new org.smap.sdal.model.AssignFromSurvey();
 				int existingTargetSId = 0;
+				int sourceSId = 0;
 				if (rs.next()) {
 					String existing = rs.getString("rule");
 					existingTargetSId = rs.getInt("target_s_id");
+					sourceSId = rs.getInt("source_s_id");
 					if (existing != null) {
 						org.smap.sdal.model.AssignFromSurvey parsed =
 							gson.fromJson(existing, org.smap.sdal.model.AssignFromSurvey.class);
@@ -849,6 +873,7 @@ public class Workflow extends Application {
 				afs.target_survey_id = newTargetSId;
 
 				// Update assignee — clear all and set only the selected type
+				String existingAssignData = afs.assign_data;
 				afs.role_id    = 0;
 				afs.user_id    = 0;
 				afs.emails     = null;
@@ -858,7 +883,8 @@ public class Workflow extends Application {
 				} else if (tg.userId > 0) {
 					afs.user_id = tg.userId;
 				} else if ("_data".equals(tg.remoteUser)) {
-					afs.assign_data = "_data";
+					// This page does not edit the rule that takes the assignee from the data, so keep it
+					afs.assign_data = existingAssignData;
 				} else if (tg.remoteUser != null && !tg.remoteUser.trim().isEmpty()) {
 					afs.emails = tg.remoteUser.trim();
 				}
@@ -874,8 +900,11 @@ public class Workflow extends Application {
 					rsp.close();
 				}
 
+				String ruleJson = gson.toJson(afs);
+				new TaskManager(localisation, "UTC").checkRule(sd, ruleJson, sourceSId, tg.tgId);
+
 				pstmtUpd.setString(1, tg.name);
-				pstmtUpd.setString(2, gson.toJson(afs));
+				pstmtUpd.setString(2, ruleJson);
 				pstmtUpd.setInt(3, newTargetSId);
 				pstmtUpd.setInt(4, newProjectId);
 				pstmtUpd.setInt(5, tg.tgId);
@@ -1008,7 +1037,7 @@ public class Workflow extends Application {
 				afs.user_id = tg.userId;
 			} else if (tg.remoteUser != null && !tg.remoteUser.trim().isEmpty()) {
 				if ("_data".equals(tg.remoteUser)) {
-					afs.assign_data = "_data";
+					// There is no rule to take the assignee from, the step is left unassigned
 				} else {
 					afs.emails = tg.remoteUser;
 				}
@@ -1017,6 +1046,8 @@ public class Workflow extends Application {
 				afs.filter = new org.smap.sdal.model.SqlWhereClause();
 				afs.filter.advanced = tg.filter;
 			}
+
+			new TaskManager(localisation, "UTC").checkRule(sd, gson.toJson(afs), tg.sourceSurveyId, 0);
 
 			String sql = "insert into task_group(name, p_id, source_s_id, target_s_id, rule, "
 					+ "address_params, dl_dist, complete_all, assign_auto, wf_prev_node_id) "

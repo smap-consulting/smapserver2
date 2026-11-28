@@ -436,6 +436,24 @@ public class Roles extends Application {
 				}
 			}
 			
+			/*
+			 * A role that has been enabled keeps the settings it had, or has taken them from the bundle.
+			 * Return them as they are now stored, as the page replaces its own copy with them
+			 */
+			if("enabled".equals(property) && role.enabled) {
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request, request.getRemoteUser());
+				ArrayList<Role> current = rm.getSurveyRoles(sd, GeneralUtilityMethods.getSurveyIdent(sd, sId), oId, true,
+						request.getRemoteUser(), superUser);
+				for(Role r : current) {
+					if(r.id == role.id) {
+						updatedRole.row_filter = r.row_filter;
+						updatedRole.column_filter = r.column_filter;
+						updatedRole.role_group = r.role_group;
+						break;
+					}
+				}
+			}
+
 			String resp = gson.toJson(updatedRole);
 			response = Response.ok(resp).build();
 			

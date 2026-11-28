@@ -322,7 +322,7 @@ public class AllAssignments extends Application {
 							if(as.filter != null && as.filter.advanced != null && as.filter.advanced.length() > 0) {
 								// log.info("+++++ Using advanced filter: " + as.filter.advanced);
 
-								filterFrag = new SqlFrag();
+								filterFrag = new SqlFrag(GeneralUtilityMethods.getColumnMap(sd, sId));
 								StringBuffer filterQuery = new StringBuffer(tableName);
 								filterQuery.append(".instanceid in ");
 								filterQuery.append(GeneralUtilityMethods.getFilterCheck(
@@ -363,7 +363,7 @@ public class AllAssignments extends Application {
 							String assignSql = null;
 							SqlFrag assignFrag = null;
 							if(as.assign_data != null && as.assign_data.trim().length() > 0) {
-								assignFrag = new SqlFrag();
+								assignFrag = new SqlFrag(GeneralUtilityMethods.getColumnMap(sd, sId));
 								assignFrag.addSqlFragment(as.assign_data, false, localisation, 0);
 								assignSql = assignFrag.sql.toString();
 							}
@@ -679,6 +679,7 @@ public class AllAssignments extends Application {
 			if(tgId > 0) {
 
 				String addressParams = gson.toJson(as.address_columns); 	
+				new TaskManager(localisation, tz).checkRule(sd, gson.toJson(as), as.source_survey_id, tgId);
 				String tgSql = "update task_group set "
 						+ "name = ?, "
 						+ "p_id = ?, "

@@ -9,6 +9,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 public class SubmissionMessage {
 	public String notificationName;
+	public int notificationId;			// The notification that sent it, so a failure can be traced back to it
 	public String title;
 	public int taskId;
 	public String survey_ident;
@@ -127,6 +128,7 @@ public class SubmissionMessage {
 	public SubmissionMessage(SubmissionMessage orig) {
 		this.contentIsText = orig.contentIsText;
 		this.notificationName = orig.notificationName;
+		this.notificationId = orig.notificationId;
 		this.title = orig.title;
 		this.taskId = orig.taskId;
 		this.survey_ident = orig.survey_ident;

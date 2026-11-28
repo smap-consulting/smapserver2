@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -39,7 +40,10 @@ import java.util.logging.Logger;
 
 import org.smap.notifications.interfaces.TextProcessing;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.FormCheckException;
+import org.smap.sdal.formexpressions.FormExpressionChecker;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.HtmlSanitise;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapQuestionTypes;
@@ -1644,6 +1648,39 @@ public class SurveyManager {
 			resp.version = rs.getInt(1);
 			pstmt.close();
 
+			/*
+			 * Adding, removing, renaming or retyping a question can break a server expression elsewhere
+			 * in the bundle, a notification filter for example.  Check them before and after so the
+			 * user can be warned about the ones the changes broke.
+			 */
+			/*
+			 * The form's own expressions and choices, checked before and after so that only a problem these
+			 * changes cause refuses them.  One already there is reported but does not stop an unrelated change.
+			 */
+			HashSet<String> formBefore = null;
+			if(cResults != null && changesForm(changes)) {
+				formBefore = new HashSet<> ();
+				for(FormExpressionChecker.Problem p : formProblems(sd, cResults, sId, userIdent)) {
+					formBefore.add(problemKey(p));
+				}
+			}
+
+			ServerExpressionValidator sev = null;
+			String sevGroup = null;
+			HashSet<String> brokenBefore = null;
+			if(cResults != null && changesQuestions(changes)) {
+				try {
+					sevGroup = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+					sev = new ServerExpressionValidator(localisation);
+					brokenBefore = new HashSet<> ();
+					for(ServerExpressionValidator.Problem p : sev.checkBundle(sd, cResults, sevGroup, null)) {
+						brokenBefore.add(p.kind + ":" + p.id);
+					}
+				} catch (Exception e) {
+					log.log(Level.SEVERE, "Check server expressions", e);
+					sev = null;
+				}
+			}
 
 			for(ChangeSet cs : changes) {		
 
@@ -1702,8 +1739,38 @@ public class SurveyManager {
 			// Update the form dependencies so that when new results are received it is simple to identify the impacted forms			
 			GeneralUtilityMethods.updateFormDependencies(sd, sId);
 
+			if(resp.success > 0 && formBefore != null) {
+				ArrayList<String> refused = new ArrayList<> ();
+				for(FormExpressionChecker.Problem p : formProblems(sd, cResults, sId, userIdent)) {
+					if(!formBefore.contains(problemKey(p))) {
+						if(p.error) {
+							refused.add(p.describe(localisation));
+						} else {
+							resp.warnings.add(p.describe(localisation));
+						}
+					}
+				}
+				if(!refused.isEmpty()) {
+					sd.rollback();
+					throw new FormCheckException(localisation.getString("fe_refused") + " " + String.join("; ", refused),
+							refused);
+				}
+			}
+
 			if(resp.success > 0) {
 				sd.commit();
+				if(sev != null) {
+					try {
+						sev.forget(sevGroup);
+						for(ServerExpressionValidator.Problem p : sev.checkBundle(sd, cResults, sevGroup, null)) {
+							if(!brokenBefore.contains(p.kind + ":" + p.id)) {
+								resp.warnings.add(sev.describe(p));
+							}
+						}
+					} catch (Exception e) {
+						log.log(Level.SEVERE, "Check server expressions", e);
+					}
+				}
 				log.fine("Survey update to version: " + resp.version + ". " + 
 						resp.success + " successful changes and " + 
 						resp.failed + " failed changes");
@@ -1728,6 +1795,54 @@ public class SurveyManager {
 		}
 
 		return resp;
+	}
+
+	/*
+	 * Whether a set of changes can affect the form's expressions or choices, anything but a label
+	 */
+	private boolean changesForm(ArrayList<ChangeSet> changes) {
+		for(ChangeSet cs : changes) {
+			if(!"label".equals(cs.changeType)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/*
+	 * The problems in a survey's expressions and choices, read as they stand in this transaction
+	 */
+	private List<FormExpressionChecker.Problem> formProblems(Connection sd, Connection cResults, int sId, String user)
+			throws Exception {
+		Survey s = getById(sd, cResults, user, false, sId, true, null, null, false, false, false, false, false,
+				"internal", false, false, true, "geojson", false, false, false);
+		if(s == null) {
+			return new ArrayList<> ();
+		}
+		return new FormExpressionChecker(localisation).checkSurvey(s);
+	}
+
+	private String problemKey(FormExpressionChecker.Problem p) {
+		return p.question + "|" + p.column + "|" + p.message;
+	}
+
+	/*
+	 * Whether a set of changes adds, removes, renames or changes the type of a question
+	 */
+	private boolean changesQuestions(ArrayList<ChangeSet> changes) {
+		for(ChangeSet cs : changes) {
+			if("question".equals(cs.changeType)) {
+				return true;
+			}
+			if("property".equals(cs.changeType) && !"option".equals(cs.type) && cs.items != null) {
+				for(ChangeItem ci : cs.items) {
+					if(ci.property != null && ("name".equals(ci.property.prop) || "type".equals(ci.property.prop))) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
 	}
 
 	/*
@@ -2109,6 +2224,12 @@ public class SurveyManager {
 							ci.property.newVal = "string";
 							ci.property.setVisible = true;
 							ci.property.visibleValue = false;
+						} else if(ci.property.newVal.equals(GeneralUtilityMethods.BACKGROUND_GEOPOINT)) {
+							// Held as a geopoint that is not shown
+							ci.property.newVal = "geopoint";
+							ci.property.setVisible = true;
+							ci.property.visibleValue = false;
+							ci.property.sourceValue = "user";
 						}
 						//onlyIfNotPublished = true;	allow type changes
 					} else if(ci.property.prop.equals("name") && !ci.property.type.equals("optionlist")) {
@@ -2515,8 +2636,15 @@ public class SurveyManager {
 								Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
 								ServerCalculation sc = gson.fromJson(ci.property.newVal, ServerCalculation.class);
-								SqlFrag testCalc = new SqlFrag();
-								testCalc.addSqlFragment(sc.getExpression(), false, localisation, 0);
+								String requester = "SurveyManager - check server calculation";
+								Connection cResults = ResultsDataSource.getConnection(requester);
+								try {
+									new ServerExpressionValidator(localisation).validateServerCalculation(sd, cResults,
+											GeneralUtilityMethods.getGroupSurveyIdent(sd, sId), sc,
+											localisation.getString("se_w_server_calc") + " " + ci.property.name);
+								} finally {
+									ResultsDataSource.closeConnection(requester, cResults);
+								}
 						
 							}
 						}
@@ -2722,6 +2850,14 @@ public class SurveyManager {
 							
 						}
 						
+						/*
+						 * If this is a parameter change on a geo or range question then set the list it names
+						 */
+						if(ci.property.prop.equals("parameters")
+								&& GeneralUtilityMethods.isListParameterType(ci.property.qType)) {
+							updateListParameter(sd, sId, ci.property.qId, ci.property.qType, ci.property.oldVal, ci.property.newVal);
+						}
+
 						// If this is a parameter change record any affected auto update questions
 						if(ci.property.prop.equals("parameters")) {
 							GeneralUtilityMethods.writeAutoUpdateQuestion(sd, sId, ci.property.qId, ci.property.newVal, true);
@@ -3053,6 +3189,7 @@ public class SurveyManager {
 		}
 		
 		ArrayList<SqlFrag> columnSqlFrags = new ArrayList<SqlFrag>();
+		HashMap<String, String> columnMap = null;		// For server calculations, got when first needed
 		ArrayList<Question> questions = form.questions;
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtSelect = null;
@@ -3108,7 +3245,10 @@ public class SurveyManager {
 								continue;	// Select data columns are retrieved separately as there are multiple columns per question
 							} else if(qType.equals("server_calculate")) {
 								if (q.server_calculation != null) {
-									SqlFrag calc = new SqlFrag();
+									if(columnMap == null) {
+										columnMap = GeneralUtilityMethods.getColumnMap(sd, s.surveyData.id);
+									}
+									SqlFrag calc = new SqlFrag(columnMap);
 									q.server_calculation.populateSql(calc, localisation);
 									col = new StringBuffer("")
 											.append(calc.sql)
@@ -4618,7 +4758,61 @@ public class SurveyManager {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
 		}
 	}
-	
+
+	/*
+	 * Geo reference geometry, from a choice list or ${question} in a repeat, and range tick labels are held as
+	 * a select's list is so the XForm gets an itemset for it.  A choice filter can be added in an XLSForm
+	 */
+	private void updateListParameter(Connection sd, int sId, int qId, String qType,
+			String oldParams, String params) throws SQLException {
+
+		String ref = GeneralUtilityMethods.getListParameter(qType,
+				GeneralUtilityMethods.convertParametersToArray(params));
+		String oldRef = GeneralUtilityMethods.getListParameter(qType,
+				GeneralUtilityMethods.convertParametersToArray(oldParams));
+		if(ref == null ? oldRef == null : ref.equals(oldRef)) {
+			return;		// Unchanged, keep any choice filter
+		}
+
+		int lId = 0;
+		String nodeset = null;
+		String nodesetValue = null;
+		String nodesetLabel = null;
+		if(ref != null && GeneralUtilityMethods.isReferenceGeometryType(qType)) {
+			ref = GeneralUtilityMethods.resolveRepeatGeometry(sd, sId, ref);
+		}
+		if(ref != null) {
+			if(ref.startsWith("${")) {
+				nodeset = GeneralUtilityMethods.getNodesetForRepeat(null, ref);
+				nodesetValue = ref;
+				nodesetLabel = ref;
+			} else {
+				lId = GeneralUtilityMethods.getListId(sd, sId, ref);
+				nodeset = GeneralUtilityMethods.getNodesetFromChoiceFilter(null,
+						GeneralUtilityMethods.cleanName(ref, true, false, false));
+				nodesetValue = "name";
+				nodesetLabel = "jr:itext(itextId)";
+			}
+		}
+
+		String sql = "update question set l_id = ?, nodeset = ?, nodeset_value = ?, nodeset_label = ? "
+				+ "where q_id = ? "
+				+ "and q_id in (select q_id from question q, form f where f.f_id = q.f_id and f.s_id = ?) ";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, lId);
+			pstmt.setString(2, nodeset);
+			pstmt.setString(3, nodesetValue);
+			pstmt.setString(4, nodesetLabel);
+			pstmt.setInt(5, qId);
+			pstmt.setInt(6, sId);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+	}
+
 	public void updateSearchChoices(Connection sd, PreparedStatement pstmt, String pVal, int sId, int qId) throws Exception {
 		int listId = -1;
 		Option o = new Option();

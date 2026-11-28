@@ -33,6 +33,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.AuthorisationException;
+import org.smap.sdal.managers.DashboardManager;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.HtmlSanitise;
@@ -87,10 +88,10 @@ public class Dashboard extends Application {
 		// Authorisation - Access
 		String connectionString = "surveyKPI-Dashboard-get";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		// No check for valid user as only panels owned by a user are returned
+		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// An administrator can manage another user's panels, otherwise a user can only manage their own
-		String user = getEffectiveUser(sd, request.getRemoteUser(), onBehalfOf);
+		String user = effectiveUserOrClose(sd, connectionString, request.getRemoteUser(), onBehalfOf);
 		// End Authorisation
 
 		ArrayList<Settings> sArray = new ArrayList<Settings> ();
@@ -324,7 +325,8 @@ public class Dashboard extends Application {
 		// Authorisation - an administrator can manage another user's panels, otherwise a user can only manage their own
 		String connectionString = "surveyKPI-Dashboard-updateSettings";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String user = getEffectiveUser(sd, request.getRemoteUser(), onBehalfOf);
+		a.isAuthorised(sd, request.getRemoteUser());
+		String user = effectiveUserOrClose(sd, connectionString, request.getRemoteUser(), onBehalfOf);
 
 		try {
 			// Get the users locale
@@ -388,6 +390,11 @@ public class Dashboard extends Application {
 			
 			for(Settings s : sArray) {
 				
+				if(s.state != null && !s.state.equals("deleted") && "survey".equals(s.subject_type)
+						&& !DashboardManager.surveyReachable(sd, user, s.sId)) {
+					throw new AuthorisationException();
+				}
+
 				if(s.state != null) {
 					
 					//========================== Delete the old view
@@ -542,7 +549,8 @@ public class Dashboard extends Application {
 		// Authorisation - an administrator can manage another user's panels, otherwise a user can only manage their own
 		String connectionString = "surveyKPI-Dashboard-updateState";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		String user = getEffectiveUser(sd, request.getRemoteUser(), onBehalfOf);
+		a.isAuthorised(sd, request.getRemoteUser());
+		String user = effectiveUserOrClose(sd, connectionString, request.getRemoteUser(), onBehalfOf);
 		// End Authorisation
 
 		PreparedStatement pstmt = null;
@@ -602,19 +610,32 @@ public class Dashboard extends Application {
 	 *  - the requested identifier, but only if the requesting user is an administrator
 	 */
 	private String getEffectiveUser(Connection sd, String requestingUser, String onBehalfOf) {
-
-		if(onBehalfOf != null && !onBehalfOf.isEmpty() && !onBehalfOf.equals(requestingUser)) {
-			try {
-				if(!GeneralUtilityMethods.hasSecurityGroup(sd, requestingUser, Authorise.ADMIN_ID)) {
-					throw new AuthorisationException();
-				}
-			} catch (SQLException e) {
-				throw new AuthorisationException();
-			}
-			return onBehalfOf;
+		String user = null;
+		try {
+			user = DashboardManager.effectiveUser(sd, requestingUser, onBehalfOf);
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 		}
-		return requestingUser;
+		if(user == null) {
+			throw new AuthorisationException();
+		}
+		return user;
 	}
+
+	/*
+	 * The effective user, closing the connection if the request is refused, as the caller has not
+	 * yet reached the block that would close it
+	 */
+	private String effectiveUserOrClose(Connection sd, String connectionString, String requestingUser,
+			String onBehalfOf) {
+		try {
+			return getEffectiveUser(sd, requestingUser, onBehalfOf);
+		} catch (AuthorisationException e) {
+			SDDataSource.closeConnection(connectionString, sd);
+			throw e;
+		}
+	}
+
 
 	private Settings getSettings(Connection sd, ResultSet resultSet, int idx) throws SQLException {
 		

@@ -28,7 +28,6 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.legacy.SurveyTemplate;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.Form;
@@ -38,7 +37,6 @@ import org.smap.sdal.model.Message;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.Utilities.JavaRosaUtilities;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -244,8 +242,7 @@ public class SurveyTemplateManager {
 				throw new ApplicationException(msg);
 			}
 			
-			Survey s = null;					// Used for XLS uploads (The new way)
-			SurveyTemplate model = null;		// Used for XML uploads (The old way), Convert to Survey after loading
+			Survey s = null;
 			if(isExcel) {
 				XLSTemplateUploadManager tum = new XLSTemplateUploadManager(localisation, warnings);
 				s = tum.getSurvey(sd, 
@@ -259,32 +256,44 @@ public class SurveyTemplateManager {
 						merge,
 						existingVersion);
 			} else if(type.equals("xml")) {
-
-				// Parse the form into an object model
-				PutXForm loader = new PutXForm(localisation);
-				model = loader.put(fileItem.getInputStream(), 
-						request.getRemoteUser(),
-						basePath);	// Load the XForm into the model
-				
-				// Set the survey name to the one entered by the user 
-				if(displayName != null && displayName.length() != 0) {
-					model.getSurvey().setDisplayName(displayName);
-				} else {
-					throw new Exception("No Survey name");
+				XFormTemplateUploadManager xum = new XFormTemplateUploadManager(localisation, warnings);
+				s = xum.getSurvey(oId, 
+						fileItem.getInputStream(), 
+						displayName,
+						projectId,
+						questionNames,
+						optionNames,
+						merge,
+						existingVersion);
+				if(!action.equals("replace") && !s.surveyData.displayName.equals(displayName)
+						&& sm.surveyExists(sd, s.surveyData.displayName, projectId)) {
+					// The name came from the title of the XForm
+					String msg = localisation.getString("tu_ae");
+					msg = msg.replace("%s1", s.surveyData.displayName);
+					throw new ApplicationException(msg);
 				}
-
-				// Set the project id to the one entered by the user 
-				if(projectId != -1) {
-					model.getSurvey().setProjectId(projectId);
-				} 
+				displayName = s.surveyData.displayName;
 				
+				/*
+				 * An XForm cannot hold many of the settings of a survey, when it replaces a survey
+				 * keep the settings of the survey it replaces
+				 */
+				if(action.equals("replace")) {
+					Survey fullExisting = sm.getById(sd, cResults, user, false, surveyId, 
+							true, basePath, null, false, false, true, 
+							false, false, "internal", false, false, superUser, null, 
+							false,
+							false,		// launched only
+							false		// Don't merge set values into default value
+							);
+					xum.keepExistingSettings(fullExisting);
+				}
 			} else {
 				throw new ApplicationException("Unsupported file type");
 			}
 				
 			/*
 			 * Get information on a survey group if this survey is to be added to one
-			 * TODO make XML uploads work with this
 			 */
 			if(surveyId > 0) {
 				if(!action.equals("replace")) {
@@ -319,7 +328,7 @@ public class SurveyTemplateManager {
 			/*
 			 * Save the survey to the database
 			 */
-			if(isExcel) {
+			{
 				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms, existingSurveyId, oId);
 				String msg = null;
 				String title = null;
@@ -327,7 +336,7 @@ public class SurveyTemplateManager {
 					msg = localisation.getString("log_sr");
 					title = LogManager.REPLACE;
 				} else {
-					msg = localisation.getString("log_sc");
+					msg = localisation.getString(isExcel ? "log_sc" : "log_sc_xml");
 					title = LogManager.CREATE;
 				}
 				
@@ -367,47 +376,14 @@ public class SurveyTemplateManager {
 					}	
 				}
 				
-			} else {
-				int sId = model.writeDatabase();
-				s = sm.getById(sd, cResults, user, false, sId, true, basePath, 
-						null,					// instance id 
-						false, 					// get results
-						false, 					// generate dummy values
-						true, 					// get property questions
-						false, 					// get soft deleted
-						false, 					// get HRK
-						"internal", 			// Get External options
-						false, 					// get change history
-						true, 					// get roles
-						superUser, 
-						null	,				// geom format
-						false,					// Include child surveys
-						false,					// launched only
-						false		// Don't merge set values into default value
-						);
 			}
 			
 			/*
-			 * Validate the survey:
-			 * 	 using the JavaRosa API
-			 *    Ensure that it fits within the limit of 1,600 columns
+			 * Validate the survey: ensure that it fits within the limit of 1,600 columns.  Its expressions and
+			 * choices were checked as it was read.
 			 */
 			boolean valid = true;
 			String errMsg = null;
-			try {
-				JavaRosaUtilities.javaRosaSurveyValidation(localisation, s.surveyData.id, request.getRemoteUser(), tz, request);
-			} catch (Exception e) {
-								
-				// Error! Delete the survey we just created
-				log.log(Level.SEVERE, e.getMessage(), e);
-				valid = false;
-					
-				errMsg = e.getMessage();			
-				if(errMsg != null && errMsg.startsWith("no <translation>s defined")) {
-					errMsg = localisation.getString("tu_nl");
-				}					
-				
-			}
 			if(valid) {
 				ArrayList<FormLength> formLength = GeneralUtilityMethods.getFormLengths(sd, s.surveyData.id);
 				for(FormLength fl : formLength) {
@@ -423,7 +399,25 @@ public class SurveyTemplateManager {
 				}
 			}
 			
+			/*
+			 * The survey's server calculations and role row filters must work against its bundle.  A
+			 * survey being replaced is left out, its questions are about to go.
+			 */
+			ServerExpressionValidator sev = new ServerExpressionValidator(localisation);
+			if(valid) {
+				if(action.equals("replace")) {
+					sev.excludeSurvey(existingSurveyId);
+				}
+				for(ServerExpressionValidator.Problem p : sev.checkBundle(sd, cResults,
+						s.surveyData.groupSurveyIdent, s.surveyData.ident)) {
+					valid = false;
+					errMsg = sev.describe(p);
+					break;
+				}
+			}
+
 			if(!valid) {
+				new RoleManager(localisation).deleteSurveyRoles(sd, s.surveyData.ident);
 				sm.delete(sd, 
 						cResults, 
 						s.surveyData.id, 
@@ -451,8 +445,31 @@ public class SurveyTemplateManager {
 						"no",		// Do not delete the tables
 						s.surveyData.id		   // New Survey Id for replacement 
 					);		
+				
+				/*
+				 * The new survey now has the ident of the survey it replaced.  Apply the roles
+				 * from an XLSForm to it.  An XForm has no roles, the survey keeps the ones it has
+				 */
+				if(isExcel) {
+					RoleManager rm = new RoleManager(localisation);
+					ArrayList<String> kept = rm.applyReplacementRoles(sd, s.surveyData.ident, existingSurvey.getIdent());
+					if(kept.size() > 0) {
+						String rMsg = localisation.getString("tu_roles_kept");
+						rMsg = rMsg.replace("%s1", GeneralUtilityMethods.getSafeText(String.join(", ", kept), true));
+						warnings.add(new ApplicationWarning(rMsg));
+					}
+				}
 			}
 			
+			/*
+			 * Warn about the bundle's other server expressions that do not work now, such as a
+			 * notification filter that names a question this survey no longer has
+			 */
+			sev = new ServerExpressionValidator(localisation);
+			for(ServerExpressionValidator.Problem p : sev.checkBundle(sd, cResults, s.surveyData.groupSurveyIdent, null)) {
+				warnings.add(new ApplicationWarning(sev.describe(p)));
+			}
+
 			/*
 			 * Save the FormXLS file so that it can be retrieved from the change history
 			 */

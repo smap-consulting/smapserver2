@@ -1,0 +1,1556 @@
+{
+ "about": "Expressions in survey questions: relevant, constraint, calculation, choice filter, required and read only. Read by org.smap.sdal.formexpressions; the docs tables of ref-expressions.rst are generated from the docs section.",
+ "meta": [
+  "_user",
+  "_upload_time",
+  "_hrk",
+  "_version"
+ ],
+ "functions": [
+  {
+   "name": "if",
+   "minArgs": 3,
+   "maxArgs": 3,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "coalesce",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "indexed-repeat",
+   "minArgs": 3,
+   "maxArgs": 11,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ],
+   "note": "An odd number of arguments: the question, then a repeat and its position for each repeat it is in; the first must be a question"
+  },
+  {
+   "name": "true",
+   "minArgs": 0,
+   "maxArgs": 0,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "false",
+   "minArgs": 0,
+   "maxArgs": 0,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "boolean",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "number",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "int",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "round",
+   "minArgs": 1,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "string",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "date",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "date-time",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "decimal-date-time",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "decimal-time",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "not",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "boolean-from-string",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "format-date",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "format-date-time",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "abs",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "acos",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "asin",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "atan",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "atan2",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "cos",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "exp",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "exp10",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "log",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "log10",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "pi",
+   "minArgs": 0,
+   "maxArgs": 0,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "sin",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "sqrt",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "tan",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "pow",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "selected",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "is-selected",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask"
+   ]
+  },
+  {
+   "name": "count-selected",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "selected-at",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "jr:choice-name",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "position",
+   "minArgs": 0,
+   "maxArgs": 1,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "last",
+   "minArgs": 0,
+   "maxArgs": 0,
+   "origin": "xpath",
+   "engines": [
+    "webform"
+   ]
+  },
+  {
+   "name": "count",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "count-non-empty",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "sum",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "max",
+   "minArgs": 1,
+   "maxArgs": null,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "min",
+   "minArgs": 1,
+   "maxArgs": null,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "today",
+   "minArgs": 0,
+   "maxArgs": 0,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "now",
+   "minArgs": 0,
+   "maxArgs": 0,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "concat",
+   "minArgs": 0,
+   "maxArgs": null,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "join",
+   "minArgs": 1,
+   "maxArgs": null,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "substr",
+   "minArgs": 2,
+   "maxArgs": 3,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "substring-before",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "substring-after",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "translate",
+   "minArgs": 3,
+   "maxArgs": 3,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "contains",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "starts-with",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "ends-with",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "string-length",
+   "minArgs": 0,
+   "maxArgs": 1,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "normalize-space",
+   "minArgs": 0,
+   "maxArgs": 1,
+   "origin": "xpath",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "checklist",
+   "minArgs": 2,
+   "maxArgs": null,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "weighted-checklist",
+   "minArgs": 2,
+   "maxArgs": null,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ],
+   "note": "An even number of arguments"
+  },
+  {
+   "name": "regex",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "depend",
+   "minArgs": 1,
+   "maxArgs": null,
+   "origin": "odk",
+   "engines": [
+    "fieldTask"
+   ]
+  },
+  {
+   "name": "random",
+   "minArgs": 0,
+   "maxArgs": 0,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "randomize",
+   "minArgs": 1,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "once",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "uuid",
+   "minArgs": 0,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "version",
+   "minArgs": 0,
+   "maxArgs": 0,
+   "origin": "odk",
+   "engines": [
+    "fieldTask"
+   ]
+  },
+  {
+   "name": "property",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask"
+   ]
+  },
+  {
+   "name": "area",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "enclosed-area",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask"
+   ]
+  },
+  {
+   "name": "distance",
+   "minArgs": 1,
+   "maxArgs": null,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ],
+   "note": "Smap also accepts two or more points"
+  },
+  {
+   "name": "geofence",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask"
+   ]
+  },
+  {
+   "name": "digest",
+   "minArgs": 2,
+   "maxArgs": 3,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "base64-decode",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask"
+   ]
+  },
+  {
+   "name": "extract-signed",
+   "minArgs": 2,
+   "maxArgs": 2,
+   "origin": "odk",
+   "engines": [
+    "fieldTask"
+   ]
+  },
+  {
+   "name": "instance",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "device",
+   "minArgs": 0,
+   "maxArgs": null,
+   "origin": "smap",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ],
+   "note": "Any arguments are ignored"
+  },
+  {
+   "name": "default",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "smap",
+   "engines": [
+    "fieldTask"
+   ]
+  },
+  {
+   "name": "pulldata",
+   "minArgs": 3,
+   "maxArgs": 6,
+   "origin": "odk",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ],
+   "note": "Smap adds the 3 argument form with a filter expression, and the 5 and 6 argument forms that take an index and a filter type"
+  },
+  {
+   "name": "lookup",
+   "minArgs": 3,
+   "maxArgs": 6,
+   "origin": "smap",
+   "engines": [
+    "fieldTask"
+   ],
+   "note": "Takes the same parameters as pulldata"
+  },
+  {
+   "name": "lookup_image_labels",
+   "minArgs": 1,
+   "maxArgs": 1,
+   "origin": "smap",
+   "engines": [
+    "fieldTask"
+   ]
+  },
+  {
+   "name": "get_image",
+   "minArgs": 1,
+   "maxArgs": null,
+   "origin": "smap",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  },
+  {
+   "name": "get_media",
+   "minArgs": 1,
+   "maxArgs": null,
+   "origin": "smap",
+   "engines": [
+    "fieldTask",
+    "webform"
+   ]
+  }
+ ],
+ "docs": {
+  "categories": [
+   {
+    "id": "syntax",
+    "header": [
+     "operator",
+     "usage",
+     "example",
+     "notes"
+    ],
+    "crlf": true
+   },
+   {
+    "id": "datefns",
+    "header": [
+     "operator",
+     "usage",
+     "example"
+    ],
+    "crlf": true
+   },
+   {
+    "id": "textfns",
+    "header": [
+     "Function",
+     "usage",
+     "example"
+    ],
+    "crlf": true
+   },
+   {
+    "id": "mathfns",
+    "header": [
+     "operator",
+     "usage",
+     "example"
+    ],
+    "crlf": true
+   },
+   {
+    "id": "repeatfns",
+    "header": [
+     "operator",
+     "usage",
+     "example"
+    ],
+    "crlf": true
+   },
+   {
+    "id": "online",
+    "header": [
+     "Function",
+     "usage",
+     "example"
+    ],
+    "crlf": false
+   },
+   {
+    "id": "otherfns",
+    "header": [
+     "Function",
+     "usage",
+     "example"
+    ],
+    "crlf": true
+   }
+  ],
+  "rows": [
+   {
+    "category": "syntax",
+    "cells": {
+     "operator": "this current prompt's answer",
+     "usage": ".",
+     "example": ". < 5",
+     "notes": "Constraint\nIn a constraint, Dot (.) refers to the value in the current question.In this case it must be less than 5"
+    },
+    "count": 4
+   },
+   {
+    "category": "syntax",
+    "cells": {
+     "operator": "not",
+     "usage": "not(expression)",
+     "example": "not(selected(${qname}, 'c'))",
+     "notes": "Relevant\nA question is relevant as long as 'c' is not selected in question qname"
+    },
+    "count": 4
+   },
+   {
+    "category": "syntax",
+    "cells": {
+     "operator": "and",
+     "usage": "and",
+     "example": "selected(., 'c') and selected(., 'd')",
+     "notes": "Constraint\nBoth 'c' and 'd' need to be selected in the current question"
+    },
+    "count": 4
+   },
+   {
+    "category": "syntax",
+    "cells": {
+     "operator": "or",
+     "usage": "or",
+     "example": "selected(., 'c') or selected(., 'd')",
+     "notes": "Constraint\nEither 'c' or 'd' needs to be selected for the current question"
+    },
+    "count": 4
+   },
+   {
+    "category": "syntax",
+    "cells": {
+     "operator": "greater than",
+     "usage": ">",
+     "example": ". > 10.51",
+     "notes": "Constraint\nCurrent question must be greater than 10.51.\nCan also be combined with equals to make \"greater than or equal\"\n>="
+    },
+    "count": 4
+   },
+   {
+    "category": "syntax",
+    "cells": {
+     "operator": "less than",
+     "usage": "<",
+     "example": ". < 10.51",
+     "notes": "Constraint\nCurrent question must be less than 10.51.\nCan also be combined with equals to make \"less than or equal\"\n<="
+    },
+    "count": 4
+   },
+   {
+    "category": "syntax",
+    "cells": {
+     "operator": "selected",
+     "usage": "selected(xpath/to/node, value)",
+     "example": "selected(${qname}, 'n')",
+     "notes": "Relevant\nChecks if answer in selected prompt is selected\nNote xpath to node can be specified using ${} syntax with the question name"
+    },
+    "count": 4
+   },
+   {
+    "category": "syntax",
+    "cells": {
+     "operator": "count-selected",
+     "usage": "count-selected(${multiple_choice_q})",
+     "example": "count-selected( . ) < 4",
+     "notes": "Constraint\nThe number of options selected in this question must be less than 4."
+    },
+    "count": 4
+   },
+   {
+    "category": "syntax",
+    "cells": {
+     "operator": "selected-at",
+     "usage": "selected-at(${multiple_choice_q}, index)",
+     "example": "selected-at(${trips}, 0)",
+     "notes": "The first selected item will be at index 0, the second at index 1 etc"
+    },
+    "count": 4
+   },
+   {
+    "category": "syntax",
+    "cells": {
+     "operator": "regular expression",
+     "usage": "regex(value, expression)",
+     "example": "regex(., '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,4}')",
+     "notes": "Constraint\nThis regex checks for a valid email address"
+    },
+    "count": 4
+   },
+   {
+    "category": "syntax",
+    "cells": {
+     "operator": "equal to",
+     "usage": ". =",
+     "example": ". = number('10')",
+     "notes": "Constraint\nCurrent answer must be equal to 10"
+    },
+    "count": 4
+   },
+   {
+    "category": "syntax",
+    "cells": {
+     "operator": "Conditional\n(if)",
+     "usage": "if(condition, a, b)\n\nIf the condition is true use \"a\"\notherwise use \"b\"",
+     "example": "if(${count} < 10, ${count}, 10)",
+     "notes": "Calculate\nIf the count is less than 10 then use it.Perhaps as the number of times a repeat group is to be asked.Otherwise use the value 10.Hence this sets a cap on the value."
+    },
+    "count": 4
+   },
+   {
+    "category": "datefns",
+    "cells": {
+     "operator": "date formatted as text",
+     "usage": "format-date(${question}, format)\n\nRefer to the following section for a list of the date formats",
+     "example": "format-date(${dob}, '%Y %n %d')\n\n\"2011 2 26\""
+    },
+    "count": 3
+   },
+   {
+    "category": "datefns",
+    "cells": {
+     "operator": "Convert a date, or a time or a date and time to a decimal number",
+     "usage": "decimal-date-time(${question})\n\nUseful as part of a date calculation.Every additional day adds one to the number\n\nEvery additional hour adds 1/24 to the number",
+     "example": "Constraint\ndecimal-date-time( . )> (decimal-date-time(${dob}) + 10.0416666)\n\nThe entered date time must be more than 10 days and one hour after the date of birth."
+    },
+    "count": 3
+   },
+   {
+    "category": "datefns",
+    "cells": {
+     "operator": "Convert a time to a decimal number",
+     "usage": "decimal-time(${question})\n\nUseful as part of a date calculation.Every additional hour adds 1/24 to the number",
+     "example": "Constraint\ndecimal-time( . )>decimal-time(${time_of_birth}) + 10 div 24\n\nThe entered time must be more than 10 hours after the date of birth."
+    },
+    "count": 3
+   },
+   {
+    "category": "datefns",
+    "cells": {
+     "operator": "Convert a decimal number to a date or date and time",
+     "usage": "date-time(${question})\n\nConvert a calculated date back into date format.",
+     "example": "Relevant\ndate-time(decimal-date-time(${dob})+10)\n\nThe date is equal to the date of birth plus 10 days."
+    },
+    "count": 3
+   },
+   {
+    "category": "datefns",
+    "cells": {
+     "operator": "Get todays date",
+     "usage": "today()",
+     "example": ""
+    },
+    "count": 3
+   },
+   {
+    "category": "datefns",
+    "cells": {
+     "operator": "Get current date and time. Use this instead of today() when setting the default values for date questions",
+     "usage": "now()",
+     "example": ""
+    },
+    "count": 3
+   },
+   {
+    "category": "datefns",
+    "cells": {
+     "operator": "Convert text to date",
+     "usage": "date('some text)'",
+     "example": "constraint=\". >= date('2011-11-12')\""
+    },
+    "count": 3
+   },
+   {
+    "category": "textfns",
+    "cells": {
+     "Function": "Concatenate Text",
+     "usage": "concat(text1, text2, text3 etc)",
+     "example": "concat(${name}, ${address}, ${city})\n\nThis joins the answers to the name, address and city question. Use it with a \"calculate\" question"
+    },
+    "count": 3
+   },
+   {
+    "category": "textfns",
+    "cells": {
+     "Function": "Join Text",
+     "usage": "join(separator, text1, text2, text3 etc)\nThis is the same as concatenate text except it adds the \"separator\" text between each of the items of text you are joining",
+     "example": "join(';','Details',${name}, ${age})\n\nIf the value of name was \"John Smith\" and the value of age was \"26\" then this would set the value of a calculate question to:\nDetails;John Smith;26"
+    },
+    "count": 3
+   },
+   {
+    "category": "textfns",
+    "cells": {
+     "Function": "Convert to number",
+     "usage": "number(${num-plots})",
+     "example": ""
+    },
+    "count": 3
+   },
+   {
+    "category": "textfns",
+    "cells": {
+     "Function": "Convert to integer",
+     "usage": "int(${num-plots})",
+     "example": ""
+    },
+    "count": 3
+   },
+   {
+    "category": "textfns",
+    "cells": {
+     "Function": "Convert to text",
+     "usage": "string(${num-plots})",
+     "example": ""
+    },
+    "count": 3
+   },
+   {
+    "category": "textfns",
+    "cells": {
+     "Function": "Get the label for a choice in a select one question",
+     "usage": "jr:choice-name(${question name}, '${choice name}')",
+     "example": "jr:choice-name(${transport_type}, '${transport_type}')\n\nNote the quotes around the second parameter"
+    },
+    "count": 3
+   },
+   {
+    "category": "textfns",
+    "cells": {
+     "Function": "substring-before",
+     "usage": "substring-before(a, b)\n\nReturns everything in \"a\" before the text in \"b\"",
+     "example": "substring-before('xx-yy', '-')\nreturns 'xx'\n\nsubstring-before(${q}, ' ')\nwhere ${q} has the value \"Tom Smith\", this will return \"Tom\"\n\nAvailable with fieldTask 5.90"
+    },
+    "count": 3
+   },
+   {
+    "category": "textfns",
+    "cells": {
+     "Function": "aubstring-after",
+     "usage": "substring-after(a, b)\n\nReturns everything in \"a\" after the text in \"b\"",
+     "example": "substring-after('xx-yy', '-')\nreturns 'yy'\n\nsubstring-after(${q}, ' ')\nwhere ${q} has the value \"Tom Smith\", this will return \"Smith\"\n\nAvailable with fieldTask 5.90"
+    },
+    "count": 3
+   },
+   {
+    "category": "textfns",
+    "cells": {
+     "Function": "translate",
+     "usage": "translate(text, abc, XYZ)\n\ntext\nThe text to evaluate.\nabc\nThe string of characters that will be replaced.\nXYZ\nThe string of characters used for replacement. The first character inXYZwill replace every occurrence of the first character inabcthat appears intext.",
+     "example": "translate('My old car', 'old', 'new')\nwill return 'My new car'.\n\ntranslate('My old car', 'olda', 'newx')\nwill return 'My new cxr'.\n\n\nAvailable with fieldTask 5.90\n\nThe usage was taken from the following site which provides more information: https://developer.mozilla.org/en-US/docs/Web/XPath/Functions/translate"
+    },
+    "count": 3
+   },
+   {
+    "category": "textfns",
+    "cells": {
+     "Function": "normalize-space",
+     "usage": "normalize-space(text)",
+     "example": "Removes leading and trailing spaces from text and converts multiple spaces into a single space"
+    },
+    "count": 3
+   },
+   {
+    "category": "textfns",
+    "cells": {
+     "Function": "Text Length",
+     "usage": "string-length(question)",
+     "example": "string-length(.) < 5\n\nConstraint\nThe length of the text entered in the current question must be less than 5 characters"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "Plus",
+     "usage": "",
+     "example": "${a} + ${b}"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "Minus",
+     "usage": "-",
+     "example": "${a} - ${b}"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "Times",
+     "usage": "*",
+     "example": "${a} * ${b}"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "Divide",
+     "usage": "div",
+     "example": "${a} div ${b}"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "Modulus\nRemainder",
+     "usage": "mod",
+     "example": "3 mod 2\nResults in 1"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "Raise to the power",
+     "usage": "pow(a,b)",
+     "example": "pow(${width}, 3)\n\nReturns ${width} * ${width} * ${width}"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "Random number",
+     "usage": "random()\n\nReturns a random number between 0.0 (inclusive) and 1.0 (exclusive)",
+     "example": "round((random()* ${number_children} + 0.5), 0)\n\nGenerates a random number between 1 and the number of children in the household. This can be used to select a child for further questions. (For examplle to select a child from a repeat group using the indexed-repeat() function:  indexed-repeat(${child_name}, ${children}, round((random()* ${number_children} + 0.5), 0)))\n\nIt can be combined with the position() function to display the name of the child that has been selected."
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "Round to a number of decimal places",
+     "usage": "round(a,b)\n\nRounds the number a to the number of decimals places b",
+     "example": "round(${weight_kg}, 2)\n\nround(0.5, 0)is 1"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "Sum of repeating group",
+     "usage": "sum(nodeset)",
+     "example": "sum(${weight})"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "Maximum",
+     "usage": "max(nodeset)",
+     "example": "Maximum value in a repeating group"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "Minimum",
+     "usage": "min(nodeset)",
+     "example": "Minimum value in a repeating group"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "digest",
+     "usage": "digest(data, algorithm, encoding method)",
+     "example": "digest(${name}, 'SHA-1')\n\nComputes the hash of the data.  This is useful if you do not want to store sensitive information on the server. The hash value of the data can be used as an alternative non identifying standin for the entered value. You can use the appearance phoneonly on the sensitive question so that it is not stored on the server.\n\nThe options for the second parameter, algorithm, are 'MD5', 'SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'.\nThe third parameter, encoding method,  is optional. By default 'base64' will be used.  The options are 'base64', 'hex'."
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "sin",
+     "usage": "sin(45)",
+     "example": "Returns the sine of the angle"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "cos",
+     "usage": "cos(45)",
+     "example": "Returns the cosine of the angle"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "tan",
+     "usage": "tan(45)",
+     "example": "Returns the tan of the number"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "asin",
+     "usage": "asin(45)",
+     "example": "Returns the arc sine of the number"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "acos",
+     "usage": "acos(45)",
+     "example": "Returns the arc cosine of the angle"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "atan",
+     "usage": "atan(${angle})",
+     "example": "Returns the arctan of the angle"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "atan2",
+     "usage": "atan2(${y}, ${x})",
+     "example": "Returns the multivalued inverse tangent of y,x"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "sqrt",
+     "usage": "sqrt(${n})",
+     "example": "Returns the square root of the number"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "exp",
+     "usage": "exp(${x})",
+     "example": "Returns e to the power x"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "exp10",
+     "usage": "exp10(${x})",
+     "example": "Returns 10 to the power x"
+    },
+    "count": 3
+   },
+   {
+    "category": "mathfns",
+    "cells": {
+     "operator": "pi",
+     "usage": "pi()",
+     "example": "Returns an approximation of pi"
+    },
+    "count": 3
+   },
+   {
+    "category": "repeatfns",
+    "cells": {
+     "operator": "reference a question inside a repeat group",
+     "usage": "indexed-repeat(${repeatquestion}, ${repeatgroup}, index)\n\nIndex starts from 1",
+     "example": "indexed-repeat(${name}, ${geopolygon_a}, 2)\n\nReturns the value for the name question in the second occurrence of the geopolygon_a repeat group."
+    },
+    "count": 3
+   },
+   {
+    "category": "repeatfns",
+    "cells": {
+     "operator": "Index of current repeat group",
+     "usage": "position(..)",
+     "example": "indexed-repeat(${name}, ${names}, position(..))\n\nReturns the name from the names repeat group at the same location index as the current repeat group.\n\nNote:   .. Means go up one level.   If your calculation is inside a group inside of a repeat then you will need to go up two levels using position(../..). and so on for as many nested groups that enclose the calculation."
+    },
+    "count": 3
+   },
+   {
+    "category": "repeatfns",
+    "cells": {
+     "operator": "Getting the number of repeats",
+     "usage": "count()",
+     "example": "count(${repeat_name})\n\nReturns the number of repeats"
+    },
+    "count": 3
+   },
+   {
+    "category": "online",
+    "cells": {
+     "Function": "lookup",
+     "usage": "This function can be used instead of pulldata in calculations.  It takes the same parameters as pulldata. However the csv file is not downloaded.  This can be useful when you have very large reference files.",
+     "example": "lookup('hhdata','members','hhid_key',${hhid})\n\nNot available in web forms "
+    },
+    "count": 3
+   },
+   {
+    "category": "online",
+    "cells": {
+     "Function": "lookup_choices",
+     "usage": "This function can be used instead of the search() function. Both this and search() are placed in appearance.  It takes the same parameters as search. However the csv file is not downloaded.  This can be useful when you have very large reference files.",
+     "example": "lookup_choices('children', 'matches', 'class_v', ${class}, 'enrolled_v', ${enrolled})\n\nNot available in web forms "
+    },
+    "count": 3
+   },
+   {
+    "category": "online",
+    "cells": {
+     "Function": "lookup_image_labels",
+     "usage": "lookup_image_labels(picture)\n\nThis has no counterpart in offline mode.  It can be used to call AWS Rekognition service to identify objects in a picture. Use in a calculation.\n\nThe image must be a jpg file.\n\nTo make this useful for your project you would probably want to create your own AI tool to recognise patterns in data and ask the fieldTask development team to add that as a service.",
+     "example": "lookup_image_labels(${a_picture})\n\nNot available in web forms"
+    },
+    "count": 3
+   },
+   {
+    "category": "online",
+    "cells": {
+     "Function": "get_image",
+     "usage": "Download an image from a server.   This image can then be used as the default value for an image, video or audio question.\nUse in a calculation to set an image as an initial value to a question.\n",
+     "example": "Use a select to identify a base image to be downloaded and then annotated.\n\n1)\tSelect a picture to edit.  The value of the select is the URL of the image.\n2)\tIn an image calculation: get_image(${image_select_question}).  This will download the selected image\n\nBecause of the way calculations are evaluated, when the user saves the form using the naive approach above will cause the modified image not to be sent.  Refer to the dynamic image examples in the examples for an approach that will work.\""
+    },
+    "count": 3
+   },
+   {
+    "category": "otherfns",
+    "cells": {
+     "Function": "area",
+     "usage": "area(${the_geom})\n\nReturns the area in square meters. Where the_geom is the name of a geoshape type question or a nodeset of geopoint questions.",
+     "example": ""
+    },
+    "count": 3
+   },
+   {
+    "category": "otherfns",
+    "cells": {
+     "Function": "boolean(arg)",
+     "usage": "boolean(arg)",
+     "example": "Returns true if the argument is a number other than zero, a text string 1 or more characters in length, an expression that evaluates to true, or a non empty collection. Otherwise it returns false."
+    },
+    "count": 3
+   },
+   {
+    "category": "otherfns",
+    "cells": {
+     "Function": "checklist(min, max, resp1, resp2 etc)",
+     "usage": "checklist(1,3, ${resp})",
+     "example": "Returns true if the number of responses that are exactly the string \"yes\" are between min and max"
+    },
+    "count": 3
+   },
+   {
+    "category": "otherfns",
+    "cells": {
+     "Function": "coalesce",
+     "usage": "coalesce(value, value)",
+     "example": "coalesce(${age}, 0)\n\nCoalesce returns the first non empty value out of the values provided in the parameters.This is useful when doing calculations with numbers as if a value was empty, perhaps because the question was not relevant, then the calculation will not work.\n\nIn this example the age value is set to 0 if it is empty."
+    },
+    "count": 3
+   },
+   {
+    "category": "otherfns",
+    "cells": {
+     "Function": "default",
+     "usage": "default(${age})",
+     "example": "The value will be evaluated every time the dependent questions change. In this example if the answer to the \"age\" question was changed then the value will be reset.  However the value will not be re-evaulated on save of the form.  Hence you can use this to allow the user to override a default value. Available with fieldTask 6.209 and above."
+    },
+    "count": 3
+   },
+   {
+    "category": "otherfns",
+    "cells": {
+     "Function": "device",
+     "usage": "device()\n\nReturns the device running the survey. If in FieldTask then 'fieldtask'.  Otherwise for Webforms one of 'webform', 'iPhone', 'iPad', 'iPod', 'Android'",
+     "example": "device() = 'fieldtask'"
+    },
+    "count": 3
+   },
+   {
+    "category": "otherfns",
+    "cells": {
+     "Function": "distance",
+     "usage": "distance(${the_geom})\n\nReturns the distance in meters of a nodeset of geopoint questions, or a line or the perimeter of a shape.  ",
+     "example": ""
+    },
+    "count": 3
+   },
+   {
+    "category": "otherfns",
+    "cells": {
+     "Function": "distance",
+     "usage": "distance(${q1}, ${q2})\n\nReturns the distance in meters between two points",
+     "example": ""
+    },
+    "count": 3
+   },
+   {
+    "category": "otherfns",
+    "cells": {
+     "Function": "once",
+     "usage": "once(${age})",
+     "example": "The value will only be evaluated once while the form is open.  This is useful for setting dynamic default values that you want to get an initial value but after that the value should be set by the user."
+    },
+    "count": 3
+   },
+   {
+    "category": "otherfns",
+    "cells": {
+     "Function": "pulldata",
+     "usage": "pulldata(filename, data column, key column, key value)",
+     "example": "pulldata('hhdata','members','hhid_key',${hhid})\n\nThis retrieves a value from the members column in the hhdata.csv file where the hhid_key column has the value selected for the hhid question.\n\nAvailable in webforms in version 18.05+"
+    },
+    "count": 3
+   },
+   {
+    "category": "otherfns",
+    "cells": {
+     "Function": "uuid",
+     "usage": "uuid(10)",
+     "example": "Without the argument this returns an RFC4122 compliant unique number. Optionally an argument can be included to specify the length of the unique number."
+    },
+    "count": 3
+   }
+  ]
+ }
+}

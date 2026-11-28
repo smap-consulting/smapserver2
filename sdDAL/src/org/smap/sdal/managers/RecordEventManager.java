@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.ConversationItemDetails;
 import org.smap.sdal.model.DataItemChange;
+import org.smap.sdal.model.UpdateConflicts;
 import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.EmailReplyData;
 import org.smap.sdal.model.RecordUpdateEvent;
@@ -64,9 +65,14 @@ public class RecordEventManager {
 	public static String OUTBOUND_MESSAGE = "outbound_msg";
 	public static String NEW_CASE = "new_case";
 	public static String EMAIL_REPLY = "email_reply";
+	public static String CONFLICT = "conflict";				// Somebody else changed the same answers after the record was opened
+	public static String CASE_CLOSED = "case_closed";		// A change of status closed the case
+	public static String CASE_REOPENED = "case_reopened";	// A change of status opened a closed case again
 	
 	public static String STATUS_SUCCESS = "success";
 	public static String STATUS_NEW = "new";
+	public static String STATUS_UNRESOLVED = "unresolved";
+	public static String STATUS_RESOLVED = "resolved";
 	
 	/*
 	 * The application acting, or null when a person is working directly.
@@ -205,14 +211,13 @@ public class RecordEventManager {
 			 */
 			if(event.equals(RecordEventManager.ASSIGNED)) {
 				MessagingManager mm = new MessagingManager(null);	// Assume no messages will require localisation!
-				String assignedUser = GeneralUtilityMethods.getAssignedUser(cResults, tableName, key);
-				
-				// Notify the currently assigned user
-				if(assignedUser != null) {
-					mm.userChange(sd, assignedUser);
+				// Notify the users assigned to the record, there can be more than one
+				java.util.List<String> owners = GeneralUtilityMethods.getAssignedUsers(cResults, tableName, key);
+				for(String a : owners) {
+					mm.userChange(sd, a);
 				}
 				// An assigned event - notify the newly assigned user
-				if(user != null && (assignedUser == null || !assignedUser.equals(user))) {
+				if(user != null && !owners.contains(user)) {
 					mm.userChange(sd, user);
 				}
 				
@@ -390,6 +395,7 @@ public class RecordEventManager {
 		 * the first time this join was added.
 		 */
 		String sql = "select "
+				+ "re.id, "
 				+ "re.event, "
 				+ "re.status,"
 				+ "re.changes,"
@@ -429,12 +435,19 @@ public class RecordEventManager {
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				DataItemChangeEvent event = new DataItemChangeEvent();
+				event.id = rs.getInt("id");
 				event.event = rs.getString("event");
 				event.userName = GeneralUtilityMethods.getUserName(sd, rs.getInt("changed_by"));
 				
 				String changes = rs.getString("changes");
 				if(changes != null) {
-					event.changes = gson.fromJson(changes, new TypeToken<ArrayList<DataItemChange>>() {}.getType());
+					if(CONFLICT.equals(event.event)) {
+						event.conflict = gson.fromJson(changes, UpdateConflicts.class);
+					} else if(CASE_CLOSED.equals(event.event) || CASE_REOPENED.equals(event.event)) {
+						// Who had the case, kept to give it back; the description says what happened
+					} else {
+						event.changes = gson.fromJson(changes, new TypeToken<ArrayList<DataItemChange>>() {}.getType());
+					}
 				}
 				String task = rs.getString("task");
 				long scheduledFinish = 0;

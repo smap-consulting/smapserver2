@@ -14,8 +14,10 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -29,6 +31,7 @@ import org.smap.notifications.interfaces.EmitSMS;
 import org.smap.sdal.Utilities.EmailDeferredException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfUtilities;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.Action;
@@ -75,6 +78,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 public class NotificationManager {
 
+	public static final String TRIGGER_SUBMISSION = "submission";
+	public static final String TRIGGER_CONFLICT = "conflict";
+	public static final String TRIGGER_REOPENED = "case_reopened";	// A change of status opened a closed case again		// A save changed answers somebody else had changed since the record was opened
 	public static String TOPIC_CM_ALERT = "cm_alert";			// Data: SubmissionMessage
 	public static String TOPIC_SUBMISSION = "submission";		// Data: SubmissionMessage
 	public static String TOPIC_PERIODIC = "periodic";			// Data: PeriodicMessage
@@ -133,10 +139,47 @@ public class NotificationManager {
 	}
 
 	/*
+	 * Refuse a filter that will not work.  A filter that has not changed is left for the operational
+	 * issues report, so a notification whose filter a survey change broke can still be turned off.
+	 */
+	private void checkFilter(Connection sd, Notification n, Notification existing) throws Exception {
+		if(n.filter == null || n.filter.trim().length() == 0) {
+			return;
+		}
+		if(existing != null && n.filter.equals(existing.filter) && n.s_id == existing.s_id
+				&& n.bundle == existing.bundle && Objects.equals(n.bundle_ident, existing.bundle_ident)) {
+			return;
+		}
+		String groupSurveyIdent = n.bundle ? n.bundle_ident : GeneralUtilityMethods.getGroupSurveyIdent(sd, n.s_id);
+		checkFilter(sd, groupSurveyIdent, n.trigger, n.filter);
+	}
+
+	/*
+	 * Refuse a filter that will not work against a bundle, for pages that save notifications themselves
+	 */
+	public void checkFilter(Connection sd, String groupSurveyIdent, String trigger, String filter) throws Exception {
+		if(groupSurveyIdent == null || filter == null || filter.trim().length() == 0) {
+			return;		// Not for a survey, nothing to check it against
+		}
+		String requester = "NotificationManager - check filter";
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			// A server calculation notification looks at the main form only
+			new ServerExpressionValidator(localisation).validate(sd, cResults, groupSurveyIdent,
+					"server_calc".equals(trigger), filter, ServerExpressionValidator.CONDITION,
+					localisation.getString("se_w_notification"));
+		} finally {
+			ResultsDataSource.closeConnection(requester, cResults);
+		}
+	}
+
+	/*
 	 * Add a record to the notification table
 	 */
 	public int addNotification(Connection sd, PreparedStatement pstmt, String user,
 			Notification n, String tz) throws Exception {
+
+		checkFilter(sd, n, null);
 
 		String sql = "insert into forward(" +
 				" s_id, enabled, " +
@@ -222,6 +265,7 @@ public class NotificationManager {
 			Notification n, String tz) throws Exception {
 
 		Notification existing = getNotification(sd, n.id, tz);		// Get the current values so that changes can be logged
+		checkFilter(sd, n, existing);
 
 		String sql = null;
 		if(n.update_password) {
@@ -928,6 +972,87 @@ public class NotificationManager {
 			String updateQuestion,
 			String updateValue,
 			String thread) throws Exception {
+		notify(sd, cResults, ue_id, submittingUser, temporaryUser, scheme, serverName, basePath, serverRoot,
+				ident, instanceId, updateSurvey, updateQuestion, updateValue, thread, TRIGGER_SUBMISSION);
+	}
+	
+	/*
+	 * Apply any notification for a submission that changed answers somebody else had changed 
+	 * since the record was opened
+	 * Sent for every conflict, not once per case
+	 */
+	/*
+	 * The log reference for the notification a message came from, null for a message queued before
+	 * messages carried it
+	 */
+	// The name of the role an escalation assigns, null if it assigns somebody by name
+	private String escalationRole(Connection sd, String remoteUser) throws SQLException {
+		if(remoteUser == null || !remoteUser.startsWith("_role:")) {
+			return null;
+		}
+		try {
+			return CaseManager.roleName(sd, Integer.parseInt(remoteUser.substring(6)));
+		} catch (NumberFormatException e) {
+			return null;
+		}
+	}
+
+	private String notificationRef(SubmissionMessage msg) {
+		return msg != null && msg.notificationId > 0 ? LogManager.REF_NOTIFICATION + msg.notificationId : null;
+	}
+
+	public void notifyForConflict(
+			Connection sd, 
+			Connection cResults,
+			int ue_id,
+			String submittingUser,
+			boolean temporaryUser,
+			String scheme,
+			String serverName,
+			String basePath,
+			String serverRoot,
+			String ident,			// Survey Ident
+			String instanceId) throws Exception {
+		notify(sd, cResults, ue_id, submittingUser, temporaryUser, scheme, serverName, basePath, serverRoot,
+				ident, instanceId, null, null, null, null, TRIGGER_CONFLICT);
+	}
+	
+	/*
+	 * Send the notifications of a survey, or its bundle, that are triggered by a case being opened again
+	 */
+	public void notifyForReopen(
+			Connection sd, 
+			Connection cResults,
+			int ue_id,
+			String submittingUser,
+			boolean temporaryUser,
+			String scheme,
+			String serverName,
+			String basePath,
+			String serverRoot,
+			String ident,			// Survey Ident
+			String instanceId) throws Exception {
+		notify(sd, cResults, ue_id, submittingUser, temporaryUser, scheme, serverName, basePath, serverRoot,
+				ident, instanceId, null, null, null, null, TRIGGER_REOPENED);
+	}
+
+	private void notify(
+			Connection sd, 
+			Connection cResults,
+			int ue_id,
+			String submittingUser,
+			boolean temporaryUser,
+			String scheme,
+			String serverName,
+			String basePath,
+			String serverRoot,
+			String ident,			// Survey Ident
+			String instanceId,
+			String updateSurvey,
+			String updateQuestion,
+			String updateValue,
+			String thread,
+			String trigger) throws Exception {
 
 		/*
 		 * 1. Get notifications that may apply to the passed in upload event.
@@ -966,7 +1091,9 @@ public class NotificationManager {
 					+ "and n.target != 'document' "
 					+ "and n.enabled = 'true' ");
 
-			if(updateQuestion == null) {
+			if(TRIGGER_CONFLICT.equals(trigger) || TRIGGER_REOPENED.equals(trigger)) {
+				sqlGetNotifications.append(" and n.trigger = '" + trigger + "' ");
+			} else if(updateQuestion == null) {
 				sqlGetNotifications.append(" and n.trigger = 'submission' ");
 				if(thread != null) {
 					/*
@@ -1049,10 +1176,10 @@ public class NotificationManager {
 							msg = "";
 						}
 						log.log(Level.SEVERE, e.getMessage(), e);
-						lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION_ERROR, 
+						lm.writeLogRef(sd, sId, "subscriber", LogManager.NOTIFICATION_ERROR, 
 								localisation.getString("filter_error")
 								.replace("%s1", filter)
-								.replace("%s2", msg), 0, null);
+								.replace("%s2", msg), 0, null, null, LogManager.REF_NOTIFICATION + nId);
 					}
 				}
 
@@ -1104,6 +1231,7 @@ public class NotificationManager {
 					subMsg.sp_match_column = nd.sp_match_column;
 					subMsg.sp_match_field = nd.sp_match_field;
 					subMsg.sp_column_map = nd.sp_column_map;
+					subMsg.notificationId = nId;
 
 					mm.createMessage(sd, oId, NotificationManager.TOPIC_SUBMISSION, "", gson.toJson(subMsg));
 
@@ -1267,8 +1395,8 @@ public class NotificationManager {
 					note = note.replace("%s1", msg.survey_ident == null ? "" : msg.survey_ident);
 					note = note.replace("%s2", e.getMessage() == null ? "" : e.getMessage());
 					LogManager lm = new LogManager();
-					lm.writeLog(sd, GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident),
-							msg.user, LogManager.NOTIFICATION_ERROR, note, 0, null);
+					lm.writeLogRef(sd, GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident),
+							msg.user, LogManager.NOTIFICATION_ERROR, note, 0, null, null, notificationRef(msg));
 					throw e;
 				}
 				msg.subject = text.get(0);
@@ -1442,8 +1570,8 @@ public class NotificationManager {
 									error_details, messageId, msg.target, resp.awsSesMessageId);
 							String logTopic = (status != null && status.toLowerCase().equals("error"))
 									? LogManager.NOTIFICATION_ERROR : LogManager.NOTIFICATION;
-							lm.writeLog(sd, surveyId, "subscriber", logTopic,
-									status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null);
+							lm.writeLogRef(sd, surveyId, "subscriber", logTopic,
+									status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null, null, notificationRef(msg));
 							writeToMonitor = false;
 						}
 					} catch (EmailDeferredException e) {
@@ -1573,6 +1701,116 @@ public class NotificationManager {
 					
 				} else if(msg.target.equals("escalate")) {   // Assign a user to a case
 
+					String escTable = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
+					CaseManager escCm = new CaseManager(localisation);
+					if(escTable != null && msg.instanceId != null && escCm.allowsMultipleAssignees(sd, escTable)) {
+
+						/*
+						 * The bundle allows a case several assignees.  The escalation adds its people and takes back
+						 * the people any earlier escalation added, leaving those assigned another way
+						 */
+						ArrayList<String> candidates = new ArrayList<>();
+						if(msg.remoteUser.equals("_submitter")) {
+							if(msg.user != null) candidates.add(msg.user);
+						} else if(msg.remoteUser.equals("_data")) {
+							// Several people only from a select multiple question, otherwise the one answer
+							ArrayList<String> values = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, msg.assignQuestion, msg.instanceId);
+							boolean selectMultiple = "select".equals(GeneralUtilityMethods.getQuestionType(sd, surveyId, msg.assignQuestion));
+							for(String v : values) {
+								if(v != null && v.trim().length() > 0 && !candidates.contains(v.trim())) {
+									candidates.add(v.trim());
+									if(!selectMultiple) break;
+								}
+							}
+						} else if(msg.remoteUser.startsWith("_role:")) {
+							int roleId = 0;
+							try { roleId = Integer.parseInt(msg.remoteUser.substring(6)); } catch(NumberFormatException ignored) {}
+							if(roleId > 0) {
+								try (PreparedStatement pstmtRole = sd.prepareStatement(
+										"select u.ident from users u "
+										+ "join user_role ur on u.id = ur.u_id "
+										+ "where ur.r_id = ? and u.o_id = ? and u.temporary = false "
+										+ "order by u.ident")) {
+									pstmtRole.setInt(1, roleId);
+									pstmtRole.setInt(2, organisation.id);
+									ResultSet rsRole = pstmtRole.executeQuery();
+									while(rsRole.next()) candidates.add(rsRole.getString(1));
+								}
+							}
+						} else {
+							candidates.add(msg.remoteUser);
+						}
+
+						// Record level security: nobody is given a record the row filter (RBAC) rules hide from them
+						RoleManager roleMgr = new RoleManager(localisation);
+						ArrayList<String> assignees = new ArrayList<>();
+						ArrayList<String> refused = new ArrayList<>();
+						for(String c : candidates) {
+							if(roleMgr.canAccessRecord(sd, cResults, msg.survey_ident, escTable, msg.instanceId, c, organisation.timeZone)) {
+								assignees.add(c);
+							} else {
+								refused.add(c);
+							}
+						}
+						if(!refused.isEmpty()) {
+							lm.writeLog(sd, surveyId, msg.user, LogManager.SECURITY, "Case " + msg.instanceId + " in "
+									+ survey.surveyData.displayName + " not assigned to " + String.join(", ", refused)
+									+ ": not permitted to access this record", 0, null);
+						}
+
+						String surveyCase = msg.survey_case != null ? msg.survey_case : msg.survey_ident;
+						List<String> before = escCm.getOwners(sd, cResults, escTable, msg.instanceId);
+						notify_details = localisation.getString("esc_nd")
+								.replace("%s1", msg.instanceId)
+								.replace("%s2", survey.surveyData.displayName)
+								.replace("%s3", survey.surveyData.projectName)
+								.replace("%s4", assignees.isEmpty() ? "-" : String.join(", ", assignees));
+						List<String> removed = new ArrayList<>();
+						try {
+							String requester = localisation.getString("c_notify") + " " + msg.notificationName;
+							int count = escCm.replaceOwnersFrom(sd, cResults, localisation, escTable, msg.instanceId, assignees,
+									surveyCase, CaseManager.SOURCE_ESCALATION, escalationRole(sd, msg.remoteUser), requester, notify_details);
+							if(count == 0) {
+								status = "error";
+								error_details = "case not found, attempting: " + notify_details;
+								log.log(Level.SEVERE, "Error: " + error_details);
+							}
+							List<String> after = escCm.getOwners(sd, cResults, escTable, msg.instanceId);
+							for(String b : before) {
+								if(!after.contains(b)) removed.add(b);
+							}
+						} catch (Exception e) {
+							status = "error";
+							error_details = e.getMessage();
+							log.log(Level.SEVERE, e.getMessage(), e);
+						}
+
+						/*
+						 * Send emails associated with this escalation.  Those sent to the assigned users also go to
+						 * the people the escalation took off the case
+						 */
+						EmailManager em = new EmailManager(localisation);
+						String emails = em.getEmails(sd, cResults, surveyId, msg);
+						if(msg.emailAssigned && !removed.isEmpty()) {
+							UserManager umRemoved = new UserManager(localisation);
+							StringBuilder removedEmails = new StringBuilder();
+							for(String r : removed) {
+								String e = umRemoved.getUserEmailByIdent(sd, r);
+								if(e != null) {
+									if(removedEmails.length() > 0) removedEmails.append(",");
+									removedEmails.append(e);
+								}
+							}
+							emails = em.mergeEmailLists(emails, removedEmails.toString());
+							if(emails == null) emails = "";
+						}
+						em.sendEmails(sd, cResults, log, emails, organisation, surveyId, logContent, docURL, survey.surveyData.displayName, unsubscribedList,
+								filePath, filename, messageId, createPending, topic, msg.user, serverName,
+								survey.surveyData.displayName, survey.surveyData.projectName,
+								msg.subject, msg.from, htmlContent, null, msg.scheme, templateMsg);
+
+					} else {		// One assignee, as cases have always worked
+
 					String assignTo = msg.remoteUser;
 					if(msg.remoteUser.equals("_submitter")) {
 						assignTo = msg.user;
@@ -1661,8 +1899,12 @@ public class NotificationManager {
 
 							CaseManager cm = new CaseManager(localisation);
 							String requester = localisation.getString("c_notify") + " " + msg.notificationName;
-							int count = cm.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase,
-									notify_details, requester);
+							String viaRole = escalationRole(sd, msg.remoteUser);
+							int count = viaRole != null
+									? cm.replaceOwners(sd, cResults, localisation, tableName, msg.instanceId, List.of(assignTo), surveyCase,
+											CaseManager.SOURCE_ESCALATION, viaRole, requester, notify_details)
+									: cm.assignRecord(sd, cResults, localisation, tableName, msg.instanceId, assignTo, "assign", surveyCase,
+											notify_details, requester, false, CaseManager.SOURCE_ESCALATION);
 							if(count == 0) {
 								status = "error";
 								error_details = "case not found, attempting: " + notify_details;
@@ -1690,6 +1932,7 @@ public class NotificationManager {
 							survey.surveyData.displayName, survey.surveyData.projectName,
 							msg.subject, msg.from, htmlContent, null, msg.scheme, templateMsg);		// reference is null therefore cannot reply
 					
+					}		// End of one assignee
 				} else if(msg.target.equals("reference")) {   // Give one or more users read only access to a record
 
 					log.fine("+++++ reference notification");
@@ -1962,7 +2205,7 @@ public class NotificationManager {
 					logTopic = LogManager.NOTIFICATION;
 				}
 
-				lm.writeLog(sd, surveyId, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null);
+				lm.writeLogRef(sd, surveyId, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0, null, null, notificationRef(msg));
 			}
 
 			/*

@@ -26,6 +26,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
@@ -50,6 +51,7 @@ import com.google.gson.GsonBuilder;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -130,6 +132,103 @@ public class CaseManagement extends Application {
 		return response;
 	}
 	
+	/*
+	 * The answers a select one status question offers, for choosing which close a case
+	 */
+	@GET
+	@Path("/statuses/{survey_id}")
+	@Produces("application/json")
+	public Response getStatusChoices(
+			@Context HttpServletRequest request,
+			@PathParam("survey_id") int sId,
+			@QueryParam("question") String column
+			) { 
+
+		Response response = null;
+		String connectionString = "surveyKPI-getStatusChoices";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request, request.getRemoteUser());	
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			ArrayList<HashMap<String, String>> out = new ArrayList<> ();
+			for(String [] c : new CaseManager(localisation).getStatusChoices(sd, groupSurveyIdent, column)) {
+				HashMap<String, String> choice = new HashMap<> ();
+				choice.put("value", c[0]);
+				choice.put("label", c[1]);
+				out.add(choice);
+			}
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			response = Response.ok(gson.toJson(out)).build();
+		} catch (Exception e) {
+			response = Response.serverError().build();
+			log.log(Level.SEVERE,"Error", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+
+	/*
+	 * Whether the bundle of a survey lets a case have several assignees.  The survey is given by id or by
+	 * ident, which can be a bundle's ident, so pages that know either can ask.
+	 */
+	@GET
+	@Path("/multiple/{survey}")
+	@Produces("application/json")
+	public Response getMultipleAssignees(@Context HttpServletRequest request, @PathParam("survey") String survey) { 
+		Response response = null;
+		String connectionString = "surveyKPI-getMultipleAssignees";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request, request.getRemoteUser());
+		String ident;
+		try {
+			if(survey != null && survey.matches("\\d+")) {
+				int sId = Integer.parseInt(survey);
+				a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+				ident = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			} else {
+				a.isValidSurveyIdent(sd, request.getRemoteUser(), survey, false, superUser);
+				ident = GeneralUtilityMethods.getGroupSurveyIdentFromIdent(sd, survey);
+			}
+		} catch (Exception e) {
+			SDDataSource.closeConnection(connectionString, sd);
+			throw new AuthorisationException();
+		}
+		// End Authorisation
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			CMS cms = new CaseManager(localisation).getCaseManagementSettings(sd, ident);
+			boolean multiple = cms != null && cms.settings != null && cms.settings.allowsMultipleAssignees();
+			response = Response.ok("{\"multipleAssignees\":" + multiple + "}").build();
+		} catch (Exception e) {
+			response = Response.serverError().build();
+			log.log(Level.SEVERE, "Error", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		return response;
+	}
+
 	/*
 	 * Get the key settings for the passed in survey
 	 */

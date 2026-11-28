@@ -782,11 +782,12 @@ public class Survey {
 				+ "server_calculate,"
 				+ "set_value,"
 				+ "flash,"
-				+ "trigger"
+				+ "trigger,"
+				+ "pii"
 				+ ") "
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?"
 					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		
 		try {
 			
@@ -870,7 +871,8 @@ public class Survey {
 			String nodeset_label = null;
 			String cascade_instance = null;
 			
-			if(q.type.startsWith("select") || q.type.equals("rank")) {
+			if(q.type.startsWith("select") || q.type.equals("rank")
+					|| (GeneralUtilityMethods.isListParameterType(q.type) && q.list_name != null)) {	// Reference geometry or range tick labels
 				if(q.list_name != null && q.list_name.startsWith("${")) {
 					cascade_instance = q.list_name;
 					nodeset = GeneralUtilityMethods.getNodesetForRepeat(q.choice_filter, cascade_instance);
@@ -912,6 +914,7 @@ public class Survey {
 			pstmt.setString(35, q.getSetValueArrayAsString(gson));
 			pstmt.setInt(36, q.flash);
 			pstmt.setString(37, q.trigger);
+			pstmt.setString(38, GeneralUtilityMethods.validPii(q.pii));
 				
 			pstmt.executeUpdate();
 			

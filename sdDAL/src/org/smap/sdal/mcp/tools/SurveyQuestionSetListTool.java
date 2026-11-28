@@ -210,7 +210,7 @@ public class SurveyQuestionSetListTool extends AbstractMcpTool {
 		changes.add(cs);
 
 		SurveyManager sm = new SurveyManager(ctx.localisation, ctx.timezone, ctx.clientId);
-		sm.applyChangeSetArray(ctx.sd, ctx.cResults, surveyId, ctx.user, changes, true);
+		org.smap.sdal.model.ChangeResponse changeResp = sm.applyChangeSetArray(ctx.sd, ctx.cResults, surveyId, ctx.user, changes, true);
 
 		Map<String, Object> data = new LinkedHashMap<>();
 		data.put("updated", Boolean.TRUE);
@@ -237,6 +237,7 @@ public class SurveyQuestionSetListTool extends AbstractMcpTool {
 					+ "collected so far is left without a label.");
 		}
 
+		addExpressionWarnings(text, data, changeResp);
 		MCPToolResult result = new MCPToolResult(text.toString());
 		result.setStructuredContent(data);
 		return result;

@@ -41,6 +41,8 @@ import org.smap.sdal.model.WorkflowItem;
 import org.smap.sdal.model.WorkflowLink;
 import org.smap.sdal.model.WorkflowPerson;
 
+import org.smap.sdal.model.NotifyDetails;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -60,6 +62,8 @@ public class WorkflowManager {
 	private static final String TYPE_SMS             = "sms";
 	private static final String TYPE_SHAREPOINT_LIST = "sharepoint_list";
 	private static final String TYPE_DECISION        = "decision";
+	private static final String TYPE_CONFLICT        = "conflict";
+	private static final String TYPE_REOPENED        = "case_reopened";
 
 	// WorkItem role constants (determines visual shape)
 	private static final String ROLE_FORM         = "form";
@@ -84,6 +88,7 @@ public class WorkflowManager {
 		String  projectName;
 		String  remoteUser;
 		String  wfPrevNodeId;
+		String  notifyDetails;
 	}
 
 	/*
@@ -168,6 +173,7 @@ public class WorkflowManager {
 				+ "s_case.s_id as case_survey_id, "
 				+ "rep.name as report_name, "
 				+ "(f.notify_details::json->>'report_type') as report_type, "
+				+ "f.notify_details, "
 				+ "proj.name as project_name "
 				+ "from forward f "
 				+ "left outer join survey s_src on s_src.s_id = f.s_id "
@@ -212,9 +218,11 @@ public class WorkflowManager {
 				String  wfPrevNodeId     = rs.getString("wf_prev_node_id");
 				String  reportName       = rs.getString("report_name");
 				String  reportType       = rs.getString("report_type");
+				String  notifyDetails    = rs.getString("notify_details");
 
 				// Defer bundle notifications until all survey nodes are built
-				if (isBundle) {
+				// A conflict is not a submission of the bundle's forms, so it gets its own trigger below
+				if (isBundle && !TYPE_CONFLICT.equals(trigger) && !TYPE_REOPENED.equals(trigger)) {
 					BundleNotif bn = new BundleNotif();
 					bn.fId             = fId;
 					bn.bundleIdent     = bundleIdent;
@@ -228,6 +236,7 @@ public class WorkflowManager {
 					bn.projectName     = projectName;
 					bn.remoteUser      = remoteUser;
 					bn.wfPrevNodeId    = wfPrevNodeId;
+					bn.notifyDetails   = notifyDetails;
 					pendingBundles.add(bn);
 					continue;
 				}
@@ -239,6 +248,25 @@ public class WorkflowManager {
 					// The predecessor node will already be (or will become) present in
 					// itemMap from its own record; no need to create it here.
 					srcKey = wfPrevNodeId;
+				} else if (TYPE_CONFLICT.equals(trigger) || TYPE_REOPENED.equals(trigger)) {
+					/*
+					 * A save that changed answers somebody else had changed, or that opened a closed case
+					 * again: named after the survey, or the bundle, whose records it watches, not after the
+					 * notification.  Carries the notification so it can be edited from here.
+					 */
+					srcKey = trigger + ":f:" + fId;
+					WorkflowItem src = new WorkflowItem();
+					src.id      = srcKey;
+					src.type    = trigger;
+					src.role    = ROLE_TRIGGER;
+					src.name    = isBundle ? (bundleName != null ? bundleName : bundleIdent)
+							: (triggerSurvey != null ? triggerSurvey : "");
+					src.survey  = isBundle ? null : triggerSurvey;
+					src.bundle  = isBundle ? bundleName : null;
+					src.enabled = enabled;
+					src.project = projectName;
+					src.fwdIds.add(fId);
+					itemMap.putIfAbsent(srcKey, src);
 				} else if ("submission".equals(trigger) && sId > 0) {
 					srcKey = "form:s:" + sId;
 					WorkflowItem src = new WorkflowItem();
@@ -362,6 +390,8 @@ public class WorkflowManager {
 				}
 				dst.id    = dstKey;
 				dst.label = fName;
+				if (isBundle) dst.bundle = bundleName;
+				addMessageDetails(dst, notifyDetails);
 				itemMap.putIfAbsent(dstKey, dst);
 				itemMap.get(dstKey).fwdIds.add(fId);
 				if (sId > 0 && ROLE_FORM.equals(dst.role)) recordSurveyKey(surveyItemKeys, sId, dstKey);
@@ -706,6 +736,7 @@ public class WorkflowManager {
 			}
 			dst.id    = dstKey;
 			dst.label = bn.fName;
+			addMessageDetails(dst, bn.notifyDetails);
 			itemMap.putIfAbsent(dstKey, dst);
 			itemMap.get(dstKey).fwdIds.add(bn.fId);
 
@@ -1603,6 +1634,37 @@ public class WorkflowManager {
 		}
 	}
 
+	/*
+	 * Who an email or sms step goes to and its subject, so the card says what it sends
+	 */
+	private void addMessageDetails(WorkflowItem dst, String notifyDetails) {
+		if (notifyDetails == null || !(TYPE_EMAIL.equals(dst.type) || TYPE_SMS.equals(dst.type))) {
+			return;
+		}
+		try {
+			NotifyDetails nd = new Gson().fromJson(notifyDetails, NotifyDetails.class);
+			if (nd == null) return;
+			List<String> recipients = new ArrayList<>();
+			if (nd.emails != null) {
+				for (String e : nd.emails) {
+					if (e != null && !e.trim().isEmpty()) recipients.add(e.trim());
+				}
+			}
+			if (nd.emailQuestionName != null && !nd.emailQuestionName.trim().isEmpty()
+					&& !"-1".equals(nd.emailQuestionName.trim())) {
+				recipients.add("${" + nd.emailQuestionName.trim() + "}");
+			}
+			if (nd.emailMeta != null && !nd.emailMeta.trim().isEmpty()) {
+				recipients.add("${" + nd.emailMeta.trim() + "}");
+			}
+			dst.recipients    = recipients;
+			dst.emailAssigned = nd.emailAssigned;
+			dst.subject       = TYPE_EMAIL.equals(dst.type) ? nd.subject : null;
+		} catch (Exception e) {
+			log.fine("Workflow: notify details not read: " + e.getMessage());
+		}
+	}
+
 	private void recordSurveyKey(Map<Integer, List<String>> surveyItemKeys, int sId, String key) {
 		surveyItemKeys.computeIfAbsent(sId, k -> new ArrayList<>()).add(key);
 	}
@@ -1654,7 +1716,9 @@ public class WorkflowManager {
 	 */
 	private String deriveAssignee(Connection sd, AssignFromSurvey afs) {
 		if (afs == null) return null;
-		if (afs.assign_data != null && !afs.assign_data.trim().isEmpty()) return "From Data";
+		if (afs.assign_data != null && !afs.assign_data.trim().isEmpty()) {
+			return afs.assign_data.equals("_data") ? "From Data" : "From Data: " + afs.assign_data;
+		}
 		if (afs.emails != null && !afs.emails.trim().isEmpty()) return afs.emails.trim();
 		if (afs.role_id > 0) {
 			String name = lookupRoleName(sd, afs.role_id);

@@ -1,7 +1,5 @@
 package org.smap.sdal.Utilities;
 
-import java.awt.Image;
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -29,7 +27,6 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -80,7 +77,6 @@ import org.smap.sdal.model.Action;
 import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
-import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.ChoiceList;
 import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
@@ -113,6 +109,7 @@ import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.Search;
 import org.smap.sdal.model.SelectKeys;
+import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
@@ -172,6 +169,19 @@ public class GeneralUtilityMethods {
 	 */
 	static public boolean isValidQuestionName(String in) {
 		return in != null && validQuestionName.matcher(in).matches();
+	}
+
+	/*
+	 * The pii setting of a question: null, "pii" or "anonymise"
+	 */
+	static public String validPii(String in) {
+		if(in != null) {
+			String v = in.trim().toLowerCase();
+			if(v.equals("pii") || v.equals("anonymise")) {
+				return v;
+			}
+		}
+		return null;
 	}
 
 	/*
@@ -335,7 +345,7 @@ public class GeneralUtilityMethods {
 	 * so without this a phone submission falls through to the production
 	 * default of /smap and fails to create its upload directory.
 	 */
-	static public boolean isLocalServer(String serverName) {
+	private static boolean isLocalServer(String serverName) {
 		if(serverName == null) {
 			return false;
 		}
@@ -390,7 +400,7 @@ public class GeneralUtilityMethods {
 
 	}
 
-	static public boolean isBusinessServer(String host) {
+	private static boolean isBusinessServer(String host) {
 
 		boolean businessServer = true;
 		if(host.endsWith("smap.com.au") 
@@ -441,27 +451,6 @@ public class GeneralUtilityMethods {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 		return enabled;
-	}
-
-	/*
-	 * Move an array of files to a new location
-	 */
-	static void moveFiles(File[] files, String toDirectory, String newFileName) {
-		if (files != null) { // Can be null if the directory did not exist
-			for (int i = 0; i < files.length; i++) {
-				log.fine("renaming file: " + files[i]);
-				String filename = files[i].getName();
-				String ext = filename.substring(filename.lastIndexOf('.'));
-				String newPath = toDirectory + "/" + newFileName + ext;
-				try {
-					FileUtils.moveFile(files[i], new File(newPath));
-					log.fine("Moved " + files[i] + " to " + newPath);
-				} catch (IOException e) {
-					log.fine("Error moving " + files[i] + " to " + newPath + ", message: " + e.getMessage());
-
-				}
-			}
-		}
 	}
 
 	/*
@@ -536,7 +525,7 @@ public class GeneralUtilityMethods {
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				int id = rs.getInt(1);
-				if(GeneralUtilityMethods.testFilter(sd, cResults, user, localisation, survey, rs.getString(2), instanceId, tz, "Notifications")) {
+				if(testFilter(sd, cResults, user, localisation, survey, rs.getString(2), instanceId, tz, "Notifications")) {
 					t_id = id;		// Use this template
 					break;
 				}
@@ -782,17 +771,17 @@ public class GeneralUtilityMethods {
 			 */
 			File destFile = new File(destDir + "/" + fileName + "." + ext);
 			if(destFile.exists()) {
-				GeneralUtilityMethods.sendToS3(sd, destFile.getAbsolutePath(), oId, true);
+				sendToS3(sd, destFile.getAbsolutePath(), oId, true);
 			}
 
 			File destThumb = new File(destDir + "/thumbs/" + fileName + "." + ext + ".jpg");
 			if(destThumb.exists()) {
-				GeneralUtilityMethods.sendToS3(sd, destThumb.getAbsolutePath(), oId, false);
+				sendToS3(sd, destThumb.getAbsolutePath(), oId, false);
 			}
 			
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 
 	}
@@ -934,37 +923,6 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Return true if the user has the specified role
-	 */
-	static public boolean hasSecurityRole(Connection sd, String user, int rId) throws SQLException {
-		boolean value = false;
-
-		String sql = "select count(*) " 
-				+ "from users u, user_role ur " 
-				+ "where u.ident = ? "
-				+ "and u.id = ur.u_id " 
-				+ "and ur.r_id = ?";
-
-		PreparedStatement pstmt = null;
-
-		try {
-
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, user);
-			pstmt.setInt(2, rId);
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				value = (rs.getInt(1) > 0);
-			}
-
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-		}
-
-		return value;
-	}
-	
-	/*
 	 * Return true if the user has the security group
 	 */
 	static public boolean hasSecurityGroup(Connection sd, String user, int securityGroup) throws SQLException {
@@ -994,46 +952,6 @@ public class GeneralUtilityMethods {
 		}
 
 		return hasSecurityGroup;
-	}
-	
-	/*
-	 * Return true if the user identified by their id has the organisational administrator role
-	 * Also check in the archive as they may not be logged in to this organisation
-	 */
-	static public boolean isOrgUserById(Connection sd, int id, int o_id) throws SQLException {
-
-		String sql = "select count(*) " 
-				+ "from users u, user_group ug " 
-				+ "where u.id = ug.u_id "
-				+ "and ug.g_id = " + Authorise.ORG_ID + " "
-				+ "and u.id = ?"
-				+ "and u.o_id =?";
-
-		boolean isOrg = false;
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, id);
-			pstmt.setInt(2, o_id);
-			ResultSet resultSet = pstmt.executeQuery();
-
-			if (resultSet.next()) {
-				isOrg = (resultSet.getInt(1) > 0);
-			} else {
-				// User is presumably in a different organisation at the moment
-				User u = getArchivedUser(sd, o_id, id);
-				for(UserGroup ug : u.groups) {
-					if(ug.id == Authorise.ORG_ID) {
-						isOrg = true;
-						break;
-					}
-				}
-			}
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-		}
-
-		return isOrg;
 	}
 	
 	/*
@@ -2883,7 +2801,7 @@ public class GeneralUtilityMethods {
 			/*
 			 * Get the user id
 			 */
-			userId = GeneralUtilityMethods.getUserId(sd, userIdent);
+			userId = getUserId(sd, userIdent);
 
 			/*
 			 * Get the existing access key
@@ -3040,39 +2958,6 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Check for existence of an option
-	 */
-	public static boolean optionExists(Connection sd, int l_id, String value, String cascade_filters) {
-		boolean exists = false;
-
-		String sql = "select count(*) from option where l_id = ? and ovalue = ? and cascade_filters = ?;";
-		PreparedStatement pstmt = null;
-
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, l_id);
-			pstmt.setString(2, value);
-			pstmt.setString(3, cascade_filters);
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				if (rs.getInt(1) > 0) {
-					exists = true;
-				}
-			}
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-		} finally {
-			try {
-				pstmt.close();
-			} catch (Exception e) {
-			}
-			;
-		}
-
-		return exists;
-	}
-
-	/*
 	 * Convert an audit file into a Hashmap
 	 */
 	public static  AuditData getAuditHashMap(File csvFile, String auditPath, ResourceBundle localisation) {
@@ -3189,7 +3074,7 @@ public class GeneralUtilityMethods {
 	 * languages, some of which may not have any translation entries, are stored in
 	 * the languages table
 	 */
-	public static ArrayList<String> getLanguagesUsedInSurvey(Connection sd, int sId) throws SQLException {
+	private static ArrayList<String> getLanguagesUsedInSurvey(Connection sd, int sId) throws SQLException {
 
 		PreparedStatement pstmt = null;
 
@@ -3230,7 +3115,7 @@ public class GeneralUtilityMethods {
 			if (languages.size() == 0) {
 				// Survey was loaded from an xlsForm and the languages array was not set, get
 				// languages from translations
-				ArrayList<String> languageNames = GeneralUtilityMethods.getLanguagesUsedInSurvey(sd, sId);
+				ArrayList<String> languageNames = getLanguagesUsedInSurvey(sd, sId);
 				for (int i = 0; i < languageNames.size(); i++) {
 					String lName = languageNames.get(i);
 					if(lName != null) {
@@ -3310,7 +3195,7 @@ public class GeneralUtilityMethods {
 				Language language = languages.get(i);
 
 				if(!language.deleted && defLang != null && language.name != null 
-						&& GeneralUtilityMethods.isSameLanguage(defLang, language.name)) {
+						&& isSameLanguage(defLang, language.name)) {
 					defLangInList = true;
 				}
 				
@@ -3445,8 +3330,6 @@ public class GeneralUtilityMethods {
 	 */
 	public static void setMediaForLanguages(Connection sd, int sId, ArrayList<Language> languages,
 			HtmlSanitise sanitise) throws SQLException {
-
-		// ArrayList<String> languages = new ArrayList<String> ();
 
 		PreparedStatement pstmtGetLanguages = null;
 		PreparedStatement pstmtGetMedia = null;
@@ -3648,7 +3531,7 @@ public class GeneralUtilityMethods {
 			if(qName.equals("_assigned")) {		// Not in the question list
 				qType = "string";
 				columnName = qName;
-				fId = GeneralUtilityMethods.getMainResultsForm(sd, results, sId);
+				fId = getMainResultsForm(sd, results, sId);
 			} else {
 				pstmtQuestion = sd.prepareStatement(sqlQuestion);
 				pstmtQuestion.setString(1, qName);
@@ -3809,7 +3692,7 @@ public class GeneralUtilityMethods {
 	 * Starting from the passed in question get all the tables up to the highest
 	 * parent that are part of this survey
 	 */
-	public static ArrayList<String> getTableStack(Connection sd, int fId) throws SQLException {
+	private static ArrayList<String> getTableStack(Connection sd, int fId) throws SQLException {
 		ArrayList<String> tables = new ArrayList<String>();
 
 		PreparedStatement pstmtTable = null;
@@ -3912,8 +3795,9 @@ public class GeneralUtilityMethods {
 
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
-		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
+		int oId = getOrganisationId(sd, user);
 		ArrayList<TableColumn> columnList = new ArrayList<TableColumn>();
+		HashMap<String, String> columnMap = null;		// For server calculations, got when first needed
 		ArrayList<TableColumn> realQuestions = new ArrayList<TableColumn>(); // Temporary array so that all property questions can be added first
 		boolean hasHRK = false;
 
@@ -4118,6 +4002,16 @@ public class GeneralUtilityMethods {
 				c.type = SmapQuestionTypes.DATETIME;
 				c.question_name = c.column_name;
 				columnList.add(c);
+
+				// When a closed case last opened again, in a table that has had one
+				if(table_name != null && hasColumn(cResults, table_name, "_case_reopened")) {
+					c = new TableColumn();
+					c.column_name = "_case_reopened";
+					c.displayName = localisation.getString("a_cr");
+					c.type = SmapQuestionTypes.DATETIME;
+					c.question_name = c.column_name;
+					columnList.add(c);
+				}
 				
 				c = new TableColumn();
 				c.column_name = "_case_survey";
@@ -4191,7 +4085,7 @@ public class GeneralUtilityMethods {
 			if (includePreloads) {
 				for(MetaItem mi : preloads) {
 					if(mi.isPreload) {
-						if(GeneralUtilityMethods.hasColumn(cResults, table_name, mi.columnName)) {
+						if(hasColumn(cResults, table_name, mi.columnName)) {
 							c = new TableColumn();
 							c.column_name = mi.columnName;						
 							if(mi.display_name != null && mi.display_name.trim().length() > 0) {
@@ -4364,7 +4258,7 @@ public class GeneralUtilityMethods {
 							continue;
 						}
 					}
-					if (GeneralUtilityMethods.isPropertyType(source_param, question_column_name)) {
+					if (isPropertyType(source_param, question_column_name)) {
 						if (includePreloads) {
 							columnList.add(c);
 						}
@@ -4380,7 +4274,7 @@ public class GeneralUtilityMethods {
 						String altColumn = c.column_name + "_alt";
 						String altDisplay = c.displayName + " Altitude";
 						String altName = c.question_name + "_alt";
-						if(GeneralUtilityMethods.columnType(cResults, table_name, accName) != null) {
+						if(columnType(cResults, table_name, accName) != null) {
 							c = new TableColumn();
 							c.column_name = accColumn;
 							c.displayName = accDisplay;
@@ -4401,8 +4295,8 @@ public class GeneralUtilityMethods {
 		
 						c.choices = new ArrayList<KeyValue> ();	
 						// Don't get external select 1 choices it is not necessary
-						if(!qType.equals("select1") && GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
-							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, 
+						if(!qType.equals("select1") && hasExternalChoices(sd, qId)) {
+							ArrayList<Option> options = getExternalChoices(sd, 
 									cResults, localisation, user, oId, sId, qId, null, surveyIdent, tz, null, null);
 							if(options != null && options.size() > 0) {
 								for(Option o : options) {
@@ -4445,14 +4339,17 @@ public class GeneralUtilityMethods {
 					// Add server Calculates
 					if(qType.equals("server_calculate") && serverCalculate != null) {
 						ServerCalculation sc = gson.fromJson(serverCalculate, ServerCalculation.class);
-						c.calculation = new SqlFrag();
+						if(columnMap == null) {
+							columnMap = getColumnMap(sd, sId);
+						}
+						c.calculation = new SqlFrag(columnMap);
 						sc.populateSql(c.calculation, localisation);
 						c.readonly = true;		// All server calculations are read only
 					} 
 					if(style_id > 0) {
 						c.markup = getMarkup(sd, style_id);
 					}
-					c.parameters  = GeneralUtilityMethods.convertParametersToHashMap(parameters);
+					c.parameters  = convertParametersToHashMap(parameters);
 					c.appearance = appearance;
 				}
 
@@ -4483,54 +4380,54 @@ public class GeneralUtilityMethods {
 			 * If this is present there is no need to check for the others
 			 * Also check for _thread_created existing due to a bug in a previous release which did not create this column (TODO remove October 2022)
 			 */
-			if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_case_survey")) {				
-				GeneralUtilityMethods.addColumn(cResults, table_name, "_case_survey", "text");
+			if(	!hasColumn(cResults, table_name, "_case_survey")) {				
+				addColumn(cResults, table_name, "_case_survey", "text");
 				
-				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_case_closed")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_case_closed", "timestamp with time zone");
+				if(!hasColumn(cResults, table_name, "_case_closed")) {
+					addColumn(cResults, table_name, "_case_closed", "timestamp with time zone");
 				}
-				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, SurveyViewManager.ASSIGNED_COLUMN)) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, SurveyViewManager.ASSIGNED_COLUMN, "text");
+				if(	!hasColumn(cResults, table_name, SurveyViewManager.ASSIGNED_COLUMN)) {
+					addColumn(cResults, table_name, SurveyViewManager.ASSIGNED_COLUMN, "text");
 				}
 				
-				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_alert")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_alert", "text");
+				if(	!hasColumn(cResults, table_name, "_alert")) {
+					addColumn(cResults, table_name, "_alert", "text");
 				}
-				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_thread_created")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_thread_created", "timestamp with time zone");
+				if(	!hasColumn(cResults, table_name, "_thread_created")) {
+					addColumn(cResults, table_name, "_thread_created", "timestamp with time zone");
 				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME)) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME, "timestamp with time zone");
+				if(!hasColumn(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME)) {
+					addColumn(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME, "timestamp with time zone");
 				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME)) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME, "timestamp with time zone");
+				if(!hasColumn(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME)) {
+					addColumn(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME, "timestamp with time zone");
 				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, SmapServerMeta.SURVEY_ID_NAME)) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, SmapServerMeta.SURVEY_ID_NAME, "integer");
+				if(!hasColumn(cResults, table_name, SmapServerMeta.SURVEY_ID_NAME)) {
+					addColumn(cResults, table_name, SmapServerMeta.SURVEY_ID_NAME, "integer");
 				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_version")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_version", "text");
+				if(!hasColumn(cResults, table_name, "_version")) {
+					addColumn(cResults, table_name, "_version", "text");
 				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_survey_notes")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_survey_notes", "text");
+				if(!hasColumn(cResults, table_name, "_survey_notes")) {
+					addColumn(cResults, table_name, "_survey_notes", "text");
 				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_location_trigger")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_location_trigger", "text");
+				if(!hasColumn(cResults, table_name, "_location_trigger")) {
+					addColumn(cResults, table_name, "_location_trigger", "text");
 				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_thread")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_thread", "text");
+				if(!hasColumn(cResults, table_name, "_thread")) {
+					addColumn(cResults, table_name, "_thread", "text");
 				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_complete")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_complete", "boolean");
+				if(!hasColumn(cResults, table_name, "_complete")) {
+					addColumn(cResults, table_name, "_complete", "boolean");
 				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "instancename")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "instancename", "text");
+				if(!hasColumn(cResults, table_name, "instancename")) {
+					addColumn(cResults, table_name, "instancename", "text");
 				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "instanceid")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "instanceid", "text");
+				if(!hasColumn(cResults, table_name, "instanceid")) {
+					addColumn(cResults, table_name, "instanceid", "text");
 				}
-				if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_hrk")) {
-					GeneralUtilityMethods.addColumn(cResults, table_name, "_hrk", "text");
+				if(!hasColumn(cResults, table_name, "_hrk")) {
+					addColumn(cResults, table_name, "_hrk", "text");
 				}
 			}		
 		}
@@ -4538,11 +4435,18 @@ public class GeneralUtilityMethods {
 		/*
 		 * Add columns required for all tables
 		 */
-		if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_audit") || !GeneralUtilityMethods.hasColumn(cResults, table_name, AuditData.AUDIT_RAW_COLUMN_NAME)) {
+		if(!hasColumn(cResults, table_name, "_audit") || !hasColumn(cResults, table_name, AuditData.AUDIT_RAW_COLUMN_NAME)) {
 			
-			GeneralUtilityMethods.addColumn(cResults, table_name, "_audit", "text");
-			GeneralUtilityMethods.addColumn(cResults, table_name, AuditData.AUDIT_RAW_COLUMN_NAME, "text");
+			addColumn(cResults, table_name, "_audit", "text");
+			addColumn(cResults, table_name, AuditData.AUDIT_RAW_COLUMN_NAME, "text");
 			
+		}
+		
+		/*
+		 * Repeat rows have an id that identifies them across versions of a record
+		 */
+		if(!topLevel && !hasColumn(cResults, table_name, "_row_id")) {
+			addColumn(cResults, table_name, "_row_id", "text");
 		}
 	}
 	
@@ -4561,7 +4465,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the start duration and end duration names from the preloads
 	 */
-	public static void getStartEndName(ArrayList<MetaItem> preloads, TableColumn durn) {
+	private static void getStartEndName(ArrayList<MetaItem> preloads, TableColumn durn) {
 		for(MetaItem mi : preloads) {
 			if(mi.isPreload) {
 				if(mi.sourceParam != null) {
@@ -4668,7 +4572,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the Hxl Code from an appearance value and the question name
 	 */
-	public static String getHxlCode(String appearance, String name) {
+	private static String getHxlCode(String appearance, String name) {
 		String hxlCode = null;
 		if (appearance != null) {
 			String appValues[] = appearance.split(" ");
@@ -4762,7 +4666,7 @@ public class GeneralUtilityMethods {
 	 * A qualified name arrives as table.column, and both halves are quoted separately so the dot
 	 * keeps its meaning.  Column names themselves never contain a dot: cleanName replaces it.
 	 */
-	public static String quoteIdentifier(String name) {
+	private static String quoteIdentifier(String name) {
 
 		if (name == null || name.trim().length() == 0) {
 			throw new IllegalArgumentException("A column name is required");
@@ -4976,7 +4880,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Convert an xpath name to just a name
 	 */
-	public static String xpathNameToName(String xpath, boolean xlsName) {
+	private static String xpathNameToName(String xpath, boolean xlsName) {
 		String name = null;
 
 		int idx = xpath.lastIndexOf("/");
@@ -5146,8 +5050,7 @@ public class GeneralUtilityMethods {
 									output.append("prikey");
 								}
 							} catch (SQLException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
+								log.log(Level.SEVERE, e.getMessage(), e);
 							}
 						}		
 					}
@@ -5417,7 +5320,6 @@ public class GeneralUtilityMethods {
 	public static boolean listHasExternalChoices(Connection sd, int sId, int listId) throws SQLException {
 
 		boolean hasExternal = false;
-		// String sql = "select count(*) from option o where o.l_id = ? and o.externalfile = 'true';";
 		PreparedStatement pstmt = null;
 		String sql = "select q.appearance from question q, form f "
 				+ "where f.s_id = ? "
@@ -5868,8 +5770,6 @@ public class GeneralUtilityMethods {
 	public static int getListId(Connection sd, int sId, String name) throws SQLException {
 		int listId = 0;
 
-		// I don't think we need to clean the list name
-		// String cleanName = GeneralUtilityMethods.cleanName(name, true, false, false);
 		PreparedStatement pstmtGetListId = null;
 		String sqlGetListId = "select l_id from listname where s_id = ? and name = ?;";
 
@@ -5954,7 +5854,7 @@ public class GeneralUtilityMethods {
 							if(appFilename.startsWith("chart_s")) {
 								// Add key
 								appFilename += "_";
-								appFilename += GeneralUtilityMethods.getKeyQuestionPulldata(criteria);
+								appFilename += getKeyQuestionPulldata(criteria);
 							}
 							if (filename.equals(appFilename)) { // We want this one
 								//log.fine("We have found a manifest link to " + filename);
@@ -6483,7 +6383,7 @@ public class GeneralUtilityMethods {
 				sld.fromFormId = rs.getInt(2);
 				sld.fromSurveyId = rs.getInt(3);
 
-				LinkedTarget lt = GeneralUtilityMethods.getLinkTargetObject(rs.getString(4));
+				LinkedTarget lt = getLinkTargetObject(rs.getString(4));
 				sld.toSurveyId = lt.sId;
 				sld.toQuestionId = lt.qId;
 
@@ -6531,7 +6431,7 @@ public class GeneralUtilityMethods {
 				sld.fromQuestionId = rs.getInt(1);
 				sld.fromFormId = rs.getInt(2);
 
-				LinkedTarget lt = GeneralUtilityMethods.getLinkTargetObject(rs.getString(3));
+				LinkedTarget lt = getLinkTargetObject(rs.getString(3));
 				sld.toSurveyId = lt.sId;
 				sld.toQuestionId = lt.qId;
 
@@ -6590,7 +6490,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the main results form for a survey
 	 */
-	public static int getMainResultsForm(Connection sd, Connection cResults, int sId) {
+	private static int getMainResultsForm(Connection sd, Connection cResults, int sId) {
 		int fId = 0;
 
 		String sql = "select f_id from form where s_id = ? and parentform = 0";
@@ -6771,6 +6671,15 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * Add the column that records when a closed case was last opened again, to a table made before there was one
+	 */
+	public static void ensureCaseReopenedColumn(Connection cResults, String table) throws SQLException {
+		if(!hasColumn(cResults, table, "_case_reopened")) {
+			addColumn(cResults, table, "_case_reopened", "timestamp with time zone");
+		}
+	}
+
+	/*
 	 * Method to check for presence of the specified column
 	 */
 	public static boolean hasColumn(Connection cRel, String tablename, String columnName) {
@@ -6795,7 +6704,7 @@ public class GeneralUtilityMethods {
 			}
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
@@ -6808,7 +6717,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static void addColumn(Connection conn, String tablename, String columnName, String type) throws SQLException {
 
-		if(GeneralUtilityMethods.tableExists(conn, tablename) && !GeneralUtilityMethods.hasColumn(conn, tablename, columnName)) {
+		if(tableExists(conn, tablename) && !hasColumn(conn, tablename, columnName)) {
 			String sql = "alter table " + tablename + " add column if not exists " + columnName + " " + type;
 	
 			PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -6848,7 +6757,7 @@ public class GeneralUtilityMethods {
 			}
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
 			try {
 				if (pstmt != null) {
@@ -6884,7 +6793,7 @@ public class GeneralUtilityMethods {
 			}
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
 			try {
 				if (pstmt != null) {
@@ -7126,11 +7035,11 @@ public class GeneralUtilityMethods {
 				String parameters = rs.getString(3);
 				String type = rs.getString(4);
 				
-				ArrayList<KeyValueSimp> params = GeneralUtilityMethods.convertParametersToArray(parameters);
+				ArrayList<KeyValueSimp> params = convertParametersToArray(parameters);
 				
 				// Get survey id		
 				String sIdent = getSurveyParameter("form_identifier", params);
-				int iChildSurveyId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+				int iChildSurveyId = getSurveyId(sd, sIdent);
 				String childSurveyId = null;
 				if(iChildSurveyId > 0) {
 					childSurveyId = String.valueOf(iChildSurveyId);
@@ -7155,74 +7064,6 @@ public class GeneralUtilityMethods {
 
 	}
 
-	/*
-	 * Get the details of the form that contains the specified question
-	 */
-	public static Form getFormWithQuestion(Connection sd, int qId) throws SQLException {
-
-		Form f = new Form();
-
-		String sql = "select  " + "f_id," + "from question " + "where q_id = ? ";
-		PreparedStatement pstmt = null;
-
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, qId);
-
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				f.id = rs.getInt("f_id");
-			}
-
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
-		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
-		}
-
-		return f;
-
-	}
-
-	/*
-	 * Convert a location in well known text into latitude
-	 */
-	public static String wktToLatLng(String location, String axis) {
-		String val = null;
-		int idx;
-		int idx2;
-		String[] coords = null;
-
-		if (location != null) {
-			idx = location.indexOf('(');
-			if (idx >= 0) {
-				idx2 = location.lastIndexOf(')');
-				if (idx2 >= 0) {
-					location = location.substring(idx + 1, idx2);
-					coords = location.split(" ");
-
-					if (coords.length > 1) {
-						if (axis.equals("lng")) {
-							val = coords[0];
-						} else {
-							val = coords[1];
-						}
-					}
-				}
-
-			}
-		}
-
-		return val;
-
-	}
-	
 	/*
 	 * Get a function from a string
 	 */
@@ -7302,7 +7143,7 @@ public class GeneralUtilityMethods {
 	 * http://stackoverflow.com/questions/15107313/how-to-determine-a-string-is-
 	 * english-or-arabic
 	 */
-	public static boolean isLanguage(String s, int start, int end) {
+	private static boolean isLanguage(String s, int start, int end) {
 
 		// Check a maximum of 10 characters
 		if(s != null) {
@@ -7449,7 +7290,7 @@ public class GeneralUtilityMethods {
 	public static final String RANGE_LAST_WEEK = "1w";
 	public static final String RANGE_LAST_MONTH = "1m";
 	
-	public static boolean isRelativeRange(String range) {
+	private static boolean isRelativeRange(String range) {
 		return range != null && (range.equals(RANGE_LAST_DAY) 
 				|| range.equals(RANGE_LAST_WEEK) 
 				|| range.equals(RANGE_LAST_MONTH));
@@ -7500,7 +7341,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get a zone id from a timezone name, defaulting to UTC if the name is not recognised
 	 */
-	public static ZoneId getZoneId(String tz) {
+	private static ZoneId getZoneId(String tz) {
 		if(tz != null) {
 			try {
 				return ZoneId.of(tz);
@@ -7550,107 +7391,9 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Update the survey version
-	 */
-	public static void updateVersion(Connection sd, int sId) throws SQLException {
-
-		String sql = "update survey set version = version + 1 where s_id = ?";
-		PreparedStatement pstmt = null;
-
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, sId);
-			pstmt.executeUpdate();
-
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
-		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
-		}
-
-	}
-
-	/*
-	 * Update the auto updates, this is used to apply updates to data after it has 
-	 * been submitted to the server
-	 * 
-	 * Deprecated - this is part of the no longer used managed forms service
-	 */
-	public static void setAutoUpdates(Connection sd, int sId, int managedId, ArrayList<AutoUpdate> autoUpdates)
-			throws SQLException {
-
-		String sqlGet = "select auto_updates from survey where s_id = ? and auto_updates is not null";
-		PreparedStatement pstmtGet = null;
-		String sql = "update survey set auto_updates = ? where s_id = ?";
-		PreparedStatement pstmt = null;
-
-		HashMap<Integer, ArrayList<AutoUpdate>> storedUpdate = null;
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		Type type = new TypeToken<HashMap<Integer, ArrayList<AutoUpdate>>>() {
-		}.getType();
-		try {
-			// Get the current auto updates
-			pstmtGet = sd.prepareStatement(sqlGet);
-			pstmtGet.setInt(1, sId);
-			ResultSet rs = pstmtGet.executeQuery();
-			if (rs.next()) {
-				String auString = rs.getString(1);
-				storedUpdate = gson.fromJson(auString, type);
-			}
-
-			// Create a new structure if none already exists
-			if (storedUpdate == null) {
-				storedUpdate = new HashMap<Integer, ArrayList<AutoUpdate>>();
-			}
-
-			// Merge in the new value for this managed form
-			if (autoUpdates == null) {
-				storedUpdate.clear();
-			} else {
-				storedUpdate.put(managedId, autoUpdates);
-			}
-
-			// Save the updated value
-			String saveString = null;
-			if (!storedUpdate.isEmpty()) {
-				saveString = gson.toJson(storedUpdate);
-			}
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, saveString);
-			pstmt.setInt(2, sId);
-			log.fine("Set auto update: " + pstmt.toString());
-			pstmt.executeUpdate();
-
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
-		} finally {
-			try {
-				if (pstmtGet != null) {
-					pstmtGet.close();
-				}
-			} catch (SQLException e) {
-			}
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
-		}
-
-	}
-
-	/*
 	 * Convert a :: separated String into surveyId and Question Id
 	 */
-	public static LinkedTarget getLinkTargetObject(String in) {
+	private static LinkedTarget getLinkTargetObject(String in) {
 		LinkedTarget lt = new LinkedTarget();
 
 		if (in != null) {
@@ -7793,7 +7536,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * If there is an odd number of quotation marks
 	 */
-	public static boolean notInQuotes(StringBuffer str) {
+	private static boolean notInQuotes(StringBuffer str) {
 		boolean niq = false;
 
 		int count = 0;
@@ -7857,6 +7600,58 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * Question name to column name for the questions in a bundle, for a server expression to find the
+	 * column each ${name} refers to.  Keyed by the name as written and again in lower case, the first
+	 * survey in the bundle wins when two surveys use the same name.
+	 */
+	public static HashMap<String, String> getColumnMap(Connection sd, String groupSurveyIdent) throws SQLException {
+		HashMap<String, String> map = new HashMap<> ();
+		if(groupSurveyIdent == null) {
+			return map;
+		}
+		String sql = "select q.qname, q.column_name "
+				+ "from question q, form f, survey s "
+				+ "where q.f_id = f.f_id "
+				+ "and f.s_id = s.s_id "
+				+ "and s.group_survey_ident = ? "
+				+ "and not s.deleted "
+				+ "and not q.soft_deleted "
+				+ "and q.column_name is not null "
+				+ "order by s.s_id asc, q.q_id asc";
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setString(1, groupSurveyIdent);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String qname = rs.getString(1);
+				String column = rs.getString(2);
+				map.putIfAbsent(qname, column);
+				map.putIfAbsent(qname.toLowerCase(), column);
+			}
+		}
+		return map;
+	}
+
+	public static HashMap<String, String> getColumnMap(Connection sd, int sId) throws SQLException {
+		return getColumnMap(sd, getGroupSurveyIdent(sd, sId));
+	}
+
+	public static HashMap<String, String> getColumnMapFromIdent(Connection sd, String sIdent) throws SQLException {
+		return getColumnMap(sd, getGroupSurveyIdentFromIdent(sd, sIdent));
+	}
+
+	// The same from a map of the bundle's questions that the caller already has
+	public static HashMap<String, String> getColumnMap(HashMap<String, QuestionForm> questions) {
+		HashMap<String, String> map = new HashMap<> ();
+		for(QuestionForm qf : questions.values()) {
+			if(qf.qName != null && qf.columnName != null) {
+				map.putIfAbsent(qf.qName, qf.columnName);
+				map.putIfAbsent(qf.qName.toLowerCase(), qf.columnName);
+			}
+		}
+		return map;
+	}
+
+	/*
 	 * Check to see if the passed in survey response, identified by an instance id, is within the filtered set of responses
 	 */
 	public static boolean testFilter(Connection sd, Connection cResults, String user, ResourceBundle localisation, Survey survey, String filter, 
@@ -7874,7 +7669,7 @@ public class GeneralUtilityMethods {
 
 		// Add the filter
 		filterQuery.append(" and (");
-		SqlFrag frag = new SqlFrag();
+		SqlFrag frag = new SqlFrag(getColumnMap(sd, survey.surveyData.groupSurveyIdent));
 		frag.addSqlFragment(filter, false, localisation, 0);
 		filterQuery.append(frag.sql);
 		filterQuery.append(")");
@@ -7885,7 +7680,7 @@ public class GeneralUtilityMethods {
 			pstmt.setString(1, instanceId);
 
 			int idx = 2;
-			idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx, tz);
+			idx = setFragParams(pstmt, frag, idx, tz);
 
 			log.fine("Evaluate Filter: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
@@ -8004,54 +7799,6 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Return true if document synchronisation is enabled on this server
-	 */
-	public static boolean documentSyncEnabled(Connection sd) throws SQLException {
-
-		boolean enabled = false;
-		String sql = "select document_sync from server;";
-		PreparedStatement pstmt = null;
-
-		try {
-			pstmt = sd.prepareStatement(sql);
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next())  {
-				enabled = rs.getBoolean(1);
-			}
-
-		} finally {
-			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
-		}
-
-		return enabled;
-	}
-
-	/*
-	 * Get document server configuration
-	 */
-	public static HashMap<String, String> docServerConfig(Connection sd) throws SQLException {
-
-		HashMap<String, String> config = new HashMap<> ();
-		String sql = "select doc_server, doc_server_user, doc_server_password from server;";
-		PreparedStatement pstmt = null;
-
-		try {
-			pstmt = sd.prepareStatement(sql);
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next())  {
-				config.put("server", rs.getString(1));
-				config.put("user", rs.getString(2));
-				config.put("password", rs.getString(3));
-			}
-
-		} finally {
-			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
-		}
-
-		return config;
-	}
-
-	/*
 	 * Convert Parameters to Key Value array
 	 */
 	public static ArrayList<KeyValueSimp> convertParametersToArray(String in) {
@@ -8118,7 +7865,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Remove any white space surrounding a character
 	 */
-	public static String removeSurroundingWhiteSpace(String in, char c) {
+	private static String removeSurroundingWhiteSpace(String in, char c) {
 		StringBuffer out = new StringBuffer("");
 
 		if(in != null) {
@@ -8272,7 +8019,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get an array of column names from a string that contains references to columns #{name}
 	 */
-	public static ArrayList<String> getCsvNames(
+	private static ArrayList<String> getCsvNames(
 			String input) {
 
 		ArrayList<String> output = new ArrayList<> (); 
@@ -8302,7 +8049,7 @@ public class GeneralUtilityMethods {
 			def = def.trim();
 
 			// Check for names inside curly backets
-			def = GeneralUtilityMethods.cleanXlsNames(def);
+			def = cleanXlsNames(def);
 			ArrayList<String> xlsNames = getXlsNames(def);
 			
 			if(xlsNames.size() > 0) {
@@ -8424,7 +8171,7 @@ public class GeneralUtilityMethods {
 
 	}
 	
-	public static String getPreloadColumnName(Connection sd, int sId, int preloadId) throws SQLException {
+	private static String getPreloadColumnName(Connection sd, int sId, int preloadId) throws SQLException {
 		String colname = null;
 		ArrayList<MetaItem> preloads = getPreloads(sd, sId);
 		for(MetaItem item : preloads) {
@@ -8498,7 +8245,7 @@ public class GeneralUtilityMethods {
 	 * Get preloads in a survey group
 	 * The preloads are not unique as each survey in the group is likely to have the same ones
 	 */
-	public static ArrayList<MetaItem> getGroupPreloads(Connection sd, String groupSurveyIdent) throws SQLException {
+	private static ArrayList<MetaItem> getGroupPreloads(Connection sd, String groupSurveyIdent) throws SQLException {
 		ArrayList<MetaItem> preloads = new ArrayList <>();
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -8705,7 +8452,95 @@ public class GeneralUtilityMethods {
 		}
 		return value;
 	}
-	
+
+	/*
+	 * Parameter that names the features (a choice list, or ${question} in a repeat) shown on the
+	 * map of a geo question while it is being answered
+	 */
+	public static final String REFERENCE_GEOMETRY = "reference-geometry";
+
+	/*
+	 * A reference geometry of ${repeat}, as pyxform allows, shows the repeat's question called geometry
+	 * Return the reference to use, which is unchanged unless it names a repeat
+	 */
+	public static String resolveRepeatGeometry(Connection sd, int sId, String ref) throws SQLException {
+		if(ref == null || !ref.startsWith("${")) {
+			return ref;
+		}
+		String sql = "select count(*) from question q, form f "
+				+ "where q.f_id = f.f_id and f.s_id = ? and q.qname = ? and q.qtype = 'begin repeat'";
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setInt(1, sId);
+			pstmt.setString(2, getNameFromXlsName(ref));
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next() && rs.getInt(1) > 0) {
+				return "${geometry}";
+			}
+		}
+		return ref;
+	}
+
+	/*
+	 * Return true if questions of this type can show reference geometry
+	 */
+	public static boolean isReferenceGeometryType(String type) {
+		return type != null && (type.equals("geopoint") || type.equals("geotrace") || type.equals("geoshape"));
+	}
+
+	/*
+	 * A geopoint recorded without being shown whenever the question named in its trigger changes
+	 * Held as a geopoint that is not visible and has no calculation.  The online editor can save one before
+	 * its trigger is set, so the trigger is not part of the test; without one nothing records the location
+	 */
+	public static final String BACKGROUND_GEOPOINT = "background-geopoint";
+
+	public static boolean isBackgroundGeopoint(String type, boolean visible, String trigger, String calculation) {
+		return "geopoint".equals(type) && !visible
+				&& (calculation == null || calculation.trim().length() == 0);
+	}
+
+	/*
+	 * Range parameters
+	 */
+	public static final String TICK_INTERVAL = "tick_interval";
+	public static final String PLACEHOLDER = "placeholder";
+	public static final String TICK_LABELSET = "tick_labelset";		// A choice list of labels for ticks
+
+	/*
+	 * Return true if questions of this type can get a list of items from a parameter, held as a select's list is
+	 */
+	public static boolean isListParameterType(String type) {
+		return isReferenceGeometryType(type) || "range".equals(type);
+	}
+
+	/*
+	 * Get the list named by a question's parameters, or null if it has none
+	 * Geo questions name reference geometry and range questions name the labels of their ticks
+	 */
+	public static String getListParameter(String type, ArrayList<KeyValueSimp> params) {
+		String value = null;
+		if(isReferenceGeometryType(type)) {
+			value = getSurveyParameter(REFERENCE_GEOMETRY, params);
+		} else if("range".equals(type)) {
+			value = getSurveyParameter(TICK_LABELSET, params);
+		}
+		if(value != null) {
+			value = value.trim();
+			if(value.length() == 0) {
+				value = null;
+			}
+		}
+		return value;
+	}
+
+	/*
+	 * Return true if the parameter names a list and so is written as an itemset rather than an attribute
+	 */
+	public static boolean isListParameter(String type, String param) {
+		return (isReferenceGeometryType(type) && REFERENCE_GEOMETRY.equals(param))
+				|| ("range".equals(type) && TICK_LABELSET.equals(param));
+	}
+
 	/*
 	 * Get the longitude and latitude from a WKT POINT
 	 */
@@ -9051,7 +8886,7 @@ public class GeneralUtilityMethods {
 
 	public static String getThread(Connection cResults, String table, String instanceId) throws SQLException {
 		
-		if(!GeneralUtilityMethods.tableExists(cResults, table)) {
+		if(!tableExists(cResults, table)) {
 			return null;
 		}
 		
@@ -9094,7 +8929,7 @@ public class GeneralUtilityMethods {
 	 * This function has been added due to the difficulty of keeping the published indicator always up to date
 	 *  in the situation where you have shared tables
 	 */
-	public static void updateUnPublished(Connection sd, Connection cResults, String tableName, 
+	private static void updateUnPublished(Connection sd, Connection cResults, String tableName, 
 			int fId, boolean publish) throws SQLException {
 		
 		String sql = "select q_id, column_name, qtype, compressed " 
@@ -9110,7 +8945,7 @@ public class GeneralUtilityMethods {
 		ResultSet rs = null;
 		try {
 			
-			if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
+			if(tableExists(cResults, tableName)) {
 				pstmtUpdate = sd.prepareStatement(sqlUpdate);
 				
 				// Get unpublished
@@ -9124,8 +8959,8 @@ public class GeneralUtilityMethods {
 					String type = rs.getString(3);
 					boolean compressed = rs.getBoolean(4);
 					
-					if(!GeneralUtilityMethods.hasColumn(cResults, tableName, columnName)) {
-						GeneralUtilityMethods.alterColumn(cResults, tableName, type, columnName, compressed);
+					if(!hasColumn(cResults, tableName, columnName)) {
+						alterColumn(cResults, tableName, type, columnName, compressed);
 					}
 					pstmtUpdate.setInt(1, qId);
 					pstmtUpdate.executeUpdate();
@@ -9199,7 +9034,7 @@ public class GeneralUtilityMethods {
 
 	}
 	
-	public static boolean parameterIsSet(String parameter) {
+	private static boolean parameterIsSet(String parameter) {
 		boolean isSet = false;
 		if(parameter != null) {
 			if(parameter.equals("yes") || parameter.equals("true")) {
@@ -9228,31 +9063,6 @@ public class GeneralUtilityMethods {
 			}
 		}
 		return idx;
-	}
-	
-	public static User getArchivedUser(Connection sd, int oId, int uId) throws SQLException {
-		
-		String sql = "select settings "
-				+ "from user_organisation uo "
-				+ "where o_id = ? "
-				+ "and u_id = ?";
-		PreparedStatement pstmt = null;
-		
-		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		
-		User u = null;
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			pstmt.setInt(2, uId);			
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				u = gson.fromJson(rs.getString(1), User.class);
-			}
-		} finally {
-			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
-		}
-		return u;
 	}
 	
 	public static Timestamp getTimestamp(String timeString) {
@@ -9330,7 +9140,7 @@ public class GeneralUtilityMethods {
 
 
 		} catch (SQLException e) {
-			e.printStackTrace();
+			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
@@ -9654,7 +9464,7 @@ public class GeneralUtilityMethods {
 				+ "where _thread = (select distinct _thread from " + tableName + " where instanceid = ?) "
 				+ "order by prikey desc limit 1";
 
-		if(GeneralUtilityMethods.hasColumn(cResults, tableName, "_thread")) {
+		if(hasColumn(cResults, tableName, "_thread")) {
 			try {
 				pstmt = cResults.prepareStatement(sql);
 	
@@ -9691,7 +9501,7 @@ public class GeneralUtilityMethods {
 						+ "and not _bad "
 				+ "order by prikey desc limit 1";
 
-		if(GeneralUtilityMethods.hasColumn(cResults, tableName, "_thread")) {
+		if(hasColumn(cResults, tableName, "_thread")) {
 			try {
 				pstmt = cResults.prepareStatement(sql);
 	
@@ -9743,14 +9553,14 @@ public class GeneralUtilityMethods {
 				pstmtApplyGeometryChange = cResults.prepareStatement(gSql);
 				
 				try { 
-					if(!GeneralUtilityMethods.hasColumn(cResults, table, column)) {
+					if(!hasColumn(cResults, table, column)) {
 						pstmtApplyGeometryChange.executeQuery();
 					}
 					
 					// Add altitude and accuracy
 					if(type.equals("geopoint")) {
 						String sqlAlterTable = null;
-						if(!GeneralUtilityMethods.hasColumn(cResults, table, "_alt")) {
+						if(!hasColumn(cResults, table, "_alt")) {
 							sqlAlterTable = "alter table " + table + " add column " 
 									+  column + "_alt double precision";
 							pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
@@ -9759,7 +9569,7 @@ public class GeneralUtilityMethods {
 						}
 
 						try {if (pstmtAlterTable != null) {pstmtAlterTable.close();}} catch (Exception e) {}
-						if(!GeneralUtilityMethods.hasColumn(cResults, table, "_acc")) {
+						if(!hasColumn(cResults, table, "_acc")) {
 							sqlAlterTable = "alter table " + table + " add column "
 									+ column + "_acc double precision";
 							pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
@@ -9779,7 +9589,7 @@ public class GeneralUtilityMethods {
 			} else {
 
 				type = getPostgresColType(type);
-				if(!GeneralUtilityMethods.hasColumn(cResults, table, column)) {
+				if(!hasColumn(cResults, table, column)) {
 					String sqlAlterTable = "alter table " + table + " add column " + column + " " + type + ";";
 					pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
 					log.fine("Alter table: " + pstmtAlterTable.toString());
@@ -9836,7 +9646,7 @@ public class GeneralUtilityMethods {
 			colType = "timestamp with time zone";					
 		} else if(colType.equals("time")) {
 			colType = "time";					
-		} else if(GeneralUtilityMethods.isAttachmentType(colType)) {
+		} else if(isAttachmentType(colType)) {
 			colType = "text";					
 		} else if(colType.equals("select")) {
 			colType = "text";					
@@ -9854,7 +9664,7 @@ public class GeneralUtilityMethods {
 		return colType;
 	}
 	
-	public static ArrayList<TableColumnMarkup> getMarkup(Connection sd, int styleId) throws SQLException  {
+	private static ArrayList<TableColumnMarkup> getMarkup(Connection sd, int styleId) throws SQLException  {
 		
 		ArrayList<TableColumnMarkup> markup = null;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -10302,7 +10112,6 @@ public class GeneralUtilityMethods {
 				mediaBucket = lines.get(0);
 			}
 		} catch (Exception e) {
-			// log.log(Level.SEVERE, e.getMessage(), e);;
 		}
 
 		return mediaBucket;
@@ -10502,7 +10311,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Delete an autoupdate question indicator
 	 */
-	public static void deleteAutoUpdateQuestion(Connection sd, int sId, int qId) throws SQLException {
+	private static void deleteAutoUpdateQuestion(Connection sd, int sId, int qId) throws SQLException {
 		
 		String sql = "delete from autoupdate_questions "
 				+ "where q_id = ? "
@@ -10549,8 +10358,8 @@ public class GeneralUtilityMethods {
 			}
 			// Delete the linked form entries so that the CSV files will be regenerated when the linker form is downloaded
 			pstmt = sd.prepareStatement(sql);
-			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId );
-			HashMap<Integer, Integer> groupSurveys = GeneralUtilityMethods.getGroupSurveys(sd, groupSurveyIdent);
+			String groupSurveyIdent = getGroupSurveyIdent(sd, sId );
+			HashMap<Integer, Integer> groupSurveys = getGroupSurveys(sd, groupSurveyIdent);
 			if(groupSurveys.size() > 0) {
 				for(int gSId : groupSurveys.keySet()) {
 					pstmt.setInt(1, gSId);
@@ -10839,23 +10648,6 @@ public class GeneralUtilityMethods {
     	return in;
     }
     
-    public static String getDateTimeStringFromIsoString(String in) {
-    	TimeZone tz = TimeZone.getTimeZone("UTC");
-    	DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
-    	DateFormat dfout = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-    	df.setTimeZone(tz);
-
-    	try {
-    		java.util.Date d = df.parse(in);
-    		return dfout.format(d);
-    	} catch (ParseException e) {
-    		e.printStackTrace();
-    	}
-
-    	return null;
-
-    } 
-    
     public static String convertStreamToString(InputStream is) throws IOException {
     	ByteArrayOutputStream out = new ByteArrayOutputStream();
     	byte[] buffer = new byte[1024];
@@ -11049,34 +10841,6 @@ public class GeneralUtilityMethods {
 		}
     }
 
-    /*
-	 * Return the question names that have a compound question type
-	 */
-	public static ArrayList<String> getCompoundQuestions(Connection sd, int sId) throws SQLException {
-		ArrayList<String> questions = new ArrayList<>();
-		
-    	String sql = "select qname from question "
-    			+ "where f_id in (select f_id from form where s_id = ?) "
-    			+ "and qtype = 'pdf_field' "
-    			+ "and not soft_deleted" ;
-    	PreparedStatement pstmt = null;
-    	
-    	try {
-    		pstmt = sd.prepareStatement(sql);
-    		pstmt.setInt(1,  sId);
-    		log.fine(pstmt.toString());
-    		ResultSet rs = pstmt.executeQuery();
-    		while(rs.next()) {
-    			questions.add(rs.getString(1));
-    		}
-    		
-    	} finally {
-    		if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
-    	}
-    	
-		return questions;
-	}
-	
 	/*
 	 * Return the markers for a geocompound questions
 	 */
@@ -11182,17 +10946,6 @@ public class GeneralUtilityMethods {
 		return value;
 	}
 	
-	/*
-	 * Resize the image to the specified width maintaining aspect ration
-	 */
-	public static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth) throws IOException {
-		int targetHeight = (originalImage.getHeight() * targetWidth) / originalImage.getWidth();
-	    Image resultingImage = originalImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_DEFAULT);	// Keep aspect ration
-	    BufferedImage outputImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
-	    outputImage.getGraphics().drawImage(resultingImage, 0, 0, null);
-	    return outputImage;
-	}
-	
 	public static String getThumbsUrl(String in) {
 		String url = null;
 		if(in != null) {
@@ -11207,7 +10960,44 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the user currently assigned to a record
+	 * The type of a question in a survey, by name, e.g. "select" for a select multiple.  Null if it has none.
+	 */
+	public static String getQuestionType(Connection sd, int sId, String qName) throws SQLException {
+		if(qName == null) {
+			return null;
+		}
+		try (PreparedStatement pstmt = sd.prepareStatement("select qtype from question where qname = ? "
+				+ "and f_id in (select f_id from form where s_id = ?) limit 1")) {
+			pstmt.setString(1, qName);
+			pstmt.setInt(2, sId);
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next() ? rs.getString(1) : null;
+		}
+	}
+
+	/*
+	 * The users _assigned names.  A case can have more than one, listed with commas between them.
+	 */
+	public static ArrayList<String> splitAssigned(String assigned) {
+		ArrayList<String> users = new ArrayList<>();
+		if(assigned != null) {
+			for(String a : assigned.split(",")) {
+				String u = a.trim();
+				if(u.length() > 0 && !users.contains(u)) users.add(u);
+			}
+		}
+		return users;
+	}
+
+	/*
+	 * The users currently assigned to a record
+	 */
+	public static ArrayList<String> getAssignedUsers(Connection cResults, String tableName, String key) throws SQLException {
+		return splitAssigned(getAssignedUser(cResults, tableName, key));
+	}
+
+	/*
+	 * Get the _assigned value of a record, the users assigned to it separated by commas
 	 */
 	public static String getAssignedUser(Connection cResults, String tableName, String key) throws SQLException {
 		String userIdent = null;
@@ -11369,7 +11159,7 @@ public class GeneralUtilityMethods {
 				}
 				// Some client code still needs surveyId!
 				if(a.surveyIdent != null && a.sId == 0) {
-					a.sId = GeneralUtilityMethods.getSurveyId(sd, a.surveyIdent);
+					a.sId = getSurveyId(sd, a.surveyIdent);
 				}
 			}
 		}
@@ -11534,29 +11324,6 @@ public class GeneralUtilityMethods {
 		return dbf;
 	}
 	
-	/*
-	public static Logger getLog(String queueName) {
-		
-		Logger log = null;
-		
-		try {
-			log = Logger.getLogger(queueName);
-			
-			FileHandler logFile = new FileHandler("/var/log/subscribers/upload_" + queueName + ".log");  
-			SimpleFormatter formatter = new SimpleFormatter();  
-			logFile.setFormatter(formatter);  
-			
-			log.addHandler(logFile);
-			log.setUseParentHandlers(false);
-		
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-		return log;
-	}
-	*/
-	
 	public static void log(Logger log, String msg, String queueName, String thread) {
 		StringBuilder track = new StringBuilder("::");
 		
@@ -11633,7 +11400,7 @@ public class GeneralUtilityMethods {
 		if(sId == 0) {
 			// Must be an ident
 			try {
-				sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+				sId = getSurveyId(sd, sIdent);
 			} catch(Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}

@@ -156,4 +156,22 @@ public abstract class AbstractMcpTool implements McpTool {
 		}
 		return v.toString();
 	}
+
+	/*
+	 * A survey change can stop a server expression elsewhere in the bundle working, such as a
+	 * notification filter that names a question that was removed.  Say so after the tool's own report.
+	 */
+	protected static void addExpressionWarnings(StringBuilder text, java.util.Map<String, Object> data,
+			org.smap.sdal.model.ChangeResponse resp) {
+		if(resp == null || resp.warnings == null || resp.warnings.isEmpty()) {
+			return;
+		}
+		if(data != null) {
+			data.put("stopsWorking", resp.warnings);	// Clients that show only the structured content see it too
+		}
+		text.append("\n\nThis change stops these working:");
+		for(String w : resp.warnings) {
+			text.append("\n- ").append(w);
+		}
+	}
 }

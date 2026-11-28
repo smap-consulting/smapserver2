@@ -1337,6 +1337,7 @@ public class SubscriberBatch {
 					locMap.put(oId, localisation);
 				}
 				MessagingManager mm = new MessagingManager(localisation);
+				subMgr.notificationId = nId;
 				mm.createMessage(sd, oId, "reminder", "", gson.toJson(subMgr));
 
 				// record the sending of the notification
@@ -1474,8 +1475,12 @@ public class SubscriberBatch {
 							settingsCache.put(groupSurveyIdent, settings);
 						}						
 					}
-					if(settings != null && settings.finalStatus != null && settings.statusQuestion != null &&
+					if(settings != null && settings.hasClosedStatus() &&
 							GeneralUtilityMethods.hasColumn(cResults, table, settings.statusQuestion)) {
+
+						// A reopened case is timed from when it reopened
+						String since = GeneralUtilityMethods.hasColumn(cResults, table, "_case_reopened")
+								? "coalesce(_case_reopened, _thread_created)" : "_thread_created";
 						
 						/*
 						 * Find records in the case that match this alert
@@ -1485,16 +1490,16 @@ public class SubscriberBatch {
 						sqlMatch.append(" where not _bad and (")
 							.append(settings.statusQuestion)
 							.append(" is null or ")
-							.append("cast (").append(settings.statusQuestion).append(" as text)").append(" != ? ) ")
+							.append("not (cast (").append(settings.statusQuestion).append(" as text)").append(" = any(?)) ) ")
 							.append("and  _thread not in (select thread from case_alert_triggered where table_name = ? and a_id = ?) ")
-							.append("and _thread_created < now() - ?::interval ");	
+							.append("and ").append(since).append(" < now() - ?::interval ");	
 						
 						/*
 						 * Add context filter
 						 */
 						SqlFrag filterFrag = null;
 						if(filter != null && filter.length() > 0) {			
-							filterFrag = new SqlFrag();
+							filterFrag = new SqlFrag(GeneralUtilityMethods.getColumnMap(sd, groupSurveyIdent));
 							filterFrag.addSqlFragment(filter, false, localisation, 0);
 						}
 						if(filterFrag != null) {
@@ -1503,7 +1508,7 @@ public class SubscriberBatch {
 						
 						pstmtMatches = cResults.prepareStatement(sqlMatch.toString());
 						int idx = 1;
-						pstmtMatches.setString(idx++, settings.finalStatus);
+						pstmtMatches.setArray(idx++, cResults.createArrayOf("text", settings.getClosedStatuses().toArray()));
 						pstmtMatches.setString(idx++, table);
 						pstmtMatches.setInt(idx++, aId);
 						pstmtMatches.setString(idx++, period);						
@@ -1527,8 +1532,20 @@ public class SubscriberBatch {
 								String instanceid = mrs.getString("instanceid");
 								String thread = mrs.getString("_thread");
 								
+								// Try to record the alert - ON CONFLICT ensures only one server processes it
+								pstmtTriggered.setInt(1, aId);
+								pstmtTriggered.setString(2, table);
+								pstmtTriggered.setString(3, thread);
+								pstmtTriggered.setString(4, String.join(",", settings.getClosedStatuses()));
+
+								int insertCount = pstmtTriggered.executeUpdate();
+								if (insertCount == 0) {
+									// Another server already processed this alert, skip
+									continue;
+								}
+
 								/*
-								 * Record the triggering of the alert
+								 * Record the triggering of the alert in the case history, once
 								 */
 								String details = localisation.getString(NotificationManager.TOPIC_CM_ALERT);
 								details = details.replace("%s1", alertName);
@@ -1551,18 +1568,6 @@ public class SubscriberBatch {
 										0,					// Don't need task id if we have an assignment id
 										0					// Assignment id
 										);
-								
-								// Try to record the alert - ON CONFLICT ensures only one server processes it
-								pstmtTriggered.setInt(1, aId);
-								pstmtTriggered.setString(2, table);
-								pstmtTriggered.setString(3, thread);
-								pstmtTriggered.setString(4, settings.finalStatus);
-
-								int insertCount = pstmtTriggered.executeUpdate();
-								if (insertCount == 0) {
-									// Another server already processed this alert, skip
-									continue;
-								}
 
 								// Update the case so that the alert status can be charted
 								StringBuilder sqlUpdate = new StringBuilder("update ")
@@ -1627,6 +1632,7 @@ public class SubscriberBatch {
 											null);					// SMS timestamp
 
 									MessagingManager mm = new MessagingManager(localisation);
+									subMgr.notificationId = nId;
 									mm.createMessage(sd, oId, NotificationManager.TOPIC_CM_ALERT, "", gson.toJson(subMgr));
 
 									// Write to the log
@@ -1647,7 +1653,7 @@ public class SubscriberBatch {
 								msg = "";
 							}
 							if(!duplicateLogEntry(sId + "alert" + LogManager.CASE_MANAGEMENT + msg)) {
-								lm.writeLog(sd, sId, "alert", LogManager.CASE_MANAGEMENT, msg, 0, serverName);
+								lm.writeLogRef(sd, sId, "alert", LogManager.CASE_MANAGEMENT, msg, 0, serverName, null, LogManager.REF_ALERT + aId);
 							}
 							log.log(Level.SEVERE, e.getMessage(), e);
 						}
@@ -1722,6 +1728,7 @@ public class SubscriberBatch {
 		
 		int sId = 0;
 		String notificationName = null;
+		int currentNId = 0;			// The notification being processed, for the log if it fails
 		
 		try {
 			pstmtTriggered = cResults.prepareStatement(sqlTriggered);
@@ -1734,6 +1741,7 @@ public class SubscriberBatch {
 			while(notrs.next()) {
 				
 				int nId = notrs.getInt("id");
+				currentNId = nId;
 				sId = notrs.getInt("s_id");
 				notificationName = notrs.getString("notification_name");
 				String notifyDetailsString = notrs.getString("notify_details");
@@ -1767,9 +1775,11 @@ public class SubscriberBatch {
 				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				
 				SqlFrag calculationFrag = null;
+				HashMap<String, String> columnMap = null;
 				if(serverCalculate != null && GeneralUtilityMethods.tableExists(cResults, table)) {
 					ServerCalculation sc = gson.fromJson(serverCalculate, ServerCalculation.class);
-					calculationFrag = new SqlFrag();
+					columnMap = GeneralUtilityMethods.getColumnMap(sd, sId);
+					calculationFrag = new SqlFrag(columnMap);
 					sc.populateSql(calculationFrag, localisation);
 						
 					/*
@@ -1791,7 +1801,7 @@ public class SubscriberBatch {
 					 */
 					SqlFrag filterFrag = null;
 					if(filter != null && filter.length() > 0) {			
-						filterFrag = new SqlFrag();
+						filterFrag = new SqlFrag(columnMap != null ? columnMap : GeneralUtilityMethods.getColumnMap(sd, sId));
 						filterFrag.addSqlFragment(filter, false, localisation, 0);
 					}
 					if(filterFrag != null) {
@@ -1873,6 +1883,7 @@ public class SubscriberBatch {
 									null);					// SMS Timestamp
 
 							MessagingManager mm = new MessagingManager(localisation);
+							subMgr.notificationId = nId;
 							mm.createMessage(sd, oId, NotificationManager.TOPIC_SERVER_CALC, "", gson.toJson(subMgr));
 						} else {
 							log.fine("Message not send as the notification has been newly created ");
@@ -1906,7 +1917,8 @@ public class SubscriberBatch {
 			}
 			msg += " - " + notificationName;
 			if(!duplicateLogEntry(sId + "notification" + LogManager.NOTIFICATION_ERROR + msg)) {
-				lm.writeLog(sd, sId, "notification", LogManager.NOTIFICATION_ERROR, msg, 0, serverName);
+				lm.writeLogRef(sd, sId, "notification", LogManager.NOTIFICATION_ERROR, msg, 0, serverName, null,
+						currentNId > 0 ? LogManager.REF_NOTIFICATION + currentNId : null);
 			}
 			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {

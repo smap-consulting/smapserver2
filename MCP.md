@@ -1238,21 +1238,46 @@ Reversing a survey change is deliberately not part of this. Undo for survey defi
 feature covering the online editor and XLSForm uploads as well as MCP, rather than something built
 for MCP alone; what MCP owes in the meantime is a complete and honest record of what it did.
 
-## Repeating groups can be read but not written
+## Repeating groups: submitted as rows, not edited in place
 
 `data_query` and `data_get_record` both reach a repeating group: the first through `form`, naming
-the group, the second by nesting its rows inside the record. Nothing writes one. `data_submit`
-builds a flat instance out of the main form's questions, and `data_update_record` passes 0 as the
-sub form key and null as the group form, which is to say the top level record and the main form.
+the group, the second by nesting its rows inside the record.
 
-The asymmetry is worth stating because it does not announce itself. A caller who has just read an
-answer out of a repeat, and asks to change it, is told the survey has no question of that name -
-true of the main form, and misleading about the survey. Addressing a repeat needs a row key as well
-as a question name, since the whole point of a repeat is that the same question holds several
-answers, and that argument does not exist on these tools yet.
+`data_submit` writes them. A repeat is given in `answers` by its name with a list of rows, each row
+an object of answers for that group's questions, and a group inside a group is a list inside a row.
+On a new record the rows are the record's rows. With `continues` they are added after the rows the
+record already has, as a person adding a row on the device would; the existing rows are loaded into
+the document and submitted unchanged. Only rows of the main form's repeats can be added this way:
+rows nested inside an existing row cannot.
 
-Untested rather than decided: no survey reachable during the write tests had a repeat at all, so
-this is what the code says, not what a run showed.
+`data_update_record` changes answers in one row of a repeat of the main form, named by `form` and
+`row`. The row is its position in the record, counting from 1 in the order `data_get_record` lists the
+rows, rather than its primary key: a position can only reach that record's rows, while a primary key is
+a sequential number that could name a row of any record. The manager also checks the row belongs to the
+record named, so a caller cannot get round this. Rows of a repeat inside a repeat cannot be reached yet.
+
+The update tools report a change that the manager refused - a question that cannot be updated, a value
+that does not parse, a record the caller cannot reach - as a failure. They used to report it as done.
+
+## Dashboards: graph and table panels
+
+`dashboard_list`, `dashboard_add_panel`, `dashboard_update_panel` and `dashboard_delete_panel` manage
+the panels a user sees in the Analysis page, per project. Graph and table panels only for now; map and
+image panels are set up in the page.
+
+A panel holding a setting the page does not expect shows up blank rather than failing, so everything is
+checked before it is saved: the survey has to be in the project and in one the panel's user is a member
+of, every question named has to be in the survey, the function has to suit the question (select: count or
+percent; int and decimal: average or total; string and calculate: any of the four), time grouping needs
+a date question, and the title follows the same rule as in the page. These are the rules the page applies
+when a panel is set up there, written down once on the server.
+
+An administrator can manage the dashboard of another user, but only a user of their own organisation.
+The console's dashboard endpoint applies the same rule, through `DashboardManager`, and it now also
+requires one of the dashboard groups to save and only saves survey panels for surveys the user can reach.
+
+Nothing is sent and a panel can be taken away again, so none of these ask first. Removing a panel
+returns its settings, and changing one returns the previous settings.
 
 ## History is per thread, not per submission
 

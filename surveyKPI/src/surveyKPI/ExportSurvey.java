@@ -32,6 +32,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.ServerExpressionValidator;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SqlFrag;
@@ -540,9 +541,9 @@ public class ExportSurvey extends Application {
 				SqlFrag filterFrag = null;
 				if(filter != null && filter.length() > 0) {
 
-					filterFrag = new SqlFrag();
+					filterFrag = new SqlFrag(GeneralUtilityMethods.getColumnMap(sd, sId));
 					filterFrag.addSqlFragment(filter, false, localisation, 0);
-
+					new ServerExpressionValidator(localisation).validateFilter(sd, connectionResults, sId, filter);
 
 					for(String filterCol : filterFrag.columns) {
 						boolean valid = false;

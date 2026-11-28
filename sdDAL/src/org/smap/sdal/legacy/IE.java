@@ -183,6 +183,22 @@ public class IE {
 	}
 	
 	
+	/*
+	 * Get the id of a repeat row, this identifies the row across versions of the record
+	 */
+	public String getRowId() {
+		for(IE child : children) {
+			if("_row_id".equals(child.getName())) {
+				String id = child.getValue();
+				if(id != null && id.trim().length() == 0) {
+					id = null;
+				}
+				return id;
+			}
+		}
+		return null;
+	}
+	
 	public List<IE> getQuestions() {
 		List<IE> questions = new ArrayList<IE> ();
 		String qt = null;

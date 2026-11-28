@@ -8,8 +8,10 @@ import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
+import org.smap.sdal.Utilities.ApplicationException;
 
 /*****************************************************************************
 
@@ -45,18 +47,45 @@ public class CssManager {
 	private final String CUSTOM_FILE = "custom.css";
 	private final String SERVER_FOLDER = "server";
 	private final String ORG_FOLDER = "org";
+	private static final Pattern VALID_NAME = Pattern.compile("^[A-Za-z0-9_.-]+\\.(?i:css)$");
 
 	public CssManager(String basePath, ResourceBundle l) {
 		this.basePath = basePath;
 		localisation = l;
 	}
 	
-	public void setCurrentCssFile(String name, int orgId) throws IOException {
+	public void setCurrentCssFile(String name, int orgId) throws IOException, ApplicationException {
 		if(name == null || name.equals("_none")) {
 			removeCurrentCustomCssFile(orgId);
 		} else {
-			replaceCustomCssFile(name, orgId);
+			replaceCustomCssFile(checkName(name), orgId);
 		}
+	}
+	
+	/*
+	 * Check a css file name selected or uploaded by a user
+	 * Null and "_none" mean no css file and are returned unchanged
+	 */
+	public String checkName(String name) throws ApplicationException {
+		if(name == null || name.equals("_none")) {
+			return name;
+		}
+		if(!VALID_NAME.matcher(name).matches()) {
+			throw new ApplicationException(localisation.getString("css_name"));
+		}
+		return name;
+	}
+	
+	/*
+	 * Get a file in the loaded css folder, the name must be a valid css file name
+	 */
+	public File getLoadedFile(String name, int orgId) throws IOException, ApplicationException {
+		File loadedFolder = getCssLoadedFolder(orgId);
+		File f = new File(loadedFolder, checkName(name));
+		if(!f.getCanonicalFile().getParentFile().equals(loadedFolder.getCanonicalFile())) {
+			throw new ApplicationException(localisation.getString("css_name"));
+		}
+		return f;
 	}
 	
 	public File getCssLoadedFolder(int orgId) throws IOException {
@@ -95,10 +124,9 @@ public class CssManager {
 		f.createNewFile();	// Create an empty file
 	}
 	
-	private void replaceCustomCssFile(String name, int orgId) throws IOException {
+	private void replaceCustomCssFile(String name, int orgId) throws IOException, ApplicationException {
 		File cssFolder = getCssFolder();
-		File loadedFolder = getCssLoadedFolder(orgId);
-		File source = new File(loadedFolder.getAbsolutePath() + File.separator + name);
+		File source = getLoadedFile(name, orgId);
 		File target;
 		if(orgId > 0) {
 			target = new File(cssFolder.getAbsolutePath() + File.separator + orgId + File.separator + CUSTOM_FILE);
@@ -108,9 +136,8 @@ public class CssManager {
 		Files.copy(Paths.get(source.getAbsolutePath()), Paths.get(target.getPath()), StandardCopyOption.REPLACE_EXISTING);		
 	}
 	
-	public void deleteCustomCssFile(Connection sd, String user, String name, int orgId) throws IOException {
-		File loadedFolder = getCssLoadedFolder(orgId);
-		File f = new File(loadedFolder.getAbsolutePath() + File.separator + name);
+	public void deleteCustomCssFile(Connection sd, String user, String name, int orgId) throws IOException, ApplicationException {
+		File f = getLoadedFile(name, orgId);
 		log.fine("Deleting css file: " + f.getAbsolutePath());
 		String msg = localisation.getString("c_del_css") + " " + f.getAbsolutePath();
 		lm.writeLogOrganisation(sd, orgId, user, LogManager.DELETE, msg, 0);

@@ -201,7 +201,7 @@ public class SurveyAddGroupTool extends AbstractMcpTool {
 		}
 
 		SurveyManager sm = new SurveyManager(ctx.localisation, ctx.timezone, ctx.clientId);
-		sm.applyChangeSetArray(ctx.sd, ctx.cResults, surveyId, ctx.user, changes, true);
+		org.smap.sdal.model.ChangeResponse changeResp = sm.applyChangeSetArray(ctx.sd, ctx.cResults, surveyId, ctx.user, changes, true);
 
 		Map<String, Object> data = new LinkedHashMap<>();
 		data.put("added", Boolean.TRUE);
@@ -230,6 +230,7 @@ public class SurveyAddGroupTool extends AbstractMcpTool {
 							+ "that reads the form guessing where it stops.");
 		}
 
+		addExpressionWarnings(text, data, changeResp);
 		MCPToolResult result = new MCPToolResult(text.toString());
 		result.setStructuredContent(data);
 		return result;

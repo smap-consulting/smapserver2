@@ -9,7 +9,8 @@ public class SetValue {
 	public String event;
 	public String value;
 	public String ref;
-	
+	public transient boolean setGeopoint;		// Record the location in ref rather than set a value, not stored
+
 	public SetValue(String e, String v, String r) {
 		event = e;
 		value = v;

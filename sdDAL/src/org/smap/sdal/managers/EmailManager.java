@@ -436,6 +436,8 @@ public class EmailManager {
 				log.log(Level.INFO, "Info: List of email recipients is empty");
 				lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0, null);
 				resp.writeToMonitor = false;
+				resp.status = "no_recipients";		// Nothing was sent, say so in the record's history
+				resp.error_details = localisation.getString("email_nr");
 			}
 		} else {
 			resp.status = "error";
@@ -706,7 +708,7 @@ public class EmailManager {
 			log.fine("--------------------------------------- Adding Assigned User Email Address -----------------");
 			ArrayList<String> assignedUser = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, "_assigned", msg.instanceId);
 			if(assignedUser != null) {
-				for(String user : assignedUser) {	// Should only be one assigned user but in future could be more
+				for(String user : GeneralUtilityMethods.splitAssigned(String.join(",", assignedUser))) {	// Each user assigned to the case
 					log.fine("----- User: " + user);
 					String email = um.getUserEmailByIdent(sd, user);
 					log.fine("----- Email: " + user);
@@ -752,7 +754,7 @@ public class EmailManager {
 		log.fine("--------------------------------------- Adding Assigned User Email Address -----------------");
 		ArrayList<String> assignedUser = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, surveyId, "_assigned", instanceId);
 		if(assignedUser != null) {
-			for(String user : assignedUser) {	// Should only be one assigned user but in future could be more
+			for(String user : GeneralUtilityMethods.splitAssigned(String.join(",", assignedUser))) {	// Each user assigned to the case
 				log.fine("----- User: " + user);
 				String email = um.getUserEmailByIdent(sd, user);
 				log.fine("----- Email: " + user);
