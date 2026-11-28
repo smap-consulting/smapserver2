@@ -8452,7 +8452,37 @@ public class GeneralUtilityMethods {
 		}
 		return value;
 	}
-	
+
+	/*
+	 * Parameter that names the features (a choice list, or ${question} in a repeat) shown on the
+	 * map of a geo question while it is being answered
+	 */
+	public static final String REFERENCE_GEOMETRY = "reference-geometry";
+
+	/*
+	 * Return true if questions of this type can show reference geometry
+	 */
+	public static boolean isReferenceGeometryType(String type) {
+		return type != null && (type.equals("geopoint") || type.equals("geotrace") || type.equals("geoshape"));
+	}
+
+	/*
+	 * Get the reference geometry source of a question, or null if it has none
+	 */
+	public static String getReferenceGeometry(String type, ArrayList<KeyValueSimp> params) {
+		if(!isReferenceGeometryType(type)) {
+			return null;
+		}
+		String value = getSurveyParameter(REFERENCE_GEOMETRY, params);
+		if(value != null) {
+			value = value.trim();
+			if(value.length() == 0) {
+				value = null;
+			}
+		}
+		return value;
+	}
+
 	/*
 	 * Get the longitude and latitude from a WKT POINT
 	 */

@@ -373,6 +373,7 @@ public class XLSTemplateUploadManager {
 			throw new ApplicationException(localisation.getString("tu_nq"));
 		}
 		v.validateForm(1, f);
+		resolveReferenceGeometry();
 
 		/*
 		 * 5, Process the settings sheet
@@ -789,6 +790,73 @@ public class XLSTemplateUploadManager {
 	}
 
 	/*
+	 * A reference-geometry parameter of ${name} must name a repeat, as in pyxform, or the question in it
+	 * called geometry; either way clients show each repeat's geometry answer
+	 */
+	private void resolveReferenceGeometry() throws ApplicationException {
+		ArrayList<Form> forms = survey.surveyData.forms;
+		for(Form form : forms) {
+			for(Question q : form.questions) {
+				String ref = GeneralUtilityMethods.getReferenceGeometry(q.type, q.paramArray);
+				if(ref == null || !ref.startsWith("${")) {
+					continue;
+				}
+				String refName = GeneralUtilityMethods.getNameFromXlsName(ref);
+
+				// Find the referenced question and the form it is in
+				Question target = null;
+				int targetFormIndex = -1;
+				for(int i = 0; i < forms.size() && target == null; i++) {
+					for(Question fq : forms.get(i).questions) {
+						if(refName.equals(fq.name) && !fq.type.equals("end repeat") && !fq.type.equals("end group")) {
+							target = fq;
+							targetFormIndex = i;
+							break;
+						}
+					}
+				}
+				if(target == null) {
+					throw new ApplicationException(refGeometryMsg("tu_rg_nf", q.name, ref));
+				}
+
+				if(target.type.equals("begin repeat")) {
+					// The repeat's form holds its questions
+					Form repeatForm = null;
+					int targetIndex = forms.get(targetFormIndex).questions.indexOf(target);
+					for(Form rf : forms) {
+						if(rf.parentFormIndex == targetFormIndex && rf.parentQuestionIndex == targetIndex) {
+							repeatForm = rf;
+							break;
+						}
+					}
+					Question geometry = null;
+					if(repeatForm != null) {
+						for(Question rq : repeatForm.questions) {
+							if("geometry".equals(rq.name)) {
+								geometry = rq;
+								break;
+							}
+						}
+					}
+					if(geometry == null) {
+						throw new ApplicationException(refGeometryMsg("tu_rg_rep", q.name, ref));
+					}
+					q.list_name = "${geometry}";
+				} else if(targetFormIndex == 0 || !"geometry".equals(target.name)) {
+					// Clients read each feature from a repeat's child called geometry
+					throw new ApplicationException(refGeometryMsg("tu_rg_rep", q.name, ref));
+				}
+			}
+		}
+	}
+
+	private String refGeometryMsg(String key, String qName, String ref) {
+		return localisation.getString(key)
+				.replace("%s1", GeneralUtilityMethods.getSafeText(qName, true))
+				.replace("%s2", GeneralUtilityMethods.getSafeText(ref, true));
+	}
+
+	/*
 	 * Process the question rows to create a form
 	 */
 	private Form getForm(String name, int parentFormIndex, int parentQuestionIndex, ArrayList<KeyValueSimp>  parameters) throws Exception {
@@ -974,7 +1042,13 @@ public class XLSTemplateUploadManager {
 		// 11. Parameters
 		String paramString = XLSUtilities.getTextColumn(wb, row, "parameters", surveyHeader, lastCellNum, null);
 		q.paramArray = GeneralUtilityMethods.convertParametersToArray(paramString);
-		
+
+		// A geo question showing reference geometry gets its features from a list, as a select does
+		String refGeometry = GeneralUtilityMethods.getReferenceGeometry(q.type, q.paramArray);
+		if(refGeometry != null) {
+			q.list_name = refGeometry;
+		}
+
 		// 12. autoplay
 		q.autoplay = XLSUtilities.getTextColumn(wb, row, "autoplay", surveyHeader, lastCellNum, null);
 		

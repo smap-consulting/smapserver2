@@ -1321,7 +1321,10 @@ public class GetXForm {
 		String initial = null;
 		if (parameters != null) {
 			for(KeyValueSimp kv : parameters) {
-				if(!kv.k.equals("initial")) {
+				if(kv.k.equals(GeneralUtilityMethods.REFERENCE_GEOMETRY)
+						&& GeneralUtilityMethods.isReferenceGeometryType(q.getType())) {
+					continue;	// Written as an itemset from the question's nodeset
+				} else if(!kv.k.equals("initial")) {
 					questionElement.setAttribute(kv.k, kv.v);
 				} else {
 					initial = kv.v;

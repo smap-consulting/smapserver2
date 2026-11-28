@@ -871,7 +871,8 @@ public class Survey {
 			String nodeset_label = null;
 			String cascade_instance = null;
 			
-			if(q.type.startsWith("select") || q.type.equals("rank")) {
+			if(q.type.startsWith("select") || q.type.equals("rank")
+					|| (GeneralUtilityMethods.isReferenceGeometryType(q.type) && q.list_name != null)) {	// Reference geometry
 				if(q.list_name != null && q.list_name.startsWith("${")) {
 					cascade_instance = q.list_name;
 					nodeset = GeneralUtilityMethods.getNodesetForRepeat(q.choice_filter, cascade_instance);

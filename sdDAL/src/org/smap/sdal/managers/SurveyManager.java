@@ -2844,6 +2844,14 @@ public class SurveyManager {
 							
 						}
 						
+						/*
+						 * If this is a parameter change on a geo question then set the source of any reference geometry
+						 */
+						if(ci.property.prop.equals("parameters")
+								&& GeneralUtilityMethods.isReferenceGeometryType(ci.property.qType)) {
+							updateReferenceGeometry(sd, sId, ci.property.qId, ci.property.qType, ci.property.oldVal, ci.property.newVal);
+						}
+
 						// If this is a parameter change record any affected auto update questions
 						if(ci.property.prop.equals("parameters")) {
 							GeneralUtilityMethods.writeAutoUpdateQuestion(sd, sId, ci.property.qId, ci.property.newVal, true);
@@ -4744,7 +4752,58 @@ public class SurveyManager {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
 		}
 	}
-	
+
+	/*
+	 * A geo question's reference geometry comes from a choice list or ${question} in a repeat, held as
+	 * a select's list is so the XForm gets an itemset for it.  A choice filter can be added in an XLSForm
+	 */
+	private void updateReferenceGeometry(Connection sd, int sId, int qId, String qType,
+			String oldParams, String params) throws SQLException {
+
+		String ref = GeneralUtilityMethods.getReferenceGeometry(qType,
+				GeneralUtilityMethods.convertParametersToArray(params));
+		String oldRef = GeneralUtilityMethods.getReferenceGeometry(qType,
+				GeneralUtilityMethods.convertParametersToArray(oldParams));
+		if(ref == null ? oldRef == null : ref.equals(oldRef)) {
+			return;		// Unchanged, keep any choice filter
+		}
+
+		int lId = 0;
+		String nodeset = null;
+		String nodesetValue = null;
+		String nodesetLabel = null;
+		if(ref != null) {
+			if(ref.startsWith("${")) {
+				nodeset = GeneralUtilityMethods.getNodesetForRepeat(null, ref);
+				nodesetValue = ref;
+				nodesetLabel = ref;
+			} else {
+				lId = GeneralUtilityMethods.getListId(sd, sId, ref);
+				nodeset = GeneralUtilityMethods.getNodesetFromChoiceFilter(null,
+						GeneralUtilityMethods.cleanName(ref, true, false, false));
+				nodesetValue = "name";
+				nodesetLabel = "jr:itext(itextId)";
+			}
+		}
+
+		String sql = "update question set l_id = ?, nodeset = ?, nodeset_value = ?, nodeset_label = ? "
+				+ "where q_id = ? "
+				+ "and q_id in (select q_id from question q, form f where f.f_id = q.f_id and f.s_id = ?) ";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, lId);
+			pstmt.setString(2, nodeset);
+			pstmt.setString(3, nodesetValue);
+			pstmt.setString(4, nodesetLabel);
+			pstmt.setInt(5, qId);
+			pstmt.setInt(6, sId);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+	}
+
 	public void updateSearchChoices(Connection sd, PreparedStatement pstmt, String pVal, int sId, int qId) throws Exception {
 		int listId = -1;
 		Option o = new Option();
