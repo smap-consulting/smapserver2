@@ -2224,6 +2224,12 @@ public class SurveyManager {
 							ci.property.newVal = "string";
 							ci.property.setVisible = true;
 							ci.property.visibleValue = false;
+						} else if(ci.property.newVal.equals(GeneralUtilityMethods.BACKGROUND_GEOPOINT)) {
+							// Held as a geopoint that is not shown
+							ci.property.newVal = "geopoint";
+							ci.property.setVisible = true;
+							ci.property.visibleValue = false;
+							ci.property.sourceValue = "user";
 						}
 						//onlyIfNotPublished = true;	allow type changes
 					} else if(ci.property.prop.equals("name") && !ci.property.type.equals("optionlist")) {
@@ -4772,6 +4778,9 @@ public class SurveyManager {
 		String nodeset = null;
 		String nodesetValue = null;
 		String nodesetLabel = null;
+		if(ref != null && GeneralUtilityMethods.isReferenceGeometryType(qType)) {
+			ref = GeneralUtilityMethods.resolveRepeatGeometry(sd, sId, ref);
+		}
 		if(ref != null) {
 			if(ref.startsWith("${")) {
 				nodeset = GeneralUtilityMethods.getNodesetForRepeat(null, ref);

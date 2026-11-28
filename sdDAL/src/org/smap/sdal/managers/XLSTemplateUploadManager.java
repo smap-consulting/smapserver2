@@ -869,7 +869,7 @@ public class XLSTemplateUploadManager {
 		for(Form form : survey.surveyData.forms) {
 			for(Question q : form.questions) {
 				if(GeneralUtilityMethods.isBackgroundGeopoint(q.type, q.visible, q.trigger, q.calculation)) {
-					String t = q.trigger.trim();
+					String t = q.trigger == null ? "" : q.trigger.trim();
 					Question target = null;
 					if(t.startsWith("${") && t.endsWith("}") && t.indexOf("${", 2) < 0) {
 						target = names.get(GeneralUtilityMethods.getNameFromXlsName(t));

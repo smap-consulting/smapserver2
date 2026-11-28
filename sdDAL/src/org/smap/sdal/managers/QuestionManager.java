@@ -160,10 +160,20 @@ public class QuestionManager {
 						throw new Exception("Form not found");
 					}
 				}
+				// A background-geopoint from the editor is held as a geopoint that is not shown
+				if(GeneralUtilityMethods.BACKGROUND_GEOPOINT.equals(q.type)) {
+					q.type = "geopoint";
+					q.visible = false;
+					q.source = "user";
+				}
+
 				// Geo reference geometry and range tick labels come from a list, as a select's choices do
 				if(GeneralUtilityMethods.isListParameterType(q.type)) {
 					q.list_name = GeneralUtilityMethods.getListParameter(q.type,
 							GeneralUtilityMethods.convertParametersToArray(q.parameters));
+					if(GeneralUtilityMethods.isReferenceGeometryType(q.type)) {
+						q.list_name = GeneralUtilityMethods.resolveRepeatGeometry(sd, sId, q.list_name);
+					}
 				}
 
 				if(q.type.startsWith("select") || q.type.equals("rank")) {	// Get the list id

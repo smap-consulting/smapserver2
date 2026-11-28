@@ -8460,6 +8460,27 @@ public class GeneralUtilityMethods {
 	public static final String REFERENCE_GEOMETRY = "reference-geometry";
 
 	/*
+	 * A reference geometry of ${repeat}, as pyxform allows, shows the repeat's question called geometry
+	 * Return the reference to use, which is unchanged unless it names a repeat
+	 */
+	public static String resolveRepeatGeometry(Connection sd, int sId, String ref) throws SQLException {
+		if(ref == null || !ref.startsWith("${")) {
+			return ref;
+		}
+		String sql = "select count(*) from question q, form f "
+				+ "where q.f_id = f.f_id and f.s_id = ? and q.qname = ? and q.qtype = 'begin repeat'";
+		try (PreparedStatement pstmt = sd.prepareStatement(sql)) {
+			pstmt.setInt(1, sId);
+			pstmt.setString(2, getNameFromXlsName(ref));
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next() && rs.getInt(1) > 0) {
+				return "${geometry}";
+			}
+		}
+		return ref;
+	}
+
+	/*
 	 * Return true if questions of this type can show reference geometry
 	 */
 	public static boolean isReferenceGeometryType(String type) {
@@ -8468,13 +8489,13 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * A geopoint recorded without being shown whenever the question named in its trigger changes
-	 * Held as a geopoint that is not visible, has a trigger and no calculation
+	 * Held as a geopoint that is not visible and has no calculation.  The online editor can save one before
+	 * its trigger is set, so the trigger is not part of the test; without one nothing records the location
 	 */
 	public static final String BACKGROUND_GEOPOINT = "background-geopoint";
 
 	public static boolean isBackgroundGeopoint(String type, boolean visible, String trigger, String calculation) {
 		return "geopoint".equals(type) && !visible
-				&& trigger != null && trigger.trim().length() > 0
 				&& (calculation == null || calculation.trim().length() == 0);
 	}
 
